@@ -1,0 +1,73 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"tests/test_cmake_build/subdirectory_embed/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 26,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "test_subdirectory_embed::@b4d49c6de2ac950e03b0"
+		}
+	],
+	"id" : "check_subdirectory_embed::@b4d49c6de2ac950e03b0",
+	"name" : "check_subdirectory_embed",
+	"paths" : 
+	{
+		"build" : "tests/test_cmake_build/subdirectory_embed",
+		"source" : "tests/test_cmake_build/subdirectory_embed"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "out/build/windows-default/tests/test_cmake_build/subdirectory_embed/CMakeFiles/check_subdirectory_embed",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "out/build/windows-default/tests/test_cmake_build/subdirectory_embed/CMakeFiles/check_subdirectory_embed.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}

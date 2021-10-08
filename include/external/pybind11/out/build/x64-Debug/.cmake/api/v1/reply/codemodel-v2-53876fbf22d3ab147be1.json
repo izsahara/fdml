@@ -1,0 +1,406 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						19
+					]
+				},
+				{
+					"build" : "tests",
+					"childIndexes" : 
+					[
+						2,
+						3
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "tests",
+					"targetIndexes" : 
+					[
+						0,
+						3,
+						4,
+						6,
+						7,
+						8
+					]
+				},
+				{
+					"build" : "tests/test_embed",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "tests/test_embed"
+				},
+				{
+					"build" : "tests/test_cmake_build",
+					"childIndexes" : 
+					[
+						4,
+						6
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "tests/test_cmake_build",
+					"targetIndexes" : 
+					[
+						5,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15
+					]
+				},
+				{
+					"build" : "tests/test_cmake_build/subdirectory_target",
+					"childIndexes" : 
+					[
+						5
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "tests/test_cmake_build/subdirectory_target",
+					"targetIndexes" : 
+					[
+						2,
+						18
+					]
+				},
+				{
+					"build" : "tests/test_cmake_build/subdirectory_target/pybind11",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 4,
+					"projectIndex" : 3,
+					"source" : "."
+				},
+				{
+					"build" : "tests/test_cmake_build/subdirectory_embed",
+					"childIndexes" : 
+					[
+						7
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 4,
+					"source" : "tests/test_cmake_build/subdirectory_embed",
+					"targetIndexes" : 
+					[
+						1,
+						16,
+						17
+					]
+				},
+				{
+					"build" : "tests/test_cmake_build/subdirectory_embed/pybind11",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.4"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 5,
+					"source" : "."
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "pybind11",
+					"targetIndexes" : 
+					[
+						19
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2,
+						4
+					],
+					"directoryIndexes" : 
+					[
+						1,
+						2,
+						3
+					],
+					"name" : "pybind11_tests",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						3
+					],
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "test_subdirectory_target",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						2,
+						18
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "pybind11",
+					"parentIndex" : 2
+				},
+				{
+					"childIndexes" : 
+					[
+						5
+					],
+					"directoryIndexes" : 
+					[
+						6
+					],
+					"name" : "test_subdirectory_embed",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						1,
+						16,
+						17
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						7
+					],
+					"name" : "pybind11",
+					"parentIndex" : 4
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "check::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-check-Debug-3552b0632b1da0104f1a.json",
+					"name" : "check",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "check_subdirectory_embed::@b4d49c6de2ac950e03b0",
+					"jsonFile" : "target-check_subdirectory_embed-Debug-e9b3ac0bafadb37a4b92.json",
+					"name" : "check_subdirectory_embed",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "check_subdirectory_target::@f8098e357e01e6e34c87",
+					"jsonFile" : "target-check_subdirectory_target-Debug-53382780e63c1d761378.json",
+					"name" : "check_subdirectory_target",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "cross_module_gil_utils::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-cross_module_gil_utils-Debug-0d5f119fcad2bc7a2685.json",
+					"name" : "cross_module_gil_utils",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "memcheck::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-memcheck-Debug-a615e1f1a075ce897daf.json",
+					"name" : "memcheck",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "mock_install::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-mock_install-Debug-91ee02b32c1996fc1fec.json",
+					"name" : "mock_install",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "pybind11_cross_module_tests::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-pybind11_cross_module_tests-Debug-81b8d39aa03cc34e8f64.json",
+					"name" : "pybind11_cross_module_tests",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "pybind11_tests::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-pybind11_tests-Debug-8280ed9b7a3e14b37076.json",
+					"name" : "pybind11_tests",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "pytest::@a44f0ac069e85531cdee",
+					"jsonFile" : "target-pytest-Debug-a05728a0a5ed1da33c06.json",
+					"name" : "pytest",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_installed_embed::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_installed_embed-Debug-45d68c2b9c2a0b3bf860.json",
+					"name" : "test_build_installed_embed",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_installed_function::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_installed_function-Debug-c5e1ea08dba948c95210.json",
+					"name" : "test_build_installed_function",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_installed_target::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_installed_target-Debug-38eb2fcf67ca5570f937.json",
+					"name" : "test_build_installed_target",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_subdirectory_embed::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_subdirectory_embed-Debug-2a4af5807e099a315060.json",
+					"name" : "test_build_subdirectory_embed",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_subdirectory_function::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_subdirectory_function-Debug-1b92092ba2ef04a764f8.json",
+					"name" : "test_build_subdirectory_function",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_build_subdirectory_target::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_build_subdirectory_target-Debug-b48fbe8565fe60cb7848.json",
+					"name" : "test_build_subdirectory_target",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 3,
+					"id" : "test_cmake_build::@8d5b024c8825db19c1a5",
+					"jsonFile" : "target-test_cmake_build-Debug-c6dea0e6eabd038660dc.json",
+					"name" : "test_cmake_build",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "test_embed_lib::@b4d49c6de2ac950e03b0",
+					"jsonFile" : "target-test_embed_lib-Debug-6b83ef8d101fcfd0ee61.json",
+					"name" : "test_embed_lib",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "test_subdirectory_embed::@b4d49c6de2ac950e03b0",
+					"jsonFile" : "target-test_subdirectory_embed-Debug-71038d35e6337d1090a2.json",
+					"name" : "test_subdirectory_embed",
+					"projectIndex" : 4
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "test_subdirectory_target::@f8098e357e01e6e34c87",
+					"jsonFile" : "target-test_subdirectory_target-Debug-34633cf1b84318812b2e.json",
+					"name" : "test_subdirectory_target",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "uninstall::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-uninstall-Debug-e52aebe646a3038a4ec7.json",
+					"name" : "uninstall",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "E:/23620029-Faiz/C/Deep.GP/include/pybind11/out/build/x64-Debug",
+		"source" : "E:/23620029-Faiz/C/Deep.GP/include/pybind11"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 2
+	}
+}
