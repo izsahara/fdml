@@ -99,7 +99,7 @@ class Experiment11:
 
     def plot_pdf(self, nn, mean, true):
 
-        df = pd.DataFrame({'DGP': mean.ravel(), 'MCS': true})
+        df = pd.DataFrame({'DGP': mean.ravel(), 'MCS': true.ravel()})
         for d in df:
             sns.distplot(df[d], kde=True, hist=False, kde_kws = {'linewidth': 1.5}, label=d)
 
