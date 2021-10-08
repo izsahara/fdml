@@ -21,10 +21,13 @@ class KernelPCA(_KPCA):
 TODO: ADD PICKLE SUPPORT FROM C++
       ADD NAME ATTRB IN C++ CONSTRUCTOR
 """
-def save_model(model : _SIDGP, root_path : str, label : str, update : bool = False):
+def save_model(model : _SIDGP, root_path : str, label = None, update : bool = False):
     file = hdf.File(root_path, "a")
     if not update:
-        state = file.create_group(label + "/MODEL")
+        if isinstance(label, type(None)):
+            state = file.create_group("MODEL")
+        else:
+            state = file.create_group(label + "/MODEL")
         state.attrs.create("train_iter", model.train_iter)
         for ll, layer in enumerate(model.layers):
             lg = state.create_group(f'LAYER_{ll+1}')

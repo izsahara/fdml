@@ -36,15 +36,15 @@ from fdsm.kernels import SquaredExponential, Matern52
 from fdsm.base_models import GPNode
 from fdsm.deep_models import GPLayer, SIDGP
 
-MODEL_PATH = "./1/EXPERIMENT_1.hdf"
 PLOT_PATH = "./1/plots"
 
 class Experiment11:
     def __init__(self) -> None:
 
         # if not exists
-        file = hdf.File(MODEL_PATH, "a")
-        G = file["1"] if "1" in file else file.create_group("1")
+        self.model_path = "EXPERIMENT-1-1.hdf"
+        file = hdf.File(self.model_path, "a")
+        # G = file["1"] if "1" in file else file.create_group("1")
         file.close()
 
         data = np.loadtxt("../data/erf_55.dat")
@@ -77,7 +77,7 @@ class Experiment11:
         self.model = SIDGP(layers=[layer1, layer2])
         self.model.train(n_iter=500, ess_burn=50)
         self.model.estimate()
-        save_model(self.model, MODEL_PATH, "1")
+        save_model(self.model, self.model_path, label=None)
 
     def plot(self):
         fig = plt.figure(1, figsize=(8, 6))
@@ -118,8 +118,8 @@ class Experiment11:
 
     def mcs_predict(self, n_pred):
         mcs_data = np.loadtxt("../data/erf_mcs.dat")
-        file = hdf.File(MODEL_PATH, "a")
-        experiment = file["1"]
+        experiment = hdf.File(self.model_path, "a")
+        # experiment = file["1"]
         # if samples is empty
         experiment.create_dataset(name="SAMPLES", shape=mcs_data.shape, dtype=mcs_data.dtype, data=mcs_data)
         #
@@ -137,9 +137,10 @@ class Experiment11:
 class Experiment12:
     def __init__(self) -> None:
         self.model = None
+        self.model_path = "EXPERIMENT-1-2.hdf"
         # if not exists
-        file = hdf.File(MODEL_PATH, "a")
-        G = file["2"] if "2" in file else file.create_group("2")
+        file = hdf.File(self.model_path, "a")
+        # G = file["2"] if "2" in file else file.create_group("2")
         file.close()
 
         data = np.loadtxt("../data/erf_55.dat")
@@ -191,8 +192,8 @@ class Experiment12:
 
     def mcs_predict(self, n_pred):
         mcs_data = np.loadtxt("../data/erf_mcs.dat")
-        file = hdf.File(MODEL_PATH, "a")
-        experiment = file["2"]
+        experiment = hdf.File(self.model_path, "a")
+        # experiment = file["2"]
         # if samples is empty
         experiment.create_dataset(name="SAMPLES", shape=mcs_data.shape, dtype=mcs_data.dtype, data=mcs_data)
         #
@@ -206,6 +207,8 @@ class Experiment12:
             state.create_dataset(name="MEAN", shape=MM.shape, dtype=MM.dtype, data=MM)
             state.create_dataset(name="VARIANCE", shape=VV.shape, dtype=VV.dtype, data=VV)
             self.plot_pdf(nn, MM, YY)
+
+        experiment.close()
 
     def train_model(self):
         """ 3 Layers Mixture of SE and M52 """
@@ -232,7 +235,7 @@ class Experiment12:
         self.model = SIDGP(layers=[layer1, layer2, layer3])
         self.model.train(n_iter=500, ess_burn=50)
         self.model.estimate()
-        save_model(self.model, MODEL_PATH, "2")        
+        save_model(self.model, self.model_path, label=None)        
 
     
 if __name__ == "__main__":
