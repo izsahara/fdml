@@ -88,14 +88,14 @@ class Experiment11:
         cbar = fig.colorbar(contour)
         plt.xlabel(r'$\xi_1$')
         plt.ylabel(r'$\xi_2$')
-        plt.savefig(f"{PLOT_PATH}/EXPERIMENT-1-1-C.png")
+        plt.savefig("EXPERIMENT-1-1-C.png")
         fig_surf = go.Figure()
         fig_surf.add_trace(go.Surface(x=XX, y=YY, z=ZZ, opacity=0.9, colorscale='Jet'))
         fig_surf.add_trace(go.Scatter3d(name='Samples',
                                         x=self.X[:, 0], y=self.X[:, 1], z=self.Z.ravel(),
                                         mode='markers', marker=dict(size=3, symbol="square", color="darkblue")))
         fig_surf.update_layout(autosize=True, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
-        fig_surf.write_html(f"{PLOT_PATH}/EXPERIMENT-1-1-S.html", auto_open=False)        
+        fig_surf.write_html("EXPERIMENT-1-1-S.html", auto_open=False)        
 
     def plot_pdf(self, nn, mean, true):
 
