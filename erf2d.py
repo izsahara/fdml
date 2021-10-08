@@ -115,26 +115,26 @@ class ERF2D:
         MM, VV = model.predict(XX, return_std=True)
         VV = VV**2
         # Save into hdf
-        if not self.only_sklearn:
-            file = hdf.File(self.paths['model'], "a")
-            state = file[f'CONFIG_{self.config}/{self.test_name}']
-            skg = state["SKLEARN"] if "SKLEARN" in state else state.create_group("SKLEARN")
-            if "MODEL_PATH" not in skg.attrs:
-                skg.attrs.create("MODEL_PATH", skmodel_path)
-            skg_sub = skg["MCS"] if "MCS" in skg else skg.create_group("MCS")
-            skg_mcs = skg_sub.create_group(f"{self.n_mcs}")
-            skg_mcs.create_dataset(name="SAMPLES", shape=XX.shape, dtype=XX.dtype, data=XX)
-            skg_mcs.create_dataset(name="MEAN", shape=MM.shape, dtype=MM.dtype, data=MM)
-            skg_mcs.create_dataset(name="VARIANCE", shape=VV.shape, dtype=VV.dtype, data=VV)
-        else:
-            file = hdf.File(self.paths['model'], "r+")
-            skg_mcs = file[f'CONFIG_{self.config}/{self.test_name}']["SKLEARN"]["MCS"][f"{self.n_mcs}"]
-            samples = skg_mcs["SAMPLES"]
-            mean = skg_mcs["MEAN"]
-            variance = skg_mcs["VARIANCE"]
-            samples[...] = XX
-            mean[...] = MM
-            variance[...] = VV
+        # if not self.only_sklearn:
+        file = hdf.File(self.paths['model'], "a")
+        state = file[f'CONFIG_{self.config}/{self.test_name}']
+        skg = state["SKLEARN"] if "SKLEARN" in state else state.create_group("SKLEARN")
+        if "MODEL_PATH" not in skg.attrs:
+            skg.attrs.create("MODEL_PATH", skmodel_path)
+        skg_sub = skg["MCS"] if "MCS" in skg else skg.create_group("MCS")
+        skg_mcs = skg_sub.create_group(f"{self.n_mcs}")
+        skg_mcs.create_dataset(name="SAMPLES", shape=XX.shape, dtype=XX.dtype, data=XX)
+        skg_mcs.create_dataset(name="MEAN", shape=MM.shape, dtype=MM.dtype, data=MM)
+        skg_mcs.create_dataset(name="VARIANCE", shape=VV.shape, dtype=VV.dtype, data=VV)
+        # else:
+        #     file = hdf.File(self.paths['model'], "r+")
+        #     skg_mcs = file[f'CONFIG_{self.config}/{self.test_name}']["SKLEARN"]["MCS"][f"{self.n_mcs}"]
+        #     samples = skg_mcs["SAMPLES"]
+        #     mean = skg_mcs["MEAN"]
+        #     variance = skg_mcs["VARIANCE"]
+        #     samples[...] = XX
+        #     mean[...] = MM
+        #     variance[...] = VV
         file.close()
 
     def compute_mcs(self):
