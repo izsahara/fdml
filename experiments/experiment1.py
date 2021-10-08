@@ -49,7 +49,7 @@ class Experiment11:
         self.train_model()
         self.plot()
         # else load model
-        n_pred = [5, 10, 15, 25, 50]
+        n_pred = [10, 25, 50, 100]
         self.mcs_predict(n_pred)
 
     def train_model(self):

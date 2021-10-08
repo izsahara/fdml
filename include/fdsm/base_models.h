@@ -528,7 +528,7 @@ namespace fdsm::base_models::gaussian_process {
 
 			update_cholesky();
 			kernel->expectations(linked_mu, linked_var);
-
+			Eigen::initParallel();
 			if (n_thread == 0 || n_thread == 1){
 				for (Eigen::Index i = 0; i < linked_mu.rows(); ++i) {
 					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
@@ -543,7 +543,7 @@ namespace fdsm::base_models::gaussian_process {
 				}
 			}
 			else {
-				//Eigen::initParallel();
+				
 				thread_pool pool;
 				int split = int(linked_mu.rows() / n_thread);
 				const int remainder = int(linked_mu.rows()) % n_thread;
