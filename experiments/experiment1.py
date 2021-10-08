@@ -82,7 +82,7 @@ class Experiment11:
 
         XX, YY = np.meshgrid(np.linspace(-4, 4, 100), np.linspace(-4, 4, 100))
         WW = np.c_[XX.ravel(), YY.ravel()]
-        mean, var = self.model.predict(X = WW, n_impute = 50, n_thread = 6)
+        mean, var = self.model.predict(X = WW, n_impute = 50, n_thread = 90)
         ZZ = mean.reshape(XX.shape)
         contour = ax.contourf(XX, YY, ZZ, cmap=plt.get_cmap('jet'), alpha=1.0)
         cbar = fig.colorbar(contour)
@@ -120,7 +120,7 @@ class Experiment11:
         #
         XX, YY = mcs_data[:, :-1], mcs_data[:, -1][:, None]
         for nn in n_pred:
-            MM, VV = self.model.predict(XX, n_impute = nn, n_thread = 6)
+            MM, VV = self.model.predict(XX, n_impute = nn, n_thread = 90)
             # Save into hdf
             # if f""{nn}" in experiment: overwrite MEAN VARIANCE
             # else
