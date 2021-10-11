@@ -72,6 +72,17 @@ void wrap_base_models(py::module& module) {
         .def_readwrite("inputs", &GPR::inputs)
         .def_readwrite("outputs", &GPR::outputs);
 
+    py::class_<SolverSettings> mSETTINGS(module, "SolverSettings");
+    mSETTINGS
+        .def_readwrite("verbosity", &SolverSettings::verbosity)
+        .def_readwrite("n_restarts", &SolverSettings::n_restarts)
+        .def_readwrite("solver_iterations", &SolverSettings::solver_iterations)
+        .def_readwrite("gradient_norm", &SolverSettings::gradient_norm)
+        .def_readwrite("x_delta", &SolverSettings::x_delta)
+        .def_readwrite("f_delta", &SolverSettings::f_delta)
+        .def_readwrite("x_delta_violations", &SolverSettings::x_delta_violations)
+        .def_readwrite("f_delta_violations", &SolverSettings::f_delta_violations);
+
 
 }
 
