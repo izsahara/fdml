@@ -605,7 +605,7 @@ namespace fdsm::deep_models {
 				//std::cout << std::setw(7) << std::left << message << std::setw(3) << std::left << idx << std::setw(3) << std::left << time << "\r" << std::flush;
 			}
 			void print_utility(std::chrono::duration<double>& time){
-				std::cout << std::setw(20) << std::left << " | " <<  time.count() << "s" << std::endl;
+				std::cout << std::setw(10) << std::left << " | " <<  time.count() << "s" << "\r" << std::flush;
 			}
 			void initialize_layers() {
 				if (layers.front().o_input.size() == 0) { throw std::runtime_error("First Layer Requires Observed Inputs"); }
@@ -651,7 +651,7 @@ namespace fdsm::deep_models {
 						print_utility(layer->index, progress);
 					}
 				}
-				std::system("cls");
+				std::system("clear");
 				std::cout << std::endl;
 			}
 

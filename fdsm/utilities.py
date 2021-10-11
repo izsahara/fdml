@@ -24,8 +24,8 @@ TODO: ADD PICKLE SUPPORT FROM C++
 """
 def save_model(model : _SIDGP, root_path : str, label : str, update : bool = False):
     file = hdf.File(root_path, "a")
-    if not update:
-        state = file.create_group(label + "/MODEL")
+    if not update:        
+        state = file.create_group(label)        
         state.attrs.create("train_iter", model.train_iter)
         for ll, layer in enumerate(model.layers):
             lg = state.create_group(f'LAYER_{ll+1}')
@@ -127,7 +127,7 @@ def save_model(model : _SIDGP, root_path : str, label : str, update : bool = Fal
 def load_model(root_path : str, label : str):
     # Reconstruct model
     call_kernel = {'SquaredExponential': _SE, 'Matern52': _M52, 'Matern32': _M32}
-    state = hdf.File(root_path, "r")[label]["MODEL"]
+    state = hdf.File(root_path, "r")[label]
     layers = list()
     visit_layer = [_ for _ in state.values()]
     # visit_layer = list(filter(None, [g if not isinstance(g, hdf.Dataset)  else None for g in state.values()]))
