@@ -46,8 +46,9 @@ dataset = file["100"]
 X_train, Y_train = dataset["X_train"][:], dataset["Y_train"][:]
 X_test = dataset["X_test"][:]
 MEAN, VARIANCE = config1(X_train, Y_train, X_test)
-results = file["RESULTS"]["CFG1"]["100"]
-results.create_dataset(name="MEAN", shape=MEAN.shape, dtype=MEAN.dtype, data=MEAN)
-results.create_dataset(name="VARIANCE", shape=VARIANCE.shape, dtype=VARIANCE.dtype, data=VARIANCE)
+results1 = file["CFG1"]
+results2 = results1.create_group("100")
+results2.create_dataset(name="MEAN", shape=MEAN.shape, dtype=MEAN.dtype, data=MEAN)
+results2.create_dataset(name="VARIANCE", shape=VARIANCE.shape, dtype=VARIANCE.dtype, data=VARIANCE)
 file.close()
 
