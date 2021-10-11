@@ -34,19 +34,18 @@ def config1(Xtr, Ytr, Xts):
     layer2.set_outputs(Ytr)
 
     model = SIDGP(layers=[layer1, layer2])
-    model.train(n_iter=500, ess_burn=10)
+    model.train(n_iter=500, ess_burn=50)
     model.estimate()
-    mean, var = model.predict(Xts, n_impute=50, n_thread=150)
+    save_model(model, "./ENGINE/AIRCRAFT_ENGINE.hdf", "CFG1")
+    mean, var = model.predict(Xts, n_impute=50, n_thread=250)
     return mean, var
 
-
-
-file = hdf.File("./ENGINE/AIRCRAFT_ENGINE.hdf", "r")
+file = hdf.File("./ENGINE/AIRCRAFT_ENGINE.hdf", "a")
 dataset = file["100"]
 X_train, Y_train = dataset["X_train"][:], dataset["Y_train"][:]
 X_test = dataset["X_test"][:]
 MEAN, VARIANCE = config1(X_train, Y_train, X_test)
-results = file["RESULTS"]["100_C1"]
+results = file["RESULTS"]["CFG1"]["100"]
 results.create_dataset(name="MEAN", shape=MEAN.shape, dtype=MEAN.dtype, data=MEAN)
 results.create_dataset(name="VARIANCE", shape=VARIANCE.shape, dtype=VARIANCE.dtype, data=VARIANCE)
 file.close()
