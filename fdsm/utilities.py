@@ -60,7 +60,7 @@ def save_model(model : _SIDGP, root_path : str, label : str, update : bool = Fal
                 solver_settings.attrs.create("f_delta_violations", node.solver_settings.f_delta_violations)
                 # Kernel Properties
                 ng_kernel = ng.create_group("kernel")
-                ng_kernel.attrs.create("type", str(type(node.kernel))[21:-2])
+                ng_kernel.attrs.create("type", str(type(node.kernel))[22:-2])
                 # Kernel Length Scale
                 length_scale = ng_kernel.create_group("length_scale")
                 length_scale.attrs.create("value", node.kernel.length_scale.value)

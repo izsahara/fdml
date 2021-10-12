@@ -33,7 +33,8 @@ def plot(model, X, Y, config : int, n_imp : int ):
     ax.set_ylim([-4, 4])
     XX, YY = np.meshgrid(np.linspace(-4, 4, 100), np.linspace(-4, 4, 100))
     WW = np.c_[XX.ravel(), YY.ravel()]
-    ZZ, _ = model.predict(Xmcs, n_impute = n_imp, n_thread = 350)
+    ZZ, _ = model.predict(WW, n_impute = n_imp, n_thread = 350)
+    ZZ = ZZ.reshape(XX.shape)
     contour = ax.contourf(XX, YY, ZZ, cmap=plt.get_cmap('jet'), alpha=1.0)
     cbar = fig.colorbar(contour)
     plt.xlabel(r'$\xi_1$')
