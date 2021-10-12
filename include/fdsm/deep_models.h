@@ -340,7 +340,7 @@ namespace fdsm::deep_models {
 
 			// Operator() overload
 			Layer& operator()(Layer& layer) {
-				/*
+				
 				// // Initialize			[ CurrentLayer(NextLayer) ]
 				if (state == 0) {
 					layer.index = index + 1;
@@ -375,8 +375,8 @@ namespace fdsm::deep_models {
 						}
 					}
 				}
-				*/
-
+				
+				/*
 				// Initialize			[ CurrentLayer(PreviousLayer) ]
 				if (state == 0) {
 					if (layer.index == 1){
@@ -433,7 +433,7 @@ namespace fdsm::deep_models {
 					}
 				
 				}
-
+				*/
 
 				// Linked Prediction	[ CurrentLayer(PreviousLayer) ]
 				if (state == 2) {
@@ -680,13 +680,13 @@ namespace fdsm::deep_models {
 				layers.front().index = 1;
 				layers.back().last_layer = true;
 				// Propagate First Layer
-				// TMatrix X = layers.front().get_inputs();
-				// layers.front().set_outputs(X, true);
+				TMatrix X = layers.front().get_inputs();
+				layers.front().set_outputs(X, true);
 
-				for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
+				for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end()-1; ++layer) {
 					layer->state = 0;
-					// (*layer)(*std::next(layer));
-					(*layer)(*std::prev(layer));
+					(*layer)(*std::next(layer));
+					// (*layer)(*std::prev(layer));
 				}
 			}
 			void sample(int n_burn = 10) {
