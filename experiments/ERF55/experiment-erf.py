@@ -25,7 +25,7 @@ from fdsm.deep_models import GPNode, GPLayer, SIDGP
 MCS = np.loadtxt("MCS.dat")
 Xmcs, Zmcs = MCS[:, :-1], MCS[:, -1][:, None]
 
-def plot(model, X, Y, config : int):
+def plot(model, X, Y, config : int, n_imp : int ):
     # Contour
     fig = plt.figure(1, figsize=(8, 6))
     ax = fig.add_subplot(111)
@@ -33,19 +33,19 @@ def plot(model, X, Y, config : int):
     ax.set_ylim([-4, 4])
     XX, YY = np.meshgrid(np.linspace(-4, 4, 100), np.linspace(-4, 4, 100))
     WW = np.c_[XX.ravel(), YY.ravel()]
-    ZZ = model.predict(WW, return_std=False).reshape(XX.shape)
+    ZZ, _ = model.predict(Xmcs, n_impute = n_imp, n_thread = 350)
     contour = ax.contourf(XX, YY, ZZ, cmap=plt.get_cmap('jet'), alpha=1.0)
     cbar = fig.colorbar(contour)
     plt.xlabel(r'$\xi_1$')
     plt.ylabel(r'$\xi_2$')
-    plt.savefig(f"PLOTS/{config}C.png")
+    plt.savefig(f"PLOTS/{config}-{n_imp}-C.png")
     plt.close('all')
     # Surface
     fig_surf = go.Figure()
     fig_surf.add_trace(go.Surface(x=XX, y=YY, z=ZZ, opacity=0.9, colorscale='Jet'))
     fig_surf.add_trace(go.Scatter3d(name='Samples', x=X[:, 0], y=X[:, 1], z=Y.ravel(), mode='markers', marker=dict(size=3, symbol="square", color="darkblue")))
     fig_surf.update_layout(autosize=True, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
-    fig_surf.write_html(f"PLOTS/{config}S.html", auto_open=False)        
+    fig_surf.write_html(f"PLOTS/{config}-{n_imp}-S.html", auto_open=False)        
 
 def predict_mcs(model, config : int, n_imp : int):
     exp = hdf.File(f"ERF-{config}-{n_imp}.hdf", "a")
@@ -90,10 +90,11 @@ def config1(trial: int, n_imp : int):
         model.train(n_iter=500, ess_burn=50)
         model.estimate()
         save_model(model, "MODELS.hdf", "CFG_1")
-        plot(model, X, Z, config = 1)
+        plot(model, X, Z, config = 1, n_imp = n_imp)
         predict_mcs(model, config = 1, n_imp = n_imp)
     else:
         model = load_model("MODELS.hdf", "CFG_1")
+        plot(model, X, Z, config = 1, n_imp = n_imp)
         predict_mcs(model, config = 1, n_imp = n_imp)
 
 EXPEIMENTS = [5, 25, 50, 100]
