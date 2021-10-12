@@ -1,11 +1,3 @@
-import numpy as np
-import h5py as hdf
-import sys
-sys.path.insert(0, "../../")
-from fdsm.utilities import save_model, load_model
-from fdsm.kernels import SquaredExponential, Matern52
-from fdsm.deep_models import GPNode, GPLayer, SIDGP
-
 """
 AIRCRAFT-ENGINE EXPERIMENT
 ENGINE.hdf
@@ -23,6 +15,14 @@ ENGINE.hdf
 
 CFG1 / CFG2 .. CREATED DURING TRAINING
 """
+
+import numpy as np
+import h5py as hdf
+import sys
+sys.path.insert(0, "../../")
+from fdsm.utilities import save_model, load_model
+from fdsm.kernels import SquaredExponential, Matern52
+from fdsm.deep_models import GPNode, GPLayer, SIDGP
 
 N_SAMPLES = 100
 
@@ -73,6 +73,7 @@ def config1(trial : int):
     file.close()
 
 
-for tt in range(2, 26):
-    config1(trial = tt)
+if __name__ == "__main__":
+    for tt in range(2, 26):
+        config1(trial = tt)
 

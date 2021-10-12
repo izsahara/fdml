@@ -74,7 +74,7 @@ def save_model(model : _SIDGP, root_path : str, label : str, update : bool = Fal
                 variance.attrs.create("fixed", node.kernel.variance.fixed)
                 variance.attrs.create("constraint", node.kernel.variance.constraint)
     else:
-        state = file[label + "/MODEL"]
+        state = file[label]
         state.attrs["train_iter"][:] = model.train_iter
         for ll, layer in enumerate(model.layers):
             lg = state[f'LAYER_{ll+1}']

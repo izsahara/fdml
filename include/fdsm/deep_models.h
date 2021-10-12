@@ -641,6 +641,9 @@ namespace fdsm::deep_models {
 
 			void train(int n_iter = 50, int ess_burn = 10) {
 				n_iter_ = n_iter;
+				auto train_start = std::chrono::system_clock::now();
+				std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
+				std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;				
 				for (int i = 0; i < n_iter + 1; ++i) {
 					double progress = double(i) * 100.0 / double(n_iter);
 					// I-step
@@ -651,7 +654,11 @@ namespace fdsm::deep_models {
 						print_utility(layer->index, progress);
 					}
 				}
-				std::system("clear");
+
+				auto train_end = std::chrono::system_clock::now();
+				std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
+				std::cout << "TRAIN END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;				
+				// std::system("clear");
 				std::cout << std::endl;
 			}
 
