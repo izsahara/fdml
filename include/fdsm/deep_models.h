@@ -8,14 +8,13 @@
 //#include <filesystem>
 //#include <highfive/H5Easy.hpp>
 
-namespace fdsm::deep_models {
+namespace fdml::deep_models {
 
 	namespace gaussian_process {
-		using namespace fdsm::kernels;
-		using namespace fdsm::utilities;
-		using namespace fdsm::base_models;
-		using namespace fdsm::base_models::optimizer;
-
+		using namespace fdml::kernels;
+		using namespace fdml::utilities;
+		using namespace fdml::base_models;
+		using namespace fdml::base_models::optimizer;
 		/*
 		* TODO: FINISH CONNECT INPUTS
 		*		VECTORIZED KERNEL EXPECTATIONS

@@ -5,7 +5,7 @@
 #include "pybind11/eigen.h"
 
 namespace py = pybind11;
-using namespace fdsm::parameters;
+using namespace fdml::parameters;
 void wrap_parameters(py::module& module) {
 
     module.def("transform_fxn", &transform_fxn<TVector>,

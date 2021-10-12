@@ -6,8 +6,8 @@
 
 namespace py = pybind11;
 void wrap_deep(py::module module) {
-    using namespace::fdsm::base_models::gaussian_process;
-    using namespace fdsm::deep_models::gaussian_process;
+    using namespace fdml::base_models;
+    using namespace fdml::deep_models::gaussian_process;
 
 
     py::class_<GPNode, GP> mNode(module, "CGPNode");

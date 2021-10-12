@@ -2,7 +2,7 @@
 #define PARAMETERS_H
 #include "base.h"
 
-namespace fdsm::parameters {
+namespace fdml::parameters {
 
     /* Constraints */
     template<typename T>

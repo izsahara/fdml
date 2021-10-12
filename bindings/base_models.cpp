@@ -5,9 +5,9 @@
 
 namespace py = pybind11;
 void wrap_base_models(py::module& module) {
-    using namespace fdsm::base_models;
-    using namespace fdsm::base_models::gaussian_process;
-    using namespace fdsm::base_models::optimizer;
+    using namespace fdml::base_models;
+    using namespace fdml::base_models::optimizer;
+    using namespace fdml::base_models::gaussian_process;
 
     class PyGP : public GP {
 

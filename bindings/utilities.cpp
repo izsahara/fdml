@@ -3,8 +3,8 @@
 #include "pybind11/eigen.h"
 
 namespace py = pybind11;
-using namespace fdsm::utilities;
-using namespace fdsm::utilities::kernel_pca;
+using namespace fdml::utilities;
+using namespace fdml::utilities::kernel_pca;
 
 PYBIND11_MODULE(_utilities, module) {
 	module.def("standardize", &standardize, py::arg("X"));

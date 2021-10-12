@@ -5,9 +5,9 @@
 #include "parameters.h"
 #include <numeric>
 
-namespace fdsm::kernels {
-	using namespace fdsm::parameters;
-	using namespace fdsm::utilities;
+namespace fdml::kernels {
+	using namespace fdml::parameters;
+	using namespace fdml::utilities;
 
 	class Kernel {
 

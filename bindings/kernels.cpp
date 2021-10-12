@@ -5,7 +5,7 @@
 #include "pybind11/eigen.h"
 
 namespace py = pybind11;
-using namespace fdsm::kernels;
+using namespace fdml::kernels;
 void wrap_kernels(py::module& module) {
 
     /*

@@ -11,8 +11,8 @@
 
 namespace opt = cppoptlib;
 
-namespace fdsm::base_models {
-	using namespace fdsm::kernels;
+namespace fdml::base_models {
+	using namespace fdml::kernels;
 
 	class Model {
 
@@ -81,9 +81,7 @@ namespace fdsm::base_models {
 		TVector mean = TVector::Zero(1);
 	};
 
-}
-
-namespace fdsm::base_models::optimizer {
+	namespace optimizer {
 	using Solver = opt::solver::Solver;
 	using Function = opt::function::Function;
 	using SolverState = opt::solver::SolverState;
@@ -192,17 +190,17 @@ namespace fdsm::base_models::optimizer {
 			}
 		};
 	}
-}
 
-namespace fdsm::base_models::gaussian_process {
-	using namespace fdsm::base_models::optimizer;
+
+	}
+
+	namespace gaussian_process {
+	using namespace optimizer;
 
 	class GPR : public GP {
 
 	private:
 		using GPRSolver = opt::solver::LBFGSB::LBFGSB;
-
-
 	public:
 		GPR() : GP() {}
 		GPR(shared_ptr<Kernel> kernel) : GP(kernel) {}
@@ -385,5 +383,10 @@ namespace fdsm::base_models::gaussian_process {
 
 	};
 
+
+
+	}
+
 }
+
 #endif

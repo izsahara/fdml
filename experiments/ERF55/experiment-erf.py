@@ -98,6 +98,42 @@ def config1(trial: int, n_imp : int):
         plot(model, X, Z, config = 1, n_imp = n_imp)
         predict_mcs(model, config = 1, n_imp = n_imp)
 
+def config2(trial: int, n_imp : int):
+    train_data = np.loadtxt("TRAIN.dat")
+    X, Z = train_data[:, :-1], train_data[:, -1][:, None]
+    if trial == 0:
+        node1 = GPNode(kernel=SquaredExponential(length_scale=np.array([1.0, 1.0]), variance=1.0))
+        node2 = GPNode(kernel=Matern52(length_scale=np.array([1.0, 1.0]), variance=1.0))
+        node3 = GPNode(kernel=SquaredExponential(length_scale=np.array([1.0, 1.0]), variance=1.0))
+        node4 = GPNode(kernel=Matern52(length_scale=np.array([1.0, 1.0]), variance=1.0))
+        node5 = GPNode(kernel=Matern52(length_scale=np.array([1.0, 1.0]), variance=1.0))
+        node1.likelihood_variance.fix()
+        node2.likelihood_variance.fix()
+        node3.likelihood_variance.fix()
+        node4.likelihood_variance.fix()
+        node5.likelihood_variance.fix()
+        node1.kernel.length_scale.bounds = (np.array([1e-6, 1e-6]), np.array([2.0, 2.0]))
+        node2.kernel.length_scale.bounds = (np.array([1e-6, 1e-6]), np.array([2.0, 2.0]))
+        node3.kernel.length_scale.bounds = (np.array([1e-6, 1e-6]), np.array([2.0, 2.0]))
+        node4.kernel.length_scale.bounds = (np.array([1e-6, 1e-6]), np.array([2.0, 2.0]))
+        node5.kernel.length_scale.bounds = (np.array([1e-6, 1e-6]), np.array([2.0, 2.0]))
+        layer1 = GPLayer(nodes=[node1, node2])
+        layer2 = GPLayer(nodes=[node3, node4])
+        layer3 = GPLayer(nodes=[node5])
+        layer1.set_inputs(X)
+        layer3.set_outputs(Z)
+        model = SIDGP(layers=[layer1, layer2, layer3])
+        model.train(n_iter=500, ess_burn=50)
+        model.estimate()
+        save_model(model, "MODELS.hdf", "CFG_2")
+        plot(model, X, Z, config = 2, n_imp = n_imp)
+        predict_mcs(model, config = 2, n_imp = n_imp) 
+    else:    
+        model = load_model("MODELS.hdf", "CFG_2")
+        plot(model, X, Z, config = 2, n_imp = n_imp)
+        predict_mcs(model, config = 2, n_imp = n_imp)        
+
+
 EXPEIMENTS = [5, 25, 50, 100]
 for idx, ee in enumerate(EXPEIMENTS):
     config1(trial = idx, n_imp = ee)

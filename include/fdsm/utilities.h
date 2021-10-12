@@ -4,7 +4,7 @@
 #include <numeric>
 #include "base.h"
 
-namespace fdsm::utilities {
+namespace fdml::utilities {
 
     void standardize(TMatrix& X) {
         TMatrix Xmean = X.rowwise() - X.colwise().mean();
@@ -307,7 +307,7 @@ namespace fdsm::utilities {
 
 }
 
-namespace fdsm::utilities::kernel_pca {
+namespace fdml::utilities::kernel_pca {
 
     using std::cout;
     using std::endl;
@@ -376,7 +376,7 @@ namespace fdsm::utilities::kernel_pca {
 
 }
 
-namespace fdsm::utilities::tensor {
+namespace fdml::utilities::tensor {
     // Taken from : https://stackoverflow.com/questions/48795789/eigen-unsupported-tensor-to-eigen-matrix
     template<typename T>
     using  MatrixType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
