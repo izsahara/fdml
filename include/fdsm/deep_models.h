@@ -340,7 +340,8 @@ namespace fdsm::deep_models {
 
 			// Operator() overload
 			Layer& operator()(Layer& layer) {
-				// Initialize			[ CurrentLayer(NextLayer) ]
+				/*
+				// // Initialize			[ CurrentLayer(NextLayer) ]
 				if (state == 0) {
 					layer.index = index + 1;
 					if (layer.nodes.size() == nodes.size())
@@ -367,9 +368,73 @@ namespace fdsm::deep_models {
 					}
 					else
 					{
-						// TODO: Dimension Expansion
+						if (layer.last_layer) { layer.set_inputs(o_output); }
+						else {
+							// TODO: Dimension Expansion
+
+						}
 					}
 				}
+				*/
+
+				// Initialize			[ CurrentLayer(PreviousLayer) ]
+				if (state == 0) {
+					if (layer.index == 1){
+						// Configure First Layer Outputs
+						if (nodes.size() == layer.nodes.size() || nodes.size() < layer.nodes.size()) {
+							layer.set_outputs(layer.o_input);
+						}
+						else if (nodes.size() > layer.nodes.size()){
+							// Expand Dimensions
+							Eigen::Index diff = nodes.size() - layer.nodes.size();
+							TMatrix output_ = TMatrix::Zero(layer.o_input.rows(), layer.o_input.cols()+diff);
+							std::random_device rd; 
+							std::mt19937 gen(rd());
+							std::uniform_int_distribution<> dist(0, layer.o_input.cols()-1);
+							std::vector<Eigen::Index> indices;
+							for (Eigen::Index i = 0; i < diff; ++i){
+								indices.push_back(dist(gen));
+							}
+							output_ << layer.o_input, layer.o_input(Eigen::all, indices);
+							layer.set_outputs(output_);
+						}
+					}
+					// Configure Current Layer
+					index = layer.index + 1;
+					if (nodes.size() == layer.nodes.size())
+					{
+						set_inputs(layer.o_output);
+						if (o_output.size() == 0)
+						{
+							set_outputs(layer.o_output, true);
+						}
+					}
+					else if (nodes.size() < layer.nodes.size())
+					{
+						if (last_layer) { set_inputs(o_output); }
+						else {
+							// Apply Dimensionality Reduction (Kernel PCA)
+							kernel_pca::KernelPCA pca(nodes.size(), "sigmoid");
+							TMatrix input_transformed = pca.transform(layer.o_output);
+							set_inputs(input_transformed);
+							if (o_output.size() == 0)
+							{
+								set_outputs(input_transformed, true);
+							}
+						}
+					}
+					else
+					{
+						if (last_layer) { set_inputs(o_output); }
+						else {
+							// TODO: Dimension Expansion
+
+						}
+					}
+				
+				}
+
+
 				// Linked Prediction	[ CurrentLayer(PreviousLayer) ]
 				if (state == 2) {
 					TMatrix linked_mu = layer.latent_output.first;
@@ -445,11 +510,12 @@ namespace fdsm::deep_models {
 					missing = get_missing_index<BoolVector>(outputs);
 				}
 
-				if (nodes.size())
+				if (nodes.size() > 0){
 					for (std::size_t c = 0; c < nodes.size(); ++c) {
 						nodes[c].outputs = outputs.col(c);
 						nodes[c].missing = missing;
 					}
+				}
 				o_output = outputs;
 
 			}
@@ -614,12 +680,13 @@ namespace fdsm::deep_models {
 				layers.front().index = 1;
 				layers.back().last_layer = true;
 				// Propagate First Layer
-				TMatrix X = layers.front().get_inputs();
-				layers.front().set_outputs(X, true);
+				// TMatrix X = layers.front().get_inputs();
+				// layers.front().set_outputs(X, true);
 
-				for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end() - 1; ++layer) {
+				for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
 					layer->state = 0;
-					(*layer)(*std::next(layer));
+					// (*layer)(*std::next(layer));
+					(*layer)(*std::prev(layer));
 				}
 			}
 			void sample(int n_burn = 10) {
