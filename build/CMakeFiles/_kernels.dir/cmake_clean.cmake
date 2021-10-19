@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "../fdsm/_kernels.cpython-38-x86_64-linux-gnu.so"
-  "../fdsm/_kernels.pdb"
+  "../fdml/src/_kernels.cpython-38-x86_64-linux-gnu.so"
+  "../fdml/src/_kernels.pdb"
   "CMakeFiles/_kernels.dir/bindings/kernels.cpp.o"
 )
 

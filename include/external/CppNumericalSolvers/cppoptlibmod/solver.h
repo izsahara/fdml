@@ -203,7 +203,7 @@ namespace cppoptlib::solver {
                 std::cout << header << " RESTART " << restart << " " << header << std::endl;
             }
             else if (verbosity == 2) 
-            { std::system("clear"); }
+            { std::system("cls"); }
             return { function_state, solver_state };
         }
 
@@ -218,31 +218,3 @@ namespace cppoptlib::solver {
 }  // namespace cppoptlib::solver
 
 #endif  // INCLUDE_CPPOPTLIB_SOLVER_SOLVER_H_
-
-//virtual std::tuple<FunctionState, SolverState> minimize(const Function& function, const TVector& x0) { return this->minimize(function, function.evaluate(x0, this->order())); }
-//virtual std::tuple<FunctionState, SolverState> minimize(const Function& function, const FunctionState& initial_state)
-//{
-//    // Solver state during the optimization.
-//    SolverState solver_state;
-//    // Function state during the optimization.
-//    FunctionState function_state(initial_state);
-//
-//    this->initialize_solver(initial_state);
-//    int iter = 0;
-//    do {
-//        // Trigger a user-defined callback.
-//        this->callback(function_state, solver_state, iter); iter++;
-//        // Find next function state.
-//        FunctionState previous_function_state(function_state);
-//        function_state = this->step(function, previous_function_state, solver_state);
-//
-//        // Update current solver state.
-//        solver_state.update(previous_function_state, function_state, stopping_state);
-//    } while (solver_state.status == SolverStatus::Continue);
-//
-//    // Final Trigger of a user-defined callback.
-//    this->callback(function_state, solver_state, iter);
-//
-//    return { function_state, solver_state };
-//}
-//

@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "../fdsm/_parameters.cpython-38-x86_64-linux-gnu.so"
-  "../fdsm/_parameters.pdb"
+  "../fdml/src/_parameters.cpython-38-x86_64-linux-gnu.so"
+  "../fdml/src/_parameters.pdb"
   "CMakeFiles/_parameters.dir/bindings/parameters.cpp.o"
 )
 

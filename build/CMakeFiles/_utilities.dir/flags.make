@@ -6,5 +6,5 @@ CXX_FLAGS = -O3 -Wall -fopenmp -O3 -DNDEBUG -fPIC -fvisibility=hidden   -flto -f
 
 CXX_DEFINES = -D_utilities_EXPORTS
 
-CXX_INCLUDES = -I/home/flowdiagnostics/GIT/fdsm/fdsm/include/fdsm -I/home/flowdiagnostics/GIT/fdsm/fdsm/include/external/Eigen -I/home/flowdiagnostics/GIT/fdsm/fdsm/include/external/rapidcsv/src -I/home/flowdiagnostics/GIT/fdsm/fdsm/include/external/ThreadPool -I/home/flowdiagnostics/GIT/fdsm/fdsm/include/external/CppNumericalSolvers -I/home/flowdiagnostics/GIT/fdsm/fdsm/bindings -isystem /home/flowdiagnostics/GIT/fdsm/fdsm/include/external/pybind11/include -isystem /usr/include/python3.8 
+CXX_INCLUDES = -I/home/flowdiagnostics/GIT/fdml/include/fdml -I/home/flowdiagnostics/GIT/fdml/include/external/Eigen -I/home/flowdiagnostics/GIT/fdml/include/external/ThreadPool -I/home/flowdiagnostics/GIT/fdml/include/external/CppNumericalSolvers -I/home/flowdiagnostics/GIT/fdml/include/external/optim/include -I/home/flowdiagnostics/GIT/fdml/bindings -isystem /home/flowdiagnostics/GIT/fdml/include/external/pybind11/include -isystem /usr/include/python3.8 
 

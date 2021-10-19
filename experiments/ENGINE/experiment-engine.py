@@ -20,9 +20,9 @@ import numpy as np
 import h5py as hdf
 import sys
 sys.path.insert(0, "../../")
-from fdsm.utilities import save_model, load_model
-from fdsm.kernels import SquaredExponential, Matern52
-from fdsm.deep_models import GPNode, GPLayer, SIDGP
+from fdml.utilities import save_model, load_model
+from fdml.kernels import SquaredExponential, Matern52
+from fdml.deep_models import GPNode, GPLayer, SIDGP
 
 N_SAMPLES = 100
 

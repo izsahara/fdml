@@ -98,150 +98,101 @@ void wrap_kernels(py::module& module) {
     };
 
 
-    py::class_<Kernel, shared_ptr<Kernel>, PyKernel> KERNEL(module, "_Kernel", py::is_final());
+    py::class_<Kernel, PyKernel, shared_ptr<Kernel>> KERNEL(module, "_Kernel", py::is_final());
     KERNEL
         .def(py::init<>())
         .def(py::init<const double&, const double&>(), py::arg("length_scale"), py::arg("variance"))
         .def(py::init<TVector&, const double&>(), py::arg("length_scale"), py::arg("variance"))
-        .def(py::init<Parameter<TVector>&, Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
+        .def(py::init<const Parameter<TVector>&, const Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
         .def("K", py::overload_cast<const TMatrix&, const TMatrix&>(&Kernel::K), py::arg("X1"), py::arg("X2"))
         .def("diag", &Kernel::diag, py::arg("X1"))
         .def_readwrite("length_scale", &Kernel::length_scale)
         .def_readwrite("variance", &Kernel::variance);
-        //.def(py::pickle(
-        //    [](const py::object& self) {
-        //        py::dict d;
-        //        if (py::hasattr(self, "__dict__"))
-        //            d = self.attr("__dict__");
-        //        return py::make_tuple(self.attr("length_scale"), self.attr("variance"), d);
-        //    },
-        //    [](const py::tuple& t) {
-        //        if (t.size() != 3)
-        //            throw std::runtime_error("Invalid state!");
-        //        auto cpp_state = std::unique_ptr<Kernel>(new PyKernel);
-        //        cpp_state->variance = t[0].cast<Parameter<double>>();
-        //        cpp_state->length_scale = t[1].cast<Parameter<TVector>>();
-        //        auto py_state = t[2].cast<py::dict>();
-        //        return std::make_pair(std::move(cpp_state), py_state);
-        //    }
-        //    ));
 
 
-    py::class_<Stationary, shared_ptr<Stationary>, Kernel, PyStationary> STATIONARY(module, "_Stationary", py::is_final());
+    py::class_<Stationary, Kernel, PyStationary, shared_ptr<Stationary>> STATIONARY(module, "_Stationary", py::is_final());
     STATIONARY
         .def(py::init<>())
         .def(py::init<const double&, const double&>(), py::arg("length_scale"), py::arg("variance"))
         .def(py::init<TVector&, const double&>(), py::arg("length_scale"), py::arg("variance"))
-        .def(py::init<Parameter<TVector>&, Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
+        .def(py::init<const Parameter<TVector>&, const Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
         .def("K", py::overload_cast<const TMatrix&, const TMatrix&>(&Stationary::K), py::arg("X1"), py::arg("X2"))
         .def("diag", &Stationary::diag, py::arg("X1"))
         .def_readwrite("length_scale", &Stationary::length_scale)
         .def_readwrite("variance", &Stationary::variance);
-        //.def(py::pickle(
-        //    [](const py::object& self) {
-        //        py::dict d;
-        //        if (py::hasattr(self, "__dict__"))
-        //            d = self.attr("__dict__");
-        //        return py::make_tuple(self.attr("length_scale"), self.attr("variance"), d);
-        //    },
-        //    [](const py::tuple& t) {
-        //        if (t.size() != 3)
-        //            throw std::runtime_error("Invalid state!");
-        //        auto cpp_state = std::unique_ptr<Stationary>(new PyStationary);
-        //        cpp_state->variance = t[0].cast<Parameter<double>>();
-        //        cpp_state->length_scale = t[1].cast<Parameter<TVector>>();
-        //        auto py_state = t[2].cast<py::dict>();
-        //        return std::make_pair(std::move(cpp_state), py_state);
-        //    }
-        //    ));
     
 
-    py::class_<SquaredExponential, shared_ptr<SquaredExponential>, Stationary, Kernel> SE(module, "SquaredExponential");
+    py::class_<SquaredExponential, Stationary, Kernel, shared_ptr<SquaredExponential>> SE(module, "SquaredExponential", py::multiple_inheritance());
     SE
         .def(py::init<>())
         .def(py::init<const double&, const double&>(), py::arg("length_scale"), py::arg("variance"))
         .def(py::init<TVector&, const double&>(), py::arg("length_scale"), py::arg("variance"))
-        .def(py::init<Parameter<TVector>&, Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
+        .def(py::init<const Parameter<TVector>&, const Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
         .def("K", py::overload_cast<const TMatrix&, const TMatrix&>(&SquaredExponential::K), py::arg("X1"), py::arg("X2"))
         .def("diag", &SquaredExponential::diag, py::arg("X1"))
         .def("IJ", &SquaredExponential::IJ, py::arg("II"), py::arg("JJ"), py::arg("mean"), py::arg("variance"), py::arg("X"), py::arg("idx"))
         .def("expectations", &SquaredExponential::expectations, py::arg("mean"), py::arg("variance"))
         .def_readwrite("length_scale", &SquaredExponential::length_scale)
-        .def_readwrite("variance", &SquaredExponential::variance);
-        // Make Class Pickable
-        //.def("__getstate__", [](const shared_ptr<Kernel>& k)
-        //    {return py::make_tuple(k->get_lengthscale(), k->get_variance()); })
-        //.def("__setstate__", [](SquaredExponential& k, const py::tuple& t) {
-        //if (t.size() != 2) { throw std::runtime_error("Invalid state!"); }
+        .def_readwrite("variance", &SquaredExponential::variance)
+        .def(py::pickle(
+            [/*__getstate__*/](const SquaredExponential& p) {return py::make_tuple(p.length_scale, p.variance); },
+            [/*__setstate__*/](py::tuple t) {
+                if (t.size() != 2)
+                {
+                    throw std::runtime_error("Invalid state!");
+                }
+                /* Create a new C++ instance */
+                SquaredExponential p = SquaredExponential(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
+                return p;
+            })
+        );
 
-        //auto t0 = t[0].cast<Parameter<TVector>>();       
-        //std::cout << "Converted t0 to vector param" << std::endl;
-        //auto t1 = t[1].cast<Parameter<double>>();
-        //std::cout << "Converted t1 to float param" << std::endl;
-
-        //new (&k) SquaredExponential(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());});
-
-        //.def(py::pickle(
-        //    [](const SquaredExponential& k) {
-        //        return py::make_tuple(k.length_scale, k.variance);
-        //    },
-        //    [](py::tuple t) {
-        //        if (t.size() != 2){throw std::runtime_error("Invalid state!");}
-        //        return new SquaredExponential(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
-        //    }));
-
-    py::class_<Matern32, shared_ptr<Matern32>, Stationary, Kernel> M32(module, "Matern32");
+    py::class_<Matern32, Stationary, Kernel, shared_ptr<Matern32>> M32(module, "Matern32", py::multiple_inheritance());
     M32
         .def(py::init<>())
         .def(py::init<const double&, const double&>(), py::arg("length_scale"), py::arg("variance"))
         .def(py::init<TVector&, const double&>(), py::arg("length_scale"), py::arg("variance"))
-        .def(py::init<Parameter<TVector>&, Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
+        .def(py::init<const Parameter<TVector>&, const Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
         .def("K", py::overload_cast<const TMatrix&, const TMatrix&>(&Matern32::K), py::arg("X1"), py::arg("X2"))
         .def("diag", &Matern32::diag, py::arg("X1"))
         .def_readwrite("length_scale", &Matern32::length_scale)
-        .def_readwrite("variance", &Matern32::variance);
-        //.def(py::pickle(
-        //    [](const Matern32& k) {
-        //        return py::make_tuple(k.length_scale, k.variance);
-        //    },
-        //    [](py::tuple t) {
-        //        if (t.size() != 2) { throw std::runtime_error("Invalid state!"); }
-        //        return new Matern32(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
-        //    }));
-        //.def("__getstate__", [](const py::object& self)
-        //    {return py::make_tuple(self.attr("length_scale"), self.attr("variance"), self.attr("__dict__")); })
-        //.def("__setstate__", [](const py::object& self, const py::tuple& t) {
-        //if (t.size() != 3) { throw std::runtime_error("Invalid state!"); }
-        //auto& k = self.cast<Matern32&>();
-        //new (&k) Matern32(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());        
-        //self.attr("__dict__") = t[2]; });
+        .def_readwrite("variance", &Matern32::variance)
+        .def(py::pickle(
+            [/*__getstate__*/](const Matern32& p) {return py::make_tuple(p.length_scale, p.variance); },
+            [/*__setstate__*/](py::tuple t) {
+                if (t.size() != 2)
+                {
+                    throw std::runtime_error("Invalid state!");
+                }
+                /* Create a new C++ instance */
+                Matern32 p = Matern32(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
+                return p;
+            })
+        );
 
-    py::class_<Matern52, shared_ptr<Matern52>, Stationary, Kernel> M52(module, "Matern52");
+    py::class_<Matern52, Stationary, Kernel, shared_ptr<Matern52>> M52(module, "Matern52", py::multiple_inheritance());
     M52
         .def(py::init<>())
         .def(py::init<const double&, const double&>(), py::arg("length_scale"), py::arg("variance"))
         .def(py::init<TVector&, const double&>(), py::arg("length_scale"), py::arg("variance"))
-        .def(py::init<Parameter<TVector>&, Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
+        .def(py::init<const Parameter<TVector>&, const Parameter<double>&>(), py::arg("length_scale"), py::arg("variance"))
         .def("K", py::overload_cast<const TMatrix&, const TMatrix&>(&Matern52::K), py::arg("X1"), py::arg("X2"))
         .def("diag", &Matern52::diag, py::arg("X1"))
         .def("IJ", &Matern52::IJ, py::arg("II"), py::arg("JJ"), py::arg("mean"), py::arg("variance"), py::arg("X"), py::arg("idx"))
         .def_readwrite("length_scale", &Matern52::length_scale)
-        .def_readwrite("variance", &Matern52::variance);
-        //.def(py::pickle(
-        //    [](const Matern52& k) {
-        //        return py::make_tuple(k.length_scale, k.variance);
-        //    },
-        //    [](py::tuple t) {
-        //        if (t.size() != 2) { throw std::runtime_error("Invalid state!"); }
-        //        return new Matern52(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
-        //    }));
-        //.def("__getstate__", [](const py::object& self)
-        //    {return py::make_tuple(self.attr("length_scale"), self.attr("variance"), self.attr("__dict__")); })
-        //.def("__setstate__", [](const py::object& self, const py::tuple& t) {
-        //if (t.size() != 3) { throw std::runtime_error("Invalid state!"); }
-        //auto& k = self.cast<Kernel&>();
-        //new (&k) Matern52(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
-        //self.attr("__dict__") = t[2]; });
+        .def_readwrite("variance", &Matern52::variance)
+        .def(py::pickle(
+            [/*__getstate__*/](const Matern52& p) {return py::make_tuple(p.length_scale, p.variance); },
+            [/*__setstate__*/](py::tuple t) {
+                if (t.size() != 2)
+                {
+                    throw std::runtime_error("Invalid state!");
+                }
+                /* Create a new C++ instance */
+                Matern52 p = Matern52(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
+                return p;
+            })
+        );
 
 }
 

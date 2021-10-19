@@ -1,6 +1,6 @@
 file(REMOVE_RECURSE
-  "../fdsm/_utilities.cpython-38-x86_64-linux-gnu.so"
-  "../fdsm/_utilities.pdb"
+  "../fdml/src/_utilities.cpython-38-x86_64-linux-gnu.so"
+  "../fdml/src/_utilities.pdb"
   "CMakeFiles/_utilities.dir/bindings/utilities.cpp.o"
 )
 
