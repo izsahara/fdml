@@ -67,8 +67,8 @@ problem = Reliability(  X_initial=X_train,
                         Z_initial=Z_train,
                         model=dgp_model, name="DGP",
                         reference_model=four_branch, log_path=".",
-                        n_mcs=int(1E4),
+                        n_mcs=int(1E6),
                         experiment_label="1")
 
 dgp_adaptive = AdaptiveModel(problem=problem, plot=True)
-dgp_adaptive.update(n_update=100, analytical=True, n_impute=100, n_thread=6)
+dgp_adaptive.update(n_update=100, analytical=True, n_impute=100, n_thread=300)

@@ -207,6 +207,7 @@ class AdaptiveModel:
         model_file.close()
 
     def _reliability(self, n_update: int, **kwargs):
+        print("Inside Reliability")
 
         analytical = kwargs.get("analytical")
         rfunctions = {"U_FXN": self.u_fxn, "EF_FXN": self.ef_fxn, "ER_FXN": self.er_fxn}
@@ -283,7 +284,7 @@ class AdaptiveModel:
             plt.close("all")
 
 
-        log_file = hdf.File(self.problem.problem_hdf, "a")
+        log_file = hdf.File("DGP.fdmlreliability", "a")
         self._train(n_iter, ess_burn)
         self._save_model(name="initial")
         mcs_shape = (self.problem.n_mcs, self.X.shape[1])
