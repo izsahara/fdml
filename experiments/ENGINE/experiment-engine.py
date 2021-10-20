@@ -31,20 +31,17 @@ class Config1(Config):
 
     def __call__(self, X_train, Y_train):
         n_samp, n_ftr = X_train.shape
-        node1 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=2))
-        node2 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=2))
-        node3 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=2))
-        node4 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=2))
+        node1 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node2 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node3 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node4 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node5 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
 
         node1.solver.solver_iterations = 15
         node2.solver.solver_iterations = 15
         node3.solver.solver_iterations = 15
         node4.solver.solver_iterations = 15
-
-        ext_solver = PSO(verbosity=2, n_restarts=3)
-        ext_solver.n_gen = 25
-        ext_solver.n_pop = 1000
-        node5 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=ext_solver)
+        node5.solver.solver_iterations = 15
 
         node1.likelihood_variance.fix()
         node2.likelihood_variance.fix()
@@ -65,7 +62,7 @@ class Config1(Config):
         layer2.set_outputs(Y_train)
 
         model = SIDGP(layers=[layer1, layer2])
-        model.train(n_iter=500, ess_burn=100)
+        model.train(n_iter=150, ess_burn=100)
         model.estimate()
         return model
 
@@ -81,7 +78,7 @@ def run_experiment(config: Config, n_thread : int):
         X_test = dataset["X_test"][:]
 
         model = config(X_train, Y_train)
-        modelfile = open(f"{foldername}/{config.name}_{int(exp)}.fdmlmodel", 'wb')
+        modelfile = open(f"{foldername}/{config.name}.fdmlmodel", 'wb')
         dump(model, modelfile)
         modelfile.close()
 
@@ -93,3 +90,6 @@ def run_experiment(config: Config, n_thread : int):
 
 if __name__ == "__main__":
     run_experiment(Config1(), n_thread=4)
+
+
+

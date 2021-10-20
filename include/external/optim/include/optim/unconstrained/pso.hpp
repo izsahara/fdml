@@ -263,7 +263,6 @@ internal::pso_impl(
             min_objfn_val_running = min_objfn_val;
             best_sol_running = best_vecs.row( min_objfn_val_index );
             // ++ assign to model;
-            std::cout << "BEST_SOL_RUNNING" << " = " << best_sol_running;
             double best = box_objfn(best_sol_running, nullptr, opt_data);
         }
 
