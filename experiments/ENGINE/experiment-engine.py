@@ -68,24 +68,21 @@ class Config1(Config):
 
 
 def run_experiment(config: Config, n_thread : int):
-    foldername = f"{config.name}"
-    os.mkdir(foldername)
-    file = hdf.File("ENGINE.hdf", "r")
-    for exp in file[f"{N_SAMPLES}"]:
+    for exp in range(1, EXPERIMENTS+1):
         print("EXPERIMENT " + exp)
-        dataset = file[f"{N_SAMPLES}"][exp]
-        X_train, Y_train = dataset["X_train"][:], dataset["Y_train"][:]
-        X_test = dataset["X_test"][:]
+        X_train = np.loadtxt(f"{N_SAMPLES}/{exp}/X_train.dat", delimiter="\t")
+        Y_train = np.loadtxt(f"{N_SAMPLES}/{exp}/Y_train.dat", delimiter="\t")
+        X_test = np.loadtxt(f"{N_SAMPLES}/{exp}/X_test.dat", delimiter="\t")
 
         model = config(X_train, Y_train)
-        modelfile = open(f"{foldername}/{config.name}.fdmlmodel", 'wb')
+        modelfile = open(f"{N_SAMPLES}/{exp}/{config.name}.fdmlmodel", 'wb')
         dump(model, modelfile)
         modelfile.close()
 
         mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
-        np.savetxt(f"{foldername}/{int(exp)}.dat", np.hstack([mean, var]), delimiter='\t')
+        np.savetxt(f"{N_SAMPLES}/{exp}/Z.dat", np.hstack([mean, var]), delimiter='\t')
 
 
 if __name__ == "__main__":
