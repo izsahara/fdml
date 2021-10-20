@@ -26,7 +26,7 @@
 #define OPTIM_TRACE_DEFS
 
 #ifndef OPTIM_NO_TRACE
-
+#include <cstdlib>
 #define OPTIM_BFGS_TRACE(iter_in, grad_err_in, rel_sol_change_in, x_in, d_in, grad_in, s_in, y_in, W_in)    \
     if (print_level > 0) {                                                                                  \
         printf("\n");                                                                                       \
@@ -268,8 +268,9 @@
             std::cout << min_objfn_val_running_in << "\n";                                                  \
             std::cout << "    Stored lowest objective function value achieved:  ";                          \
             std::cout << min_objfn_val_check_in << "\n";                                                    \
-            std::cout << "    Current best values:\n";                                                      \
+            std::cout << "    Current best values: ";                                                       \
             OPTIM_MATOPS_COUT << best_sol_running_in << "\n";                                               \
+            std::system("clear");                                                                           \
         }                                                                                                   \
                                                                                                             \
         if (print_level >= 3) {                                                                             \

@@ -18,11 +18,11 @@ namespace fdml::base_models2 {
 		struct OptData {};
 		// TODO : 
 		struct Solver {
-			Solver() {}
-			Solver(const int& verbosity, const int& n_restarts) :
-				verbosity(verbosity), n_restarts(n_restarts) {}
-			Solver(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-				verbosity(verbosity), n_restarts(n_restarts), sampling_method(sampling_method) {}
+			Solver(const std::string& type) : type(type) {}
+			Solver(const int& verbosity, const int& n_restarts, const std::string& type) :
+				verbosity(verbosity), n_restarts(n_restarts), type(type) {}
+			Solver(const int& verbosity, const int& n_restarts, const std::string& sampling_method, const std::string& type) :
+				verbosity(verbosity), n_restarts(n_restarts), sampling_method(sampling_method), type(type) {}
 
 			virtual SolverSettings settings() const { SolverSettings settings_; return settings_; }
 			virtual bool
@@ -34,26 +34,26 @@ namespace fdml::base_models2 {
 			}
 
 			// FDML
-			int verbosity = 1;
+			int verbosity = 0;
 			int n_restarts = 10;
-			std::string sampling_method = "sobol";
+			std::string sampling_method = "uniform";
 			// Optim
 			int conv_failure_switch = 0;
 			int iter_max = 2000;
 			double err_tol = 1E-08;
 			bool vals_bound = true;
-			const std::string type = "BaseSolver";
+			const std::string type;
 		};
 		
 		struct PSO : public Solver {
-			PSO() : Solver() {}
+			PSO() : Solver("PSO") {}
 			PSO(const int& verbosity, const int& n_restarts) :
-				Solver(verbosity, n_restarts) {}
+				Solver(verbosity, n_restarts, "PSO") {}
 			PSO(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method) {}
+				Solver(verbosity, n_restarts, sampling_method, "PSO") {}
 			PSO(const int& verbosity, const int& n_restarts, const std::string& sampling_method,
 				const TVector& initial_lb, const TVector& initial_ub) :
-				Solver(verbosity, n_restarts, sampling_method),
+				Solver(verbosity, n_restarts, sampling_method, "PSO"),
 				initial_lb(initial_lb), initial_ub(initial_ub) {}
 
 			bool solve
@@ -107,18 +107,17 @@ namespace fdml::base_models2 {
 			double par_final_c_soc = 2.5;
 			TVector initial_lb; // this will default to -0.5
 			TVector initial_ub; // this will default to  0.5
-			const std::string type = "PSO";
 		};
 
 		struct DifferentialEvolution : public Solver {
-			DifferentialEvolution() : Solver() {}
+			DifferentialEvolution() : Solver("DE") {}
 			DifferentialEvolution(const int& verbosity, const int& n_restarts) :
-				Solver(verbosity, n_restarts) {}
+				Solver(verbosity, n_restarts, "DE") {}
 			DifferentialEvolution(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method) {}
+				Solver(verbosity, n_restarts, sampling_method, "DE") {}
 			DifferentialEvolution(const int& verbosity, const int& n_restarts, const std::string& sampling_method,
 				const TVector& initial_lb, const TVector& initial_ub) :
-				Solver(verbosity, n_restarts, sampling_method),
+				Solver(verbosity, n_restarts, sampling_method, "DE"),
 				initial_lb(initial_lb), initial_ub(initial_ub) {}
 
 			SolverSettings settings() const override {
@@ -168,15 +167,14 @@ namespace fdml::base_models2 {
 			double par_tau_CR = 0.1;
 			TVector initial_lb; // this will default to -0.5
 			TVector initial_ub; // this will default to  0.5
-			const std::string type = "DE";
 		};
 
 		struct LBFGSB : public Solver {
-			LBFGSB() : Solver() {}
+			LBFGSB() : Solver("LBFGSB") {}
 			LBFGSB(const int& verbosity, const int& n_restarts) :
-				Solver(verbosity, n_restarts) {}
+				Solver(verbosity, n_restarts, "LBFGSB") {}
 			LBFGSB(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method) {}
+				Solver(verbosity, n_restarts, sampling_method, "LBFGSB") {}
 			SolverSettings settings() const override {
 				SolverSettings settings_;
 				settings_.lbfgsb_settings.solver_iterations = solver_iterations;
@@ -202,15 +200,14 @@ namespace fdml::base_models2 {
 			double f_delta = 1e-9;
 			int x_delta_violations = 5;
 			int f_delta_violations = 5;
-			const std::string type = "LBFGSB";
 		};
 		
 		struct GradientDescent : public Solver {
-			GradientDescent(const int& method) : Solver(), method(method) {}
+			GradientDescent(const int& method) : Solver("GD"), method(method) {}
 			GradientDescent(const int& method, const int& verbosity, const int& n_restarts) :
-				Solver(verbosity, n_restarts), method(method) {}
+				Solver(verbosity, n_restarts, "GD"), method(method) {}
 			GradientDescent(const int& method, const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method), method(method) {}
+				Solver(verbosity, n_restarts, sampling_method, "GD"), method(method) {}
 
 			SolverSettings settings() const override {
 				SolverSettings settings_;
@@ -256,16 +253,15 @@ namespace fdml::base_models2 {
 			// Adam parameters
 			double adam_beta_1 = 0.9;
 			double adam_beta_2 = 0.999;
-			const std::string type = "GD";
 
 		};
 		
 		struct ConjugateGradient : public Solver {
-			ConjugateGradient() : Solver() {}
+			ConjugateGradient() : Solver("CG") {}
 			ConjugateGradient(int& verbosity, int& n_restarts) :
-				Solver(verbosity, n_restarts) {}
+				Solver(verbosity, n_restarts, "CG") {}
 			ConjugateGradient(int& verbosity, int& n_restarts, std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method) {}
+				Solver(verbosity, n_restarts, sampling_method, "CG") {}
 
 			SolverSettings settings() const override {
 				SolverSettings settings_;
@@ -285,15 +281,14 @@ namespace fdml::base_models2 {
 				return optim::cg(theta, objective, &optdata, settings);
 			}
 			double restart_threshold = 0.1;
-			const std::string type = "CG";
 		};
 
 		struct NelderMead : public Solver {
-			NelderMead() : Solver() {}
+			NelderMead() : Solver("NM") {}
 			NelderMead(int& verbosity, int& n_restarts) :
-				Solver(verbosity, n_restarts) {}
+				Solver(verbosity, n_restarts, "NM") {}
 			NelderMead(int& verbosity, int& n_restarts, std::string& sampling_method) :
-				Solver(verbosity, n_restarts, sampling_method) {}
+				Solver(verbosity, n_restarts, sampling_method, "NM") {}
 
 			SolverSettings settings() const override {
 				SolverSettings settings_;
@@ -323,7 +318,6 @@ namespace fdml::base_models2 {
 			double par_beta = 0.5; // contraction parameter
 			double par_gamma = 2.0; // expansion parameter
 			double par_delta = 0.5; // shrinkage parameter
-			const std::string type = "NM";
 		};
 	}
 	
@@ -771,12 +765,18 @@ namespace fdml::base_models2 {
 				}
 				else { std::runtime_error("Unrecognized Sampling Method"); }
 
-				if (solver->type == "LBFGSB") {	
+				if (solver->type == "LBFGSB") {
+
 					std::vector<double> fhistory;
 					std::vector<TVector> phistory;
 					LBFGSB::GPRObjective objective(this);
 					const LBFGSB::SolverState stopping_state = LBFGSB::StoppingState(solver->settings());
 					cppoptlib::solver::LBFGSB::LBFGSB lbfgsb_solver(stopping_state);
+					
+					if (solver->verbosity == 0) { lbfgsb_solver.SetStepCallback(LBFGSB::Verbose0()); }
+					else if (solver->verbosity == 1) { lbfgsb_solver.SetStepCallback(LBFGSB::Verbose1()); }
+					else if (solver->verbosity == 2) { lbfgsb_solver.SetStepCallback(LBFGSB::Verbose2()); }
+
 					lbfgsb_solver.SetLowerBound(lower_bound);
 					lbfgsb_solver.SetUpperBound(upper_bound);
 					objective_value = std::numeric_limits<double>::infinity();

@@ -203,7 +203,7 @@ namespace cppoptlib::solver {
                 std::cout << header << " RESTART " << restart << " " << header << std::endl;
             }
             else if (verbosity == 2) 
-            { std::system("cls"); }
+            { std::system("clear"); }
             return { function_state, solver_state };
         }
 

@@ -25,9 +25,9 @@ void wrap_optimizer(py::module& module) {
 
     py::class_<Solver, PySolver, shared_ptr<Solver>> msol(module, "Solver");
     msol
-        .def(py::init<>())
-        .def(py::init<const int&, const int&>())
+        .def(py::init<const std::string&>())
         .def(py::init<const int&, const int&, const std::string&>())
+        .def(py::init<const int&, const int&, const std::string&, const std::string&>())
         .def_readwrite("verbosity", &Solver::verbosity)
         .def_readwrite("n_restarts", &Solver::n_restarts)
         .def_readwrite("sampling_method", &Solver::sampling_method)

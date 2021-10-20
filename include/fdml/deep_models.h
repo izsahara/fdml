@@ -1,6 +1,5 @@
 #ifndef DEEPMODELS_H
 #define DEEPMODELS_H
-// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include "./utilities.h"
 #include "./kernels.h"
 #include "./base_models.h"
@@ -307,6 +306,7 @@ namespace fdml::deep_models {
 					{
 						throw std::runtime_error("A Node in the Layer has no Outputs. Either provide Observed Outputs, or pass through a Model for Latent Outputs"); break;
 					}
+					if (!node->store_parameters) {node->store_parameters = true;}
 				}
 			}
 			void estimate_parameters(const Eigen::Index& n_burn) {

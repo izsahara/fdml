@@ -120,13 +120,17 @@ namespace fdml::deep_models2 {
 					X.array() += 1e-6;
 				}
 				else { std::runtime_error("Unrecognized Sampling Method"); }
-
 				if (solver->type == "LBFGSB") {
 					std::vector<double> fhistory;
 					std::vector<TVector> phistory;
 					GPRObjective objective(this);
 					const SolverState stopping_state = StoppingState(solver->settings());
 					cppoptlib::solver::LBFGSB::LBFGSB lbfgsb_solver(stopping_state);
+
+					if (solver->verbosity == 0) { lbfgsb_solver.SetStepCallback(Verbose0()); }
+					else if (solver->verbosity == 1) { lbfgsb_solver.SetStepCallback(Verbose1()); }
+					else if (solver->verbosity == 2) { lbfgsb_solver.SetStepCallback(Verbose2()); }
+
 					lbfgsb_solver.SetLowerBound(lower_bound);
 					lbfgsb_solver.SetUpperBound(upper_bound);
 					objective_value = std::numeric_limits<double>::infinity();
@@ -157,6 +161,8 @@ namespace fdml::deep_models2 {
 						solver.swap(solver2);
 						from_optim_(theta, lower_bound, upper_bound, X);
 					}
+					if (store_parameters) { history.push_back(theta); }
+					set_params(theta);
 				}
 				else { from_optim_(theta, lower_bound, upper_bound, X); }
 			}
@@ -292,6 +298,7 @@ namespace fdml::deep_models2 {
 				int minElementIndex = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
 				objective_value = *std::min_element(fhistory.begin(), fhistory.end());
 				set_params(phistory[minElementIndex]);
+				if (store_parameters) { history.push_back(phistory[minElementIndex]); }
 			}
 			double objective_(const TVector& x, TVector* grad, TVector* hess, void* opt_data) {
 				set_params(x);
@@ -694,7 +701,7 @@ namespace fdml::deep_models2 {
 						//print_utility(layer->index, progress);
 					}
 				}
-				std::system("clear");
+				//std::system("clear");
 				std::cout << std::endl;
 			}
 			void estimate(Eigen::Index n_burn = 0) {

@@ -161,7 +161,7 @@ namespace fdml::utilities {
         lambda_as_visitor_wrapper<Func> visitor(f);
         m.visit(visitor);
     }    
-    #pragma region MISSING_INDEX_FXNS
+
     template<typename TBool>
     TBool get_missing_index(const TMatrix& X1);
     template<>
@@ -187,7 +187,7 @@ namespace fdml::utilities {
             });
         return missing;
     }
-    #pragma endregion        
+      
     void mask_matrix_in_place(TMatrix& X2, const TMatrix& X1, const BoolVector& mask, const bool& inverse, const int& axis) {
         /*
         * Masks a matrix X1 to get X2:
