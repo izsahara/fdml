@@ -314,7 +314,7 @@ namespace fdml::kernels {
 
 	class Matern52 : public Stationary {
 	private:
-		double jitter = 1E-9;
+		double jitter = 1E-6;
 	public:
 		Matern52() : Stationary() {};
 		Matern52(const Matern52& kernel) : Stationary(kernel) {}

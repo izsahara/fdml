@@ -79,7 +79,7 @@ namespace fdml::utilities {
             while (Dtry.array().isNaN().any()){                
                 D_.array() += jitter;
                 Dtry = (D_.array().sqrt()).matrix();
-                jitter += 1E-10;
+                jitter += 1E-7;
             }
             D = Dtry;
         }
