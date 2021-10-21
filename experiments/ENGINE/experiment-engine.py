@@ -68,8 +68,8 @@ class Config1(Config):
 
 
 def run_experiment(config: Config, n_thread : int):
-    for exp in range(1, EXPERIMENTS+1):
-        print("EXPERIMENT " + exp)
+    for exp in range(24, 31):
+        print(f"EXPERIMENT {exp}")
         X_train = np.loadtxt(f"{N_SAMPLES}/{exp}/X_train.dat", delimiter="\t")
         Y_train = np.loadtxt(f"{N_SAMPLES}/{exp}/Y_train.dat", delimiter="\t")
         X_test = np.loadtxt(f"{N_SAMPLES}/{exp}/X_test.dat", delimiter="\t")
@@ -86,7 +86,7 @@ def run_experiment(config: Config, n_thread : int):
 
 
 if __name__ == "__main__":
-    run_experiment(Config1(), n_thread=4)
+    run_experiment(Config1(), n_thread=100)
 
 
 
