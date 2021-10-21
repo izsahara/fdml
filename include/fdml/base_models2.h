@@ -800,6 +800,7 @@ namespace fdml::base_models2 {
 					theta = phistory[min_idx];
 					// Fail Safe Optimizer -> PSO [ Add a set_second_optimizer() method? ]
 					if (theta.array().isNaN().any() || theta.array().isInf().any()) {
+						std::cout << "NANS FOUND" << std::endl;
 						if (solver->verbosity > 0) { std::cout << "LBFGSB FAILED -> RUNNING PSO" << std::endl; }
 						// Better way than to swap pointers?
 						shared_ptr<PSO> _solver = make_shared<PSO>(solver->verbosity, solver->n_restarts, solver->sampling_method);

@@ -7,7 +7,7 @@ import h5py as hdf
 import sys
 sys.path.insert(0, "../../")
 from fdml.kernels import SquaredExponential, Matern52
-from fdml.base_models2 import LBFGSB
+from fdml.base_models2 import LBFGSB, PSO
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
 from pickle import dump
 
@@ -27,17 +27,17 @@ class Config1(Config):
 
     def __call__(self, X_train, Y_train):
         nftr = X_train.shape[1]
-        node11 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
-        node12 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
-        node13 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
-        node14 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
-        node15 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=PSO(verbosity=0))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
 
-        node11.solver.solver_iterations = 15
-        node12.solver.solver_iterations = 15
-        node13.solver.solver_iterations = 15
-        node14.solver.solver_iterations = 15
-        node15.solver.solver_iterations = 15
+        node11.solver.solver_iterations = 50
+        node12.solver.solver_iterations = 50
+        node13.solver.solver_iterations = 50
+        node14.solver.solver_iterations = 50
+        node15.solver.solver_iterations = 50
 
         node11.likelihood_variance.fix()
         node12.likelihood_variance.fix()
