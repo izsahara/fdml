@@ -56,7 +56,7 @@ class Config1(Config):
         node5.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         layer1 = GPLayer(nodes=[node1, node2, node3])
-        layer2 = GPLayer(nodes=[node4, node5])
+        layer2 = GPLayer(nodes=[node4])
 
         layer1.set_inputs(X_train)
         layer2.set_outputs(Y_train)
