@@ -6,7 +6,6 @@ import numpy as np
 import h5py as hdf
 import sys
 sys.path.insert(0, "../../")
-from fdml.utilities import save_model, load_model
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.base_models2 import LBFGSB
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
@@ -56,7 +55,11 @@ class Config1(Config):
         layer1 = GPLayer(nodes=[node11, node12, node13, node14, node15])
         layer2 = GPLayer(nodes=[node21])
 
+        layer1.set_inputs(X_train)
+        layer2.set_outputs(Y_train)
+
         model = SIDGP(layers=[layer1, layer2])
+        print("Train Model")
         model.train(n_iter=500, ess_burn=100)
         model.estimate()
         return model
@@ -104,6 +107,6 @@ def rf4_Anch3Ten(config : Config, n_thread):
 
 if __name__ == "__main__":
 
-    rf4_TwrBsMyt(Config(name="rf4_TwrBsMyt"), n_thread=200)
-    rf4_Anch1Ten(Config(name="rf4_Anch1Ten"), n_thread=200)
-    rf4_Anch3Ten(Config(name="rf4_Anch3Ten"), n_thread=200)
+    rf4_TwrBsMyt(Config1(name="rf4_TwrBsMyt"), n_thread=200)
+    rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=200)
+    rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)
