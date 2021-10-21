@@ -27,17 +27,17 @@ class Config1(Config):
 
     def __call__(self, X_train, Y_train):
         nftr = X_train.shape[1]
-        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=PSO(verbosity=0))
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=PSO(verbosity=0, n_restarts=15))
         node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
 
-        node11.solver.solver_iterations = 50
-        node12.solver.solver_iterations = 50
-        node13.solver.solver_iterations = 50
-        node14.solver.solver_iterations = 50
-        node15.solver.solver_iterations = 50
+        node11.solver.solver_iterations = 15
+        node12.solver.solver_iterations = 15
+        node13.solver.solver_iterations = 15
+        node14.solver.solver_iterations = 15
+        node15.solver.solver_iterations = 15
 
         node11.likelihood_variance.fix()
         node12.likelihood_variance.fix()
@@ -45,13 +45,13 @@ class Config1(Config):
         node14.likelihood_variance.fix()
         node15.likelihood_variance.fix()
 
-        node11.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-        node12.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-        node13.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-        node14.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-        node15.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
+        node11.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+        node12.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+        node13.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+        node14.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+        node15.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
 
-        node21 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0), solver=LBFGSB(verbosity=0))
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         layer1 = GPLayer(nodes=[node11, node12, node13, node14, node15])
         layer2 = GPLayer(nodes=[node21])
 

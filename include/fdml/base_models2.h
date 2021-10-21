@@ -91,7 +91,7 @@ namespace fdml::base_models2 {
 				return settings_;
 			}
 			bool center_particle = true;
-			int n_pop = 100;
+			int n_pop = 25;
 			int n_gen = 1000;
 			int inertia_method = 1; // 1 for linear decreasing between w_min and w_max; 2 for dampening
 			double par_initial_w = 1.0;

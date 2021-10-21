@@ -147,19 +147,21 @@ namespace fdml::deep_models2 {
 							phistory.push_back(theta);
 						}
 					}
-					// Perform Checks on local history
-					int min_idx = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
-					double min_f = *std::min_element(fhistory.begin(), fhistory.end());
-					objective_value = min_f;
-					theta = phistory[min_idx];
 					// Fail Safe Optimizer -> PSO [ Add a set_second_optimizer() method? ]
-					if (theta.array().isNaN().any() || theta.array().isInf().any()) {
+					if (fhistory.size() == 0) {
 						if (solver->verbosity > 0) { std::cout << "LBFGSB FAILED -> RUNNING PSO" << std::endl; }
 						// Better way than to swap pointers?
 						shared_ptr<PSO> _solver = make_shared<PSO>(solver->verbosity, solver->n_restarts, solver->sampling_method);
 						shared_ptr<Solver> solver2 = std::static_pointer_cast<Solver>(_solver);
 						solver.swap(solver2);
 						from_optim_(theta, lower_bound, upper_bound, X);
+					}
+					else {
+						// Perform Checks on local history
+						int min_idx = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
+						double min_f = *std::min_element(fhistory.begin(), fhistory.end());
+						objective_value = min_f;
+						theta = phistory[min_idx];
 					}
 					if (store_parameters) { history.push_back(theta); }
 					set_params(theta);
@@ -698,7 +700,6 @@ namespace fdml::deep_models2 {
 					for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end(); ++layer) {
 						layer->train();
 						verbose(i, layer->index, progress);
-						//print_utility(layer->index, progress);
 					}
 				}
 				//std::system("clear");
