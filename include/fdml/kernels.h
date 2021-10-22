@@ -313,8 +313,6 @@ namespace fdml::kernels {
 
 
 	class Matern52 : public Stationary {
-	private:
-		double jitter = 1E-6;
 	public:
 		Matern52() : Stationary() {};
 		Matern52(const Matern52& kernel) : Stationary(kernel) {}
@@ -330,7 +328,7 @@ namespace fdml::kernels {
 			}
 			const TMatrix X1sc = X1.array().rowwise() / length_scale.value().transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / length_scale.value().transpose().array();
-			euclidean_distance(X1sc, X2sc, R, jitter, false);
+			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(5);
 			return ((1 + R.array() + square(R.array()) / 3) * ( exp(-R.array()) ) ).matrix();
 		}
@@ -342,7 +340,7 @@ namespace fdml::kernels {
 			}
 			const TMatrix X1sc = X1.array().rowwise() / length_scale.value().transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / length_scale.value().transpose().array();
-			euclidean_distance(X1sc, X2sc, R1, jitter, false);
+			euclidean_distance(X1sc, X2sc, R1, false);
 			TMatrix R = R1.array() * sqrt(5);
 			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array())));
 		}
@@ -355,7 +353,7 @@ namespace fdml::kernels {
 			}
 			const TMatrix X1sc = X1.array().rowwise() / length_scale.value().transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / length_scale.value().transpose().array();
-			euclidean_distance(X1sc, X2sc, R, jitter, false);
+			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(5);
 			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix() + noise;
 		}
@@ -364,7 +362,7 @@ namespace fdml::kernels {
 			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
 			const TMatrix X1sc = X1.array() / length_scale.value()[idx];
 			const TMatrix X2sc = X2.array() / length_scale.value()[idx];
-			euclidean_distance(X1sc, X2sc, R, jitter, false);
+			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(5);
 			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix() + noise;
 		}

@@ -61,30 +61,15 @@ namespace fdml::utilities {
     // Distance Utilities
     void euclidean_distance(const TMatrix& X1, const TMatrix& X2, TMatrix& D, bool squared = false) {
         // Compute squared euclidean distance |X1(i) - X2(j)^T|^2 = |X1(i)|^2 + |X2(j)|^2 - (2 * X1(i)^T X2(j)) by default
-        D = ((-2.0 * (X1 * X2.transpose())).colwise()
-            + X1.rowwise().squaredNorm()).rowwise()
-            + X2.rowwise().squaredNorm().transpose();
-        //if ((D.array() < 0.0).any()) { D = abs(D.array()); }
-        if (!squared) { D = (D.array().sqrt()).matrix(); }
-    }
-    
-    void euclidean_distance(const TMatrix& X1, const TMatrix& X2, TMatrix& D, double& jitter, bool squared = false) {
-        // Compute squared euclidean distance |X1(i) - X2(j)^T|^2 = |X1(i)|^2 + |X2(j)|^2 - (2 * X1(i)^T X2(j)) by default
         TMatrix D_ = ((-2.0 * (X1 * X2.transpose())).colwise()
                         + X1.rowwise().squaredNorm()).rowwise()
                         + X2.rowwise().squaredNorm().transpose();
 
         if (!squared){
-            // TMatrix Dtry = (D_.array().sqrt()).matrix();	  
-            //while (Dtry.array().isNaN().any()){                
-            //    D_.array() += jitter;
-            //    Dtry = (D_.array().sqrt()).matrix();
-            //    jitter += 1E-4;
-            //}
-	    //
-	    if ((D_.array() < 0.0).any()){
-		D_ = abs(D_.array());
-	    }
+            if ((D_.array() < 0.0).any())
+            {
+                D_ = abs(D_.array());
+            }
             D = (D_.array().sqrt()).matrix();
         }
         else {
