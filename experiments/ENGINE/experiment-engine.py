@@ -166,7 +166,7 @@ class Config3(Config):
 
 def run_experiment(config: Config, n_thread : int):
     print(f"==================== {config.name} ====================")
-    for exp in range(1, 11):
+    for exp in range(11, 26):
         print(f"EXPERIMENT {exp}")
         X_train = np.loadtxt("X_train.dat", delimiter="\t")
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
@@ -185,8 +185,8 @@ def run_experiment(config: Config, n_thread : int):
 
 if __name__ == "__main__":
     run_experiment(Config1(), n_thread=200)
-    run_experiment(Config2(), n_thread=200)
-    run_experiment(Config3(), n_thread=200)
+    #run_experiment(Config2(), n_thread=200)
+    #run_experiment(Config3(), n_thread=200)
 
 
 
