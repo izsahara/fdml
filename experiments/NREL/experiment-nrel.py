@@ -27,12 +27,12 @@ class Config1(Config):
 
     def __call__(self, X_train, Y_train):
         nftr = X_train.shape[1]
-        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=PSO(verbosity=0, n_restarts=15))
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
-
+        
         node11.solver.solver_iterations = 15
         node12.solver.solver_iterations = 15
         node13.solver.solver_iterations = 15
@@ -108,5 +108,5 @@ def rf4_Anch3Ten(config : Config, n_thread):
 if __name__ == "__main__":
 
     rf4_TwrBsMyt(Config1(name="rf4_TwrBsMyt"), n_thread=200)
-    rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=200)
-    rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)
+    # rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=200)
+    # rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)

@@ -75,13 +75,17 @@ namespace fdml::utilities {
                         + X2.rowwise().squaredNorm().transpose();
 
         if (!squared){
-            TMatrix Dtry = (D_.array().sqrt()).matrix();
-            while (Dtry.array().isNaN().any()){                
-                D_.array() += jitter;
-                Dtry = (D_.array().sqrt()).matrix();
-                jitter += 1E-7;
-            }
-            D = Dtry;
+            // TMatrix Dtry = (D_.array().sqrt()).matrix();	  
+            //while (Dtry.array().isNaN().any()){                
+            //    D_.array() += jitter;
+            //    Dtry = (D_.array().sqrt()).matrix();
+            //    jitter += 1E-4;
+            //}
+	    //
+	    if ((D_.array() < 0.0).any()){
+		D_ = abs(D_.array());
+	    }
+            D = (D_.array().sqrt()).matrix();
         }
         else {
             D = D_;
