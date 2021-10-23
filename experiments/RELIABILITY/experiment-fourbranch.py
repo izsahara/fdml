@@ -22,6 +22,7 @@ sys.path.insert(0, "../../")
 from sklearn.gaussian_process.kernels import Matern
 from sklearn.gaussian_process import GaussianProcessRegressor as SKGPR
 from fdml.kernels import Matern52
+from fdml.base_models2 import LBFGSB, PSO
 from fdml.deep_models2 import GPLayer, SIDGP, GPNode
 from fdml.adaptive import AdaptiveModel, Reliability, Analytic
 
@@ -36,27 +37,40 @@ nftr = X_train.shape[1]
 # sk_adaptive = AdaptiveModel(data=(X_train, Z_train), base_model=sk_model)
 
 # SIDGP Model
-node1 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0))
-node2 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0))
-node3 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0))
-node4 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0))
-node5 = GPNode(kernel=Matern52(length_scale=1.0, variance=1.0))
 
-node1.likelihood_variance.fix()
-node2.likelihood_variance.fix()
-node3.likelihood_variance.fix()
-node4.likelihood_variance.fix()
-node5.likelihood_variance.fix()
+# Layer 1
 
-node1.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-node2.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-node3.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-node4.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
-node5.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 10.0 * np.ones(nftr))
+node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+node11.likelihood_variance.fix()
+node12.likelihood_variance.fix()
+node11.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+node12.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
 
-layer1 = GPLayer(nodes=[node1, node2])
-layer2 = GPLayer(nodes=[node3, node4])
-layer3 = GPLayer(nodes=[node5])
+# Layer 2
+node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+node21.likelihood_variance.fix()
+node22.likelihood_variance.fix()
+node21.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+node22.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+
+
+# Layer 3
+node31 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+node31.likelihood_variance.fix()
+node31.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
+
+node11.solver.solver_iterations = 15
+node12.solver.solver_iterations = 15
+node21.solver.solver_iterations = 15
+node22.solver.solver_iterations = 15
+node31.solver.solver_iterations = 15
+
+
+layer1 = GPLayer(nodes=[node11, node12])
+layer2 = GPLayer(nodes=[node21, node22])
+layer3 = GPLayer(nodes=[node31])
 
 layer1.set_inputs(X_train)
 layer3.set_outputs(Z_train)
@@ -67,7 +81,7 @@ problem = Reliability(  X_initial=X_train,
                         Z_initial=Z_train,
                         model=dgp_model, name="DGP",
                         reference_model=four_branch, log_path=".",
-                        n_mcs=int(1E5),
+                        n_mcs=int(1E6),
                         experiment_label="1")
 
 dgp_adaptive = AdaptiveModel(problem=problem, plot=True)
