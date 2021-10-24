@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -Wall -fopenmp -O3 -DNDEBUG -flto -shared  -o ../fdml/src/_utilities.cpython-38-x86_64-linux-gnu.so CMakeFiles/_utilities.dir/bindings/utilities.cpp.o 

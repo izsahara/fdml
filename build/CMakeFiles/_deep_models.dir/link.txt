@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -Wall -fopenmp -O3 -DNDEBUG -flto -shared  -o ../fdml/src/_deep_models.cpython-38-x86_64-linux-gnu.so CMakeFiles/_deep_models.dir/bindings/deep_models.cpp.o 

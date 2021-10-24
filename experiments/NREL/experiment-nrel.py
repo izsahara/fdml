@@ -53,11 +53,11 @@ class Config1(Config):
         node15.kernel.length_scale.bounds = (1e-4 * np.ones(nftr), 10.0 * np.ones(nftr))
 
         # Layer 2
-        node21 = GPNode(kernel=SquaredExponential(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node22 = GPNode(kernel=SquaredExponential(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node23 = GPNode(kernel=SquaredExponential(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node24 = GPNode(kernel=SquaredExponential(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node25 = GPNode(kernel=SquaredExponential(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node23 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node24 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node25 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=0))
         
         node21.solver.solver_iterations = 15
         node22.solver.solver_iterations = 15
@@ -96,23 +96,27 @@ class Config1(Config):
         return model
 
 def rf4_TwrBsMyt(config : Config, n_thread):
-    X_train = np.loadtxt("100/X_train.dat")
-    X_test = np.loadtxt("100/X_test.dat")
-    Y_train = np.loadtxt("100/Y1_train.dat").reshape(-1, 1)
-    # model = config(X_train, Y_train)
-    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'rb')
-    # dump(model, modelfile)
-    model = load(modelfile)
+    X_train = np.loadtxt("data/Xsc_train.dat")
+    X_test = np.loadtxt("data/Xsc_test.dat")
+    Y_train = np.loadtxt("data/Y1sc_train.dat").reshape(-1, 1)
+
+    model = config(X_train, Y_train)
+    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
+    dump(model, modelfile)
     modelfile.close()
-    mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
-    mean = mean.reshape(-1, 1)
-    var = var.reshape(-1, 1)
-    np.savetxt(f"CFG{CFG}/Z1.dat", np.hstack([mean, var]), delimiter='\t')    
+
+    # modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()
+    # mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
+    # mean = mean.reshape(-1, 1)
+    # var = var.reshape(-1, 1)
+    # np.savetxt(f"CFG{CFG}/Z1.dat", np.hstack([mean, var]), delimiter='\t')    
 
 def rf4_Anch1Ten(config : Config, n_thread):
-    X_train = np.loadtxt("100/X_train.dat")
-    X_test = np.loadtxt("100/X_test.dat")
-    Y_train = np.loadtxt("100/Y2_train.dat").reshape(-1, 1)
+    X_train = np.loadtxt("data/Xsc_train.dat")
+    X_test = np.loadtxt("data/Xsc_test.dat")
+    Y_train = np.loadtxt("data/Y2sc_train.dat").reshape(-1, 1)
     model = config(X_train, Y_train)
     modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
@@ -123,9 +127,9 @@ def rf4_Anch1Ten(config : Config, n_thread):
     np.savetxt(f"CFG{CFG}/Z2.dat", np.hstack([mean, var]), delimiter='\t')   
 
 def rf4_Anch3Ten(config : Config, n_thread):
-    X_train = np.loadtxt("100/X_train.dat")
-    X_test = np.loadtxt("100/X_test.dat")
-    Y_train = np.loadtxt("100/Y3_train.dat").reshape(-1, 1)
+    X_train = np.loadtxt("data/Xsc_train.dat")
+    X_test = np.loadtxt("data/Xsc_test.dat")
+    Y_train = np.loadtxt("data/Y3sc_train.dat").reshape(-1, 1)
     model = config(X_train, Y_train)
     modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)

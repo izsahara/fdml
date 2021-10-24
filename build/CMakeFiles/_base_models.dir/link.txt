@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -Wall -fopenmp -O3 -DNDEBUG -flto -shared  -o ../fdml/src/_base_models.cpython-38-x86_64-linux-gnu.so CMakeFiles/_base_models.dir/bindings/base_models.cpp.o 

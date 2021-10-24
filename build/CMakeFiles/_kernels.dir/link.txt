@@ -1,1 +1,0 @@
-/usr/bin/c++ -fPIC -O3 -Wall -fopenmp -O3 -DNDEBUG -flto -shared  -o ../fdml/src/_kernels.cpython-38-x86_64-linux-gnu.so CMakeFiles/_kernels.dir/bindings/kernels.cpp.o 
