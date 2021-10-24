@@ -9,7 +9,7 @@ sys.path.insert(0, "../../")
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.base_models2 import LBFGSB, PSO
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
-from pickle import dump
+from pickle import dump, load
 
 
 CFG = 1
@@ -95,19 +95,19 @@ class Config1(Config):
         model.estimate()
         return model
 
-
 def rf4_TwrBsMyt(config : Config, n_thread):
     X_train = np.loadtxt("100/X_train.dat")
     X_test = np.loadtxt("100/X_test.dat")
     Y_train = np.loadtxt("100/Y1_train.dat").reshape(-1, 1)
-    model = config(X_train, Y_train)
-    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
-    dump(model, modelfile)
+    # model = config(X_train, Y_train)
+    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'rb')
+    # dump(model, modelfile)
+    model = load(modelfile)
     modelfile.close()
-    # mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
-    # mean = mean.reshape(-1, 1)
-    # var = var.reshape(-1, 1)
-    # np.savetxt(f"CFG{CFG}/Z1.dat", np.hstack([mean, var]), delimiter='\t')    
+    mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
+    mean = mean.reshape(-1, 1)
+    var = var.reshape(-1, 1)
+    np.savetxt(f"CFG{CFG}/Z1.dat", np.hstack([mean, var]), delimiter='\t')    
 
 def rf4_Anch1Ten(config : Config, n_thread):
     X_train = np.loadtxt("100/X_train.dat")
@@ -137,7 +137,6 @@ def rf4_Anch3Ten(config : Config, n_thread):
 
 
 if __name__ == "__main__":
-
-    rf4_TwrBsMyt(Config1(name="Y1"), n_thread=4)
+    rf4_TwrBsMyt(Config1(name="Y1"), n_thread=300)
     # rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=200)
     # rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)

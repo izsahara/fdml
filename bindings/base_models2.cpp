@@ -212,9 +212,9 @@ void wrap_optimizer(py::module& module) {
                 );
             },
             [/*__setstate__*/](py::tuple t) {
-                if (t.size() != 8)
+                if (t.size() != 13)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid LBFGSB state!");
                 }
                 /* Create a new C++ instance */
                 LBFGSB p = LBFGSB(t[0].cast<int>(), t[1].cast<int>(), t[2].cast<std::string>());
@@ -377,7 +377,7 @@ void wrap_gaussian_process(py::module& module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 8)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid GPR state!");
                 }
                 /* Create a new C++ instance */
                 GPR p = GPR(t[0].cast<shared_ptr<Kernel>>(), 

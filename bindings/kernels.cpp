@@ -139,7 +139,7 @@ void wrap_kernels(py::module& module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 2)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid SquaredExponential state!");
                 }
                 /* Create a new C++ instance */
                 SquaredExponential p = SquaredExponential(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
@@ -162,7 +162,7 @@ void wrap_kernels(py::module& module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 2)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid Matern32 state!");
                 }
                 /* Create a new C++ instance */
                 Matern32 p = Matern32(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());
@@ -186,7 +186,7 @@ void wrap_kernels(py::module& module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 2)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid Matern52 state!");
                 }
                 /* Create a new C++ instance */
                 Matern52 p = Matern52(t[0].cast<Parameter<TVector>>(), t[1].cast<Parameter<double>>());

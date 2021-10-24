@@ -42,7 +42,7 @@ void wrap_deep(py::module module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 11)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid GPNode state!");
                 }
                 /* Create a new C++ instance */
                 GPNode p = GPNode(
@@ -83,7 +83,7 @@ void wrap_deep(py::module module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 8)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid Layer state!");
                 }
                 /* Create a new C++ instance */
                 Layer p = Layer(t[0].cast<std::vector<GPNode>>(), false);
@@ -114,7 +114,7 @@ void wrap_deep(py::module module) {
             [/*__setstate__*/](py::tuple t) {
                 if (t.size() != 3)
                 {
-                    throw std::runtime_error("Invalid state!");
+                    throw std::runtime_error("Invalid SIDGP state!");
                 }
                 /* Create a new C++ instance */
                 SIDGP p = SIDGP(t[0].cast<std::vector<Layer>>(), false);
