@@ -128,7 +128,7 @@ def run_experiment(config: Config, start : int, stop : int):
 
     for ii in range(start, stop+1):
         model = config(X_train, Y_train)
-        modelfile = open(f"MODELS/{config.name}_{ii}.fdmlmodel", 'wb')
+        modelfile = open(f"{config.name}_{ii}.fdmlmodel", 'wb')
         dump(model, modelfile)
         modelfile.close()
         plot(model, X_train, Y_train, config.name, ii)
