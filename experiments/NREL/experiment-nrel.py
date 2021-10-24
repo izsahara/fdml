@@ -101,7 +101,7 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     Y_train = np.loadtxt("data/Y1sc_train.dat").reshape(-1, 1)
 
     model = config(X_train, Y_train)
-    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
+    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
     modelfile.close()
 
