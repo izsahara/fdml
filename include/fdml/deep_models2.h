@@ -45,8 +45,9 @@ namespace fdml::deep_models2 {
 				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
 				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
-			GPNode(shared_ptr<Kernel> kernel, const Parameter<double>& likelihood_variance, const Parameter<double>& scale, shared_ptr<Solver> solver) :
-				GP(kernel, solver, likelihood_variance), scale(scale) {
+			GPNode(shared_ptr<Kernel> kernel, const Parameter<double>& likelihood_variance, const Parameter<double>& scale_, shared_ptr<Solver> solver) :
+				GP(kernel, solver, likelihood_variance) {
+				scale = scale_;
 				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
 				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
