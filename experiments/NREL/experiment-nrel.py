@@ -112,18 +112,18 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     X_test = np.loadtxt("data/Xsc_test.dat")
     Y_train = np.loadtxt("data/Y1sc_train.dat").reshape(-1, 1)
 
-    model = config(X_train, Y_train)
-    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
-    dump(model, modelfile)
-    modelfile.close()
-
-    # modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'rb')
-    # model = load(modelfile)
+    # model = config(X_train, Y_train)
+    # modelfile = open(f"{config.name}.fdmlmodel", 'wb')
+    # dump(model, modelfile)
     # modelfile.close()
-    # mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
-    # mean = mean.reshape(-1, 1)
-    # var = var.reshape(-1, 1)
-    # np.savetxt(f"Z1.dat", np.hstack([mean, var]), delimiter='\t')    
+
+    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    model = load(modelfile)
+    modelfile.close()
+    mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
+    mean = mean.reshape(-1, 1)
+    var = var.reshape(-1, 1)
+    np.savetxt(f"Z1.dat", np.hstack([mean, var]), delimiter='\t')    
 
 def rf4_Anch1Ten(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
