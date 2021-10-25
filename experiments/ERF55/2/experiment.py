@@ -16,6 +16,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import seaborn as sns
+import matplotlib.patches as mpatches
 import sys
 sys.path.insert(0, "../../../")
 from fdml.kernels import SquaredExponential, Matern52
@@ -111,31 +112,49 @@ def plot(model, X, Y, name : int, index : int ):
 def predict_mcs(model, name : int, index : int):
     MM, VV = model.predict(Xmcs, n_impute = 100, n_thread = 300)
     np.savetxt(f"MCS/{name}_Z{index}.dat", np.hstack([MM.reshape(-1, 1), VV.reshape(-1, 1)]), delimiter='\t')
-    df = pd.DataFrame({'DGP': MM.ravel(), 'MCS': Zmcs.ravel()})
-    for d in df:
-        sns.distplot(df[d], kde=True, hist=False, kde_kws = {'linewidth': 1.5}, label=d)
+    gpr_mcs = np.loadtxt("GPR_MCS.dat")
+    
+    ax = sns.distplot(Zmcs[:, -1], kde=True, hist=False,
+                      kde_kws={'linewidth': 1.0, 'linestyle': 'dashed'},
+                      color='black')
+    ax = sns.distplot(gpr_mcs[:, 0], kde=True, hist=False,
+                      kde_kws={'linewidth': 1.0}, color='green')
+    ax = sns.distplot(MM.ravel(), kde=True, hist=False,
+                      kde_kws={'linewidth': 0.1}, color='blue')
 
-    plt.xlim([-2, 2])
-    plt.legend()
+    l1 = ax.lines[0]
+    l2 = ax.lines[1]
+    l3 = ax.lines[1]
+    x2 = l2.get_xydata()[:,0]
+    y2 = l2.get_xydata()[:,1]
+    x3 = l3.get_xydata()[:,0]
+    y3 = l3.get_xydata()[:,1]
+
+    ax.fill_between(x3, y3, color="blue", alpha=0.3)
+    blue_patch = mpatches.Patch(color='blue', alpha=0.3)
+    plt.legend([l1, l2, blue_patch], ['MCS', 'GPR', 'SIDGP'])
+    plt.show(block=False)
+    plt.xlim([-1.5, 1.5])
+    plt.ylim([0, 8])
     plt.ylabel('PDF')
     plt.xlabel(r'$f(\xi_1, \xi_2)$')
     plt.grid()
     plt.savefig(f'PLOTS/{name}-{index}-PDF.png', dpi=100)
     plt.close('all')
 
-def run_experiment(config: Config, start : int, stop : int):
+def run_experiment(config: Config, indicies):
     X_train, Y_train = TRAIN_DATA[:, :-1], TRAIN_DATA[:, -1][:, None]
 
-    for ii in range(start, stop+1):
+    for ii in indicies:
         model = config(X_train, Y_train)
         modelfile = open(f"{config.name}_{ii}.fdmlmodel", 'wb')
         dump(model, modelfile)
         modelfile.close()
-        plot(model, X_train, Y_train, config.name, ii)
+        # plot(model, X_train, Y_train, config.name, ii)
         predict_mcs(model, config.name, ii)
 
 if __name__ == "__main__":
-    run_experiment(Config1("CFG1"), start=1, stop=10)
+    run_experiment(Config1("CFG1"), [2, 6, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20])
 
 
 
