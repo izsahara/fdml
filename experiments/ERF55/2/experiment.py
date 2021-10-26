@@ -154,7 +154,8 @@ def run_experiment(config: Config, indicies):
         predict_mcs(model, config.name, ii)
 
 if __name__ == "__main__":
-    run_experiment(Config1("CFG1"), [2, 6, 8, 9, 11, 13, 14, 15, 16, 17, 18, 19, 20])
+    run_experiment(Config1("CFG1"), [10, 11, 13, 14, 15])
+    # [2, 6, 8, 9]
 
 
 

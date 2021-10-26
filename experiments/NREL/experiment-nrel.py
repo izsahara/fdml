@@ -107,23 +107,88 @@ class Config1(Config):
         model.estimate()
         return model
 
+class Config2(Config):
+    def __init__(self, name):
+        super().__init__(name)
+
+    def __call__(self, X_train, Y_train):
+        nftr = X_train.shape[1]
+        # Layer 1
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        
+        node11.solver.solver_iterations = 30
+        node12.solver.solver_iterations = 30
+        node13.solver.solver_iterations = 30
+        node14.solver.solver_iterations = 30
+        node15.solver.solver_iterations = 30
+
+        node11.likelihood_variance.fix()
+        node12.likelihood_variance.fix()
+        node13.likelihood_variance.fix()
+        node14.likelihood_variance.fix()
+        node15.likelihood_variance.fix()
+
+        node11.scale.fix()
+        node12.scale.fix()
+        node13.scale.fix()
+        node14.scale.fix()
+        node15.scale.fix()
+
+        node11.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        node12.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        node13.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        node14.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        node15.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        # Layer 2
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))        
+        node21.solver.solver_iterations = 30
+        node22.solver.solver_iterations = 30     
+        node21.likelihood_variance.fix()
+        node22.likelihood_variance.fix()   
+        # node21.scale.fix()
+        # node22.scale.fix()
+        node21.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr))
+        node22.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr)) 
+        # Layer 3
+        node31 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        node31.likelihood_variance.fix()
+        node31.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr))     
+        #                                   
+        layer1 = GPLayer(nodes=[node11, node12, node13, node14, node15])
+        layer2 = GPLayer(nodes=[node21, node22])
+        layer3 = GPLayer(nodes=[node31])
+
+        layer1.set_inputs(X_train)
+        layer3.set_outputs(Y_train)
+
+        model = SIDGP(layers=[layer1, layer2, layer3])
+        print("Train Model")
+        model.train(n_iter=500, ess_burn=100)
+        model.estimate()
+        return model
+
 def rf4_TwrBsMyt(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
     X_test = np.loadtxt("data/Xsc_test.dat")
     Y_train = np.loadtxt("data/Y1sc_train.dat").reshape(-1, 1)
 
-    # model = config(X_train, Y_train)
-    # modelfile = open(f"{config.name}.fdmlmodel", 'wb')
-    # dump(model, modelfile)
-    # modelfile.close()
-
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
+    model = config(X_train, Y_train)
+    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
+    dump(model, modelfile)
     modelfile.close()
-    mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
-    mean = mean.reshape(-1, 1)
-    var = var.reshape(-1, 1)
-    np.savetxt(f"Z1.dat", np.hstack([mean, var]), delimiter='\t')    
+    
+    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()
+    # mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
+    # mean = mean.reshape(-1, 1)
+    # var = var.reshape(-1, 1)
+    # np.savetxt(f"{config.name}_Z1.dat", np.hstack([mean, var]), delimiter='\t')    
 
 def rf4_Anch1Ten(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
@@ -155,6 +220,6 @@ def rf4_Anch3Ten(config : Config, n_thread):
 
 
 if __name__ == "__main__":
-    rf4_TwrBsMyt(Config1(name="rf4_TwrBsMyt"), n_thread=300)
+    rf4_TwrBsMyt(Config2(name="rf4_TwrBsMyt2"), n_thread=300)
     # rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=300)
     # rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)
