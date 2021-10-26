@@ -124,7 +124,7 @@ def predict_mcs(model, name : int, index : int):
 
     l1 = ax.lines[0]
     l2 = ax.lines[1]
-    l3 = ax.lines[1]
+    l3 = ax.lines[2]
     x2 = l2.get_xydata()[:,0]
     y2 = l2.get_xydata()[:,1]
     x3 = l3.get_xydata()[:,0]
@@ -154,7 +154,7 @@ def run_experiment(config: Config, indicies):
         predict_mcs(model, config.name, ii)
 
 if __name__ == "__main__":
-    run_experiment(Config1("CFG1"), [10, 11, 13, 14, 15])
+    run_experiment(Config1("CFG1"), [11, 13, 14, 15])
     # [2, 6, 8, 9]
 
 
