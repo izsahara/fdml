@@ -162,8 +162,8 @@ def run_experiment(config: Config, indicies):
         predict_mcs(model, config.name, ii)
 
 if __name__ == "__main__":
-    predict("CFG1_15.fdmlmodel", 15)
-    run_experiment(Config1("CFG1"), [13])
+    # predict("CFG1_15.fdmlmodel", 15)
+    run_experiment(Config1("CFG1"), [16])
     # [2, 6, 8, 9]
 
 
