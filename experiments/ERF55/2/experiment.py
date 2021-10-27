@@ -22,7 +22,7 @@ sys.path.insert(0, "../../../")
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.base_models2 import LBFGSB
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
-from pickle import dump
+from pickle import dump, load
 
 MCS = np.loadtxt("../MCS.dat")
 TRAIN_DATA = np.loadtxt("../TRAIN.dat")
@@ -142,10 +142,18 @@ def predict_mcs(model, name : int, index : int):
     plt.savefig(f'PLOTS/{name}-{index}-PDF.png', dpi=100)
     plt.close('all')
 
+def predict(path, index):
+    print(f" ============= PRED {index} ============= ")
+    modelfile = open(path, 'rb')
+    model = load(modelfile)
+    modelfile.close()
+    predict_mcs(model, "CFG1", index)
+
 def run_experiment(config: Config, indicies):
     X_train, Y_train = TRAIN_DATA[:, :-1], TRAIN_DATA[:, -1][:, None]
 
     for ii in indicies:
+        print(f" ============= EXP {ii} ============= ")
         model = config(X_train, Y_train)
         modelfile = open(f"{config.name}_{ii}.fdmlmodel", 'wb')
         dump(model, modelfile)
@@ -154,7 +162,8 @@ def run_experiment(config: Config, indicies):
         predict_mcs(model, config.name, ii)
 
 if __name__ == "__main__":
-    run_experiment(Config1("CFG1"), [13, 14, 15])
+    predict("CFG1_15.fdmlmodel", 15)
+    run_experiment(Config1("CFG1"), [13])
     # [2, 6, 8, 9]
 
 
