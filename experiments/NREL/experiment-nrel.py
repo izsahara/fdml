@@ -112,13 +112,13 @@ class Config2(Config):
         super().__init__(name)
 
     def __call__(self, X_train, Y_train):
-        nftr = X_train.shape[1]
         # Layer 1
-        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
-        node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
-        node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
-        node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
-        node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        nftr_l1 = X_train.shape[1]
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=2))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=2))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=2))
+        node14 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=2))
+        node15 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=2))
         
         node11.solver.solver_iterations = 30
         node12.solver.solver_iterations = 30
@@ -138,26 +138,29 @@ class Config2(Config):
         node14.scale.fix()
         node15.scale.fix()
 
-        node11.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
-        node12.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
-        node13.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
-        node14.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
-        node15.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 3.0 * np.ones(nftr))
+        node11.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
+        node12.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
+        node13.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
+        node14.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
+        node15.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
+
         # Layer 2
-        node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
-        node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))        
+        nftr_l2 = 2
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l2), variance=1.0), solver=LBFGSB(verbosity=2))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l2), variance=1.0), solver=LBFGSB(verbosity=2))        
         node21.solver.solver_iterations = 30
         node22.solver.solver_iterations = 30     
         node21.likelihood_variance.fix()
         node22.likelihood_variance.fix()   
-        # node21.scale.fix()
-        # node22.scale.fix()
-        node21.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr))
-        node22.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr)) 
+
+        node21.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l2), 5.0 * np.ones(nftr_l2))
+        node22.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l2), 5.0 * np.ones(nftr_l2)) 
+
         # Layer 3
-        node31 = GPNode(kernel=Matern52(length_scale=np.ones(nftr), variance=1.0), solver=LBFGSB(verbosity=2))
+        nftr_l3 = 1
+        node31 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l3), variance=1.0), solver=LBFGSB(verbosity=2))
         node31.likelihood_variance.fix()
-        node31.kernel.length_scale.bounds = (1e-6 * np.ones(nftr), 5.0 * np.ones(nftr))     
+        node31.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l3), 5.0 * np.ones(nftr_l3))     
         #                                   
         layer1 = GPLayer(nodes=[node11, node12, node13, node14, node15])
         layer2 = GPLayer(nodes=[node21, node22])
@@ -175,7 +178,7 @@ class Config2(Config):
 def rf4_TwrBsMyt(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
     X_test = np.loadtxt("data/Xsc_test.dat")
-    Y_train = np.loadtxt("data/Y1sc_train.dat").reshape(-1, 1)
+    Y_train = np.loadtxt("data/Y_train.dat")[:, 0].reshape(-1, 1)
 
     model = config(X_train, Y_train)
     modelfile = open(f"{config.name}.fdmlmodel", 'wb')
@@ -185,10 +188,10 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
     # model = load(modelfile)
     # modelfile.close()
-    # mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
-    # mean = mean.reshape(-1, 1)
-    # var = var.reshape(-1, 1)
-    # np.savetxt(f"{config.name}_Z1.dat", np.hstack([mean, var]), delimiter='\t')    
+    mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
+    mean = mean.reshape(-1, 1)
+    var = var.reshape(-1, 1)
+    np.savetxt(f"{config.name}_Z1.dat", np.hstack([mean, var]), delimiter='\t')    
 
 def rf4_Anch1Ten(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
