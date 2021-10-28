@@ -422,9 +422,9 @@ namespace fdml::deep_models2 {
 						if (layer.last_layer) { layer.set_inputs(o_output); }
 						else {
 							// Apply Dimensionality Reduction (Kernel PCA)
+							layer.set_inputs(o_output);
 							kernel_pca::KernelPCA pca(layer.nodes.size(), "sigmoid");
 							TMatrix input_transformed = pca.transform(o_output);
-							layer.set_inputs(input_transformed);
 							if (layer.o_output.size() == 0 || layer.o_output.rows() != o_output.rows())
 							{
 								layer.set_outputs(input_transformed, true);

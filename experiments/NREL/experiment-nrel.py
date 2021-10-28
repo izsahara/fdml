@@ -145,7 +145,7 @@ class Config2(Config):
         node15.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l1), 3.0 * np.ones(nftr_l1))
 
         # Layer 2
-        nftr_l2 = 2
+        nftr_l2 = 5
         node21 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l2), variance=1.0), solver=LBFGSB(verbosity=2))
         node22 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l2), variance=1.0), solver=LBFGSB(verbosity=2))        
         node21.solver.solver_iterations = 30
@@ -157,7 +157,7 @@ class Config2(Config):
         node22.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l2), 5.0 * np.ones(nftr_l2)) 
 
         # Layer 3
-        nftr_l3 = 1
+        nftr_l3 = 2
         node31 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l3), variance=1.0), solver=LBFGSB(verbosity=2))
         node31.likelihood_variance.fix()
         node31.kernel.length_scale.bounds = (1e-6 * np.ones(nftr_l3), 5.0 * np.ones(nftr_l3))     
