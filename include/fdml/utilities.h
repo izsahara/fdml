@@ -384,7 +384,7 @@ namespace fdml::utilities::kernel_pca {
                 alpha = alpha(Eigen::all, non_zero_index);
             }
             // Multiply alpha by -1?
-            return alpha * sqrt(lambda.array()).matrix();
+            return alpha.array().rowwise() * sqrt(lambda.array()).transpose();
         }
 
 
