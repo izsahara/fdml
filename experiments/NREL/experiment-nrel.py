@@ -180,14 +180,15 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     X_test = np.loadtxt("data/Xsc_test.dat")
     Y_train = np.loadtxt("data/Y_train.dat")[:, 0].reshape(-1, 1)
 
-    # model = config(X_train, Y_train)
-    # modelfile = open(f"{config.name}.fdmlmodel", 'wb')
-    # dump(model, modelfile)
-    # modelfile.close()
-    
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
+    model = config(X_train, Y_train)
+    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
+    dump(model, modelfile)
     modelfile.close()
+    
+    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()
+
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
     var = var.reshape(-1, 1)
@@ -196,33 +197,35 @@ def rf4_TwrBsMyt(config : Config, n_thread):
 def rf4_Anch1Ten(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
     X_test = np.loadtxt("data/Xsc_test.dat")
-    Y_train = np.loadtxt("data/Y2sc_train.dat").reshape(-1, 1)
+    Y_train = np.loadtxt("data/Y_train.dat")[:, 1].reshape(-1, 1)
+
     model = config(X_train, Y_train)
     modelfile = open(f"{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
     modelfile.close()
+
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
     var = var.reshape(-1, 1)
-    np.savetxt(f"Z2.dat", np.hstack([mean, var]), delimiter='\t')   
+    np.savetxt(f"{config.name}_Z2.dat", np.hstack([mean, var]), delimiter='\t')   
 
 def rf4_Anch3Ten(config : Config, n_thread):
     X_train = np.loadtxt("data/Xsc_train.dat")
     X_test = np.loadtxt("data/Xsc_test.dat")
-    Y_train = np.loadtxt("data/Y3sc_train.dat").reshape(-1, 1)
+    Y_train = np.loadtxt("data/Y_train.dat")[:, 2].reshape(-1, 1)
+
     model = config(X_train, Y_train)
-    modelfile = open(f"CFG{CFG}/{config.name}.fdmlmodel", 'wb')
+    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
     modelfile.close()
+
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
     var = var.reshape(-1, 1)
-    np.savetxt(f"Z3.dat", np.hstack([mean, var]), delimiter='\t')   
+    np.savetxt(f"{config.name}_Z3.dat", np.hstack([mean, var]), delimiter='\t')   
 
 
 if __name__ == "__main__":
-    rf4_TwrBsMyt(Config2(name="rf4_TwrBsMyt2"), n_thread=300)
-    # rf4_Anch1Ten(Config1(name="rf4_Anch1Ten"), n_thread=300)
-    # rf4_Anch3Ten(Config1(name="rf4_Anch3Ten"), n_thread=200)
+    rf4_TwrBsMyt(Config2(name="rf4_TwrBsMyt2-2"), n_thread=300)
+    rf4_Anch1Ten(Config2(name="rf4_Anch1Ten2-1"), n_thread=300)
+    rf4_Anch3Ten(Config2(name="rf4_Anch3Ten2-1"), n_thread=300)
