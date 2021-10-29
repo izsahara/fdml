@@ -204,9 +204,9 @@ def rf4_Anch1Ten(config : Config, n_thread):
     dump(model, modelfile)
     modelfile.close()
 
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
-    modelfile.close()    
+    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()    
 
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
@@ -223,9 +223,9 @@ def rf4_Anch3Ten(config : Config, n_thread):
     dump(model, modelfile)
     modelfile.close()
 
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
-    modelfile.close()    
+    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()    
 
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
@@ -234,7 +234,6 @@ def rf4_Anch3Ten(config : Config, n_thread):
 
 
 if __name__ == "__main__":
-    rf4_TwrBsMyt(Config2(name="Test"), n_thread=300)
-    # rf4_TwrBsMyt(Config2(name="TwrBsMyt2-2"), n_thread=300)
+    rf4_TwrBsMyt(Config2(name="TwrBsMyt2-3"), n_thread=300)
     # rf4_Anch1Ten(Config2(name="Anch1Ten2-1"), n_thread=300)
     # rf4_Anch3Ten(Config2(name="Anch3Ten2-1"), n_thread=300)
