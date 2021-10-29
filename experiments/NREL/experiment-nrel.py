@@ -171,7 +171,7 @@ class Config2(Config):
 
         model = SIDGP(layers=[layer1, layer2, layer3])
         print("Train Model")
-        model.train(n_iter=500, ess_burn=100)
+        model.train(n_iter=5, ess_burn=100)
         model.estimate()
         return model
 
@@ -180,14 +180,14 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     X_test = np.loadtxt("data/Xsc_test.dat")
     Y_train = np.loadtxt("data/Y_train.dat")[:, 0].reshape(-1, 1)
 
-    # model = config(X_train, Y_train)
-    # modelfile = open(f"{config.name}.fdmlmodel", 'wb')
-    # dump(model, modelfile)
-    # modelfile.close()
-    
-    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    model = load(modelfile)
+    model = config(X_train, Y_train)
+    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
+    dump(model, modelfile)
     modelfile.close()
+    
+    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    # model = load(modelfile)
+    # modelfile.close()
 
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
@@ -222,7 +222,7 @@ def rf4_Anch3Ten(config : Config, n_thread):
     modelfile = open(f"{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
     modelfile.close()
-    
+
     modelfile = open(f"{config.name}.fdmlmodel", 'rb')
     model = load(modelfile)
     modelfile.close()    
@@ -234,6 +234,7 @@ def rf4_Anch3Ten(config : Config, n_thread):
 
 
 if __name__ == "__main__":
-    rf4_TwrBsMyt(Config2(name="rf4_TwrBsMyt2-2"), n_thread=300)
-    rf4_Anch1Ten(Config2(name="rf4_Anch1Ten2-1"), n_thread=300)
-    rf4_Anch3Ten(Config2(name="rf4_Anch3Ten2-1"), n_thread=300)
+    rf4_TwrBsMyt(Config2(name="Test"), n_thread=300)
+    # rf4_TwrBsMyt(Config2(name="TwrBsMyt2-2"), n_thread=300)
+    # rf4_Anch1Ten(Config2(name="Anch1Ten2-1"), n_thread=300)
+    # rf4_Anch3Ten(Config2(name="Anch3Ten2-1"), n_thread=300)

@@ -203,7 +203,9 @@ namespace fdml::deep_models2 {
 			}
 			void linked_prediction(TVector& latent_mu, TVector& latent_var, const TMatrix& linked_mu, const TMatrix& linked_var, const int& n_thread) {
 
-				update_cholesky();
+				update_cholesky(true);
+				std::cout << "DEBUG 4" << std::endl;
+
 				kernel->expectations(linked_mu, linked_var);
 
 				if (n_thread == 0 || n_thread == 1) {
@@ -310,14 +312,15 @@ namespace fdml::deep_models2 {
 			}
 
 		protected:
-			void update_cholesky() {
+			void update_cholesky(bool print_debug = false) {
 				TMatrix noise = TMatrix::Identity(inputs.rows(), outputs.rows());
 				K = kernel->K(inputs, inputs, D);
 				K += (noise * likelihood_variance.value());
 				chol = K.llt();
 				alpha = chol.solve(outputs);
 				// scale is not considered a variable in optimization, it is directly linked to chol
-				if (!(*scale.is_fixed)) {
+				if (!(*scale.is_fixed)) {				
+					if (print_debug) {std::cout << "DEBUG 3" << std::endl;}
 					scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 				}
 			}
@@ -713,7 +716,12 @@ namespace fdml::deep_models2 {
 				}
 			}
 			MatrixPair predict(const TMatrix& X, int n_impute = 50, int n_thread = 1) {
+				
+				std::cout << "DEBUG 1" << std::endl;
+
 				sample(50);
+				std::cout << "DEBUG 2" << std::endl;
+
 				const std::size_t n_layers = layers.size();
 				TMatrix mean = TMatrix::Zero(X.rows(), 1);
 				TMatrix variance = TMatrix::Zero(X.rows(), 1);
