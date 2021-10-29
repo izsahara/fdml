@@ -180,14 +180,14 @@ def rf4_TwrBsMyt(config : Config, n_thread):
     X_test = np.loadtxt("data/Xsc_test.dat")
     Y_train = np.loadtxt("data/Y_train.dat")[:, 0].reshape(-1, 1)
 
-    model = config(X_train, Y_train)
-    modelfile = open(f"{config.name}.fdmlmodel", 'wb')
-    dump(model, modelfile)
-    modelfile.close()
-    
-    # modelfile = open(f"{config.name}.fdmlmodel", 'rb')
-    # model = load(modelfile)
+    # model = config(X_train, Y_train)
+    # modelfile = open(f"{config.name}.fdmlmodel", 'wb')
+    # dump(model, modelfile)
     # modelfile.close()
+    
+    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    model = load(modelfile)
+    modelfile.close()
 
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
@@ -204,6 +204,10 @@ def rf4_Anch1Ten(config : Config, n_thread):
     dump(model, modelfile)
     modelfile.close()
 
+    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    model = load(modelfile)
+    modelfile.close()    
+
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
     var = var.reshape(-1, 1)
@@ -218,6 +222,10 @@ def rf4_Anch3Ten(config : Config, n_thread):
     modelfile = open(f"{config.name}.fdmlmodel", 'wb')
     dump(model, modelfile)
     modelfile.close()
+    
+    modelfile = open(f"{config.name}.fdmlmodel", 'rb')
+    model = load(modelfile)
+    modelfile.close()    
 
     mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
     mean = mean.reshape(-1, 1)
