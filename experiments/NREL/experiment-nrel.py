@@ -171,7 +171,7 @@ class Config2(Config):
 
         model = SIDGP(layers=[layer1, layer2, layer3])
         print("Train Model")
-        model.train(n_iter=5, ess_burn=100)
+        model.train(n_iter=500, ess_burn=100)
         model.estimate()
         return model
 
