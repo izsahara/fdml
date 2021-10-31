@@ -165,9 +165,9 @@ class Config3(Config):
         node12.likelihood_variance.fix()
         node13.likelihood_variance.fix()
 
-        node11.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node12.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node13.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node11.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node12.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node13.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         # ====================== Layer 2 ======================= #
 
@@ -183,15 +183,15 @@ class Config3(Config):
         node22.likelihood_variance.fix()
         node23.likelihood_variance.fix()
 
-        node21.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node22.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node23.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node21.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node22.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node23.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         # ====================== Layer 3 ======================= #
         node31 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node31.solver.solver_iterations = 30
         node31.likelihood_variance.fix()
-        node31.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node31.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         # ====================== Model ======================= #
 
