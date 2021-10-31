@@ -478,6 +478,6 @@ if __name__ == "__main__":
     # Anch3Ten(Config1(name="Anch3Ten"), n_thread=300, mode=0)   
 
     # Anch1Ten(Config1(name="Anch1Ten-1"), n_thread=300, mode=2)
-    Anch1Ten(Config2(name="Anch1Ten-2"), n_thread=300, mode=0)
-    Anch1Ten(Config3(name="Anch1Ten-1"), n_thread=300, mode=0)
+    Anch1Ten(Config2(name="Anch1Ten-2"), n_thread=250, mode=0)
+    Anch1Ten(Config3(name="Anch1Ten-1"), n_thread=250, mode=0)
 

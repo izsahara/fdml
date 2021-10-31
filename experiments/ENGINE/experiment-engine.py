@@ -175,15 +175,11 @@ def run_experiment(config: Config, n_thread : int):
         X_test = np.loadtxt("X_test.dat", delimiter="\t")
         Y_test = np.loadtxt("X_test.dat", delimiter="\t")
 
-        # model = config(X_train, Y_train)
-        # modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
-        # dump(model, modelfile)
-        # modelfile.close()
-
+        model = config(X_train, Y_train)
         modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
-        model = load(modelfile)
-        modelfile.close()        
-
+        dump(model, modelfile)
+        modelfile.close()
+   
         mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -194,7 +190,7 @@ def run_experiment(config: Config, n_thread : int):
 
 
 if __name__ == "__main__":
-    run_experiment(Config1(), n_thread=200)
+    run_experiment(Config1(), n_thread=50)
     #run_experiment(Config2(), n_thread=200)
     #run_experiment(Config3(), n_thread=200)
 
