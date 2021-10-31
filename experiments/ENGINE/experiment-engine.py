@@ -168,12 +168,12 @@ class Config3(Config):
 
 def run_experiment(config: Config, n_thread : int):
     print(f"==================== {config.name} ====================")
-    for exp in range(26, 46):
+    for exp in range(27, 46):
         print(f"EXPERIMENT {exp}")
         X_train = np.loadtxt("X_train.dat", delimiter="\t")
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
         X_test = np.loadtxt("X_test.dat", delimiter="\t")
-        Y_test = np.loadtxt("X_test.dat", delimiter="\t")
+        Y_test = np.loadtxt("Y_test.dat", delimiter="\t")
 
         model = config(X_train, Y_train)
         modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
