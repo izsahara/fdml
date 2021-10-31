@@ -236,7 +236,8 @@ def run_experiment(config: Config, n_thread : int):
 
 if __name__ == "__main__":
     # run_experiment(Config1(), n_thread=50)
-    run_experiment(Config2(), n_thread=100)
+    # run_experiment(Config2(), n_thread=100)
+    run_experiment(Config3(), n_thread=100)
 
 
 
