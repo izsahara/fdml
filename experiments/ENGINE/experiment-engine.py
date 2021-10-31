@@ -194,14 +194,18 @@ def run_experiment(config: Config, n_thread : int):
         Y_test = np.loadtxt("Y_test.dat", delimiter="\t")
 
         model = config(X_train, Y_train)
-        modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
-        dump(model, modelfile)
-        modelfile.close()
+        filename = f"{config.name}/{exp}.fdmlmodel"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, 'wb') as modelfile:
+            dump(model, modelfile)        
    
         mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
-        np.savetxt(f"{config.name}/Z{exp}.dat", np.hstack([mean, var]), delimiter='\t')
+
+        pred_path = os.path.abspath(f"{config.name}")
+        np.savetxt(f"{pred_path}/Z{exp}.dat", np.hstack([mean, var]), delimiter='\t')
+
         rr = rmse(Y_test.ravel(), mean.ravel())
         nrmse = rr / (np.max(Y_test) - np.min(Y_test))
         print(f"NRMSE = {np.mean(nrmse)}")
