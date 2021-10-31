@@ -20,6 +20,7 @@ from pickle import dump, load
 rmse = lambda yt, yp : mean_squared_error(yt, yp, squared=False)
 
 N_TRAIN = 250
+ABS_PATH = print(os.path.dirname(os.path.abspath(__file__)))
 DATA_PATH = f"data/{N_TRAIN}"
 X_TRAIN = np.loadtxt(f"{DATA_PATH}/X_train.dat")
 X_TEST = np.loadtxt(f"{DATA_PATH}/X_test.dat")
@@ -389,5 +390,5 @@ if __name__ == "__main__":
 
     # Anch1Ten(Config1(name="Anch1Ten-1"), n_thread=300, mode=0)
     # Anch1Ten(Config2(name="Anch1Ten-1"), n_thread=300, mode=0)
-    print(os.path.dirname(os.path.abspath(__file__)))
+    print(ABS_PATH)
 
