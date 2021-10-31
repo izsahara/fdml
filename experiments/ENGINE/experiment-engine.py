@@ -21,47 +21,6 @@ class Config:
     def __call__(self, X_train, Y_train):
         raise NotImplementedError
 
-class Config2(Config):
-    def __init__(self):
-        super(Config2, self).__init__(name="CFG2")
-
-    def __call__(self, X_train, Y_train):
-        n_samp, n_ftr = X_train.shape
-        node1 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node2 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node3 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node4 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node5 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-
-        node1.solver.solver_iterations = 15
-        node2.solver.solver_iterations = 15
-        node3.solver.solver_iterations = 15
-        node4.solver.solver_iterations = 15
-        node5.solver.solver_iterations = 15
-
-        node1.likelihood_variance.fix()
-        node2.likelihood_variance.fix()
-        node3.likelihood_variance.fix()
-        node4.likelihood_variance.fix()
-        node5.likelihood_variance.fix()
-
-        node1.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node2.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node3.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node4.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node5.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-
-        layer1 = GPLayer(nodes=[node1, node2, node3])
-        layer2 = GPLayer(nodes=[node4])
-
-        layer1.set_inputs(X_train)
-        layer2.set_outputs(Y_train)
-
-        model = SIDGP(layers=[layer1, layer2])
-        model.train(n_iter=300, ess_burn=200)
-        model.estimate()
-        return model
-
 class Config1(Config):
     def __init__(self):
         super(Config1, self).__init__(name="CFG1")
@@ -124,6 +83,68 @@ class Config1(Config):
         model.estimate()
         return model
 
+class Config2(Config):
+    def __init__(self):
+        super(Config2, self).__init__(name="CFG2")
+
+    def __call__(self, X_train, Y_train):
+        n_samp, n_ftr = X_train.shape
+
+        # ====================== Layer 1 ======================= #
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+
+        node11.solver.solver_iterations = 30
+        node12.solver.solver_iterations = 30
+        node13.solver.solver_iterations = 30
+
+        node11.likelihood_variance.fix()
+        node12.likelihood_variance.fix()
+        node13.likelihood_variance.fix()
+
+        node11.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node12.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node13.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Layer 2 ======================= #
+
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node23 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+
+        node21.solver.solver_iterations = 30
+        node22.solver.solver_iterations = 30
+        node23.solver.solver_iterations = 30
+
+        node21.likelihood_variance.fix()
+        node22.likelihood_variance.fix()
+        node23.likelihood_variance.fix()
+
+        node21.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node22.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node23.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Layer 3 ======================= #
+        node31 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node31.solver.solver_iterations = 30
+        node31.likelihood_variance.fix()
+        node31.kernel.length_scale.bounds = (1e-3 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Model ======================= #
+
+        layer1 = GPLayer(nodes=[node11, node12, node13])
+        layer2 = GPLayer(nodes=[node21, node22, node23])
+        layer3 = GPLayer(nodes=[node31])
+
+        layer1.set_inputs(X_train)
+        layer3.set_outputs(Y_train)
+
+        model = SIDGP(layers=[layer1, layer2, layer3])
+        model.train(n_iter=250, ess_burn=100)
+        model.estimate()
+        return model
+
 class Config3(Config):
     def __init__(self):
         super(Config3, self).__init__(name="CFG3")
@@ -140,19 +161,16 @@ class Config3(Config):
         node2.solver.solver_iterations = 15
         node3.solver.solver_iterations = 15
         node4.solver.solver_iterations = 15
-        node5.solver.solver_iterations = 15
 
         node1.likelihood_variance.fix()
         node2.likelihood_variance.fix()
         node3.likelihood_variance.fix()
         node4.likelihood_variance.fix()
-        node5.likelihood_variance.fix()
 
         node1.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         node2.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         node3.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         node4.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
-        node5.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         layer1 = GPLayer(nodes=[node1, node2, node3])
         layer2 = GPLayer(nodes=[node4])
@@ -168,7 +186,7 @@ class Config3(Config):
 
 def run_experiment(config: Config, n_thread : int):
     print(f"==================== {config.name} ====================")
-    for exp in range(27, 46):
+    for exp in range(1, 26):
         print(f"EXPERIMENT {exp}")
         X_train = np.loadtxt("X_train.dat", delimiter="\t")
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
@@ -190,9 +208,8 @@ def run_experiment(config: Config, n_thread : int):
 
 
 if __name__ == "__main__":
-    run_experiment(Config1(), n_thread=50)
-    #run_experiment(Config2(), n_thread=200)
-    #run_experiment(Config3(), n_thread=200)
+    # run_experiment(Config1(), n_thread=50)
+    run_experiment(Config2(), n_thread=100)
 
 
 
