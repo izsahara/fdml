@@ -21,8 +21,8 @@ rmse = lambda yt, yp : mean_squared_error(yt, yp, squared=False)
 
 N_TRAIN = 250
 DATA_PATH = f"data/{N_TRAIN}"
-X_TRAIN = f"{DATA_PATH}/X_train.dat"
-X_TEST = f"{DATA_PATH}/X_TEST.dat"
+X_TRAIN = np.loadtxt(f"{DATA_PATH}/X_train.dat")
+X_TEST = np.loadtxt(f"{DATA_PATH}/X_test.dat")
 
 
 class Config:
@@ -30,16 +30,16 @@ class Config:
         self.name = name
         self.index = index
 
-    def __call__(self, X_train, Y_train):
+    def __call__(self, Y_train):
         raise NotImplementedError
 
 class Config1(Config):
     def __init__(self, name):
         super().__init__(name, 1)
 
-    def __call__(self, X_train, Y_train):
+    def __call__(self, Y_train):
         # Layer 1
-        nftr_l1 = X_train.shape[1]
+        nftr_l1 = X_TRAIN.shape[1]
         node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
         node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
         node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
@@ -86,7 +86,7 @@ class Config1(Config):
         layer2 = GPLayer(nodes=[node21, node22])
         layer3 = GPLayer(nodes=[node31])
 
-        layer1.set_inputs(X_train)
+        layer1.set_inputs(X_TRAIN)
         layer3.set_outputs(Y_train)
 
         model = SIDGP(layers=[layer1, layer2, layer3])
@@ -104,9 +104,9 @@ class Config2(Config):
     def __init__(self, name):
         super().__init__(name, 2)
 
-    def __call__(self, X_train, Y_train):
+    def __call__(self, Y_train):
         # Layer 1
-        nftr_l1 = X_train.shape[1]
+        nftr_l1 = X_TRAIN.shape[1]
         node11 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
         node12 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
         node13 = GPNode(kernel=Matern52(length_scale=np.ones(nftr_l1), variance=1.0), solver=LBFGSB(verbosity=0))
@@ -159,7 +159,7 @@ class Config2(Config):
         layer2 = GPLayer(nodes=[node21, node22])
         layer3 = GPLayer(nodes=[node31])
 
-        layer1.set_inputs(X_train)
+        layer1.set_inputs(X_TRAIN)
         layer3.set_outputs(Y_train)
 
         model = SIDGP(layers=[layer1, layer2, layer3])
@@ -178,7 +178,7 @@ def RootMxc1(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-RootMxc1.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-RootMxc1.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -188,7 +188,7 @@ def RootMxc1(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -207,7 +207,7 @@ def RootMyc1(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-RootMyc1.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-RootMyc1.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -217,7 +217,7 @@ def RootMyc1(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -236,7 +236,7 @@ def TwrBsMxt(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-TwrBsMxt.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-TwrBsMxt.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -246,7 +246,7 @@ def TwrBsMxt(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -265,7 +265,7 @@ def TwrBsMyt(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-TwrBsMyt.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-TwrBsMyt.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -275,7 +275,7 @@ def TwrBsMyt(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -294,7 +294,7 @@ def Anch1Ten(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-Anch1Ten.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-Anch1Ten.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -304,7 +304,7 @@ def Anch1Ten(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -323,7 +323,7 @@ def Anch2Ten(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-Anch2Ten.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-Anch2Ten.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -333,7 +333,7 @@ def Anch2Ten(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
@@ -352,7 +352,7 @@ def Anch3Ten(config : Config, n_thread, mode = 0):
     Y_train = np.loadtxt(f"{DATA_PATH}/TR-Anch3Ten.dat")
     Y_test = np.loadtxt(f"{DATA_PATH}/TS-Anch3Ten.dat")
     if mode == 0:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
         mean, var = model.predict(X_TEST, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
@@ -362,7 +362,7 @@ def Anch3Ten(config : Config, n_thread, mode = 0):
         file.write(f"{config.name},{modelrmse}\n")
         file.close()        
     elif mode == 1:
-        model = config(X_TRAIN, Y_train)
+        model = config(Y_train)
     else:
         modelfile = open(f"results/{N_TRAIN}/config{config.index}/models/{config.name}.fdmlmodel", 'rb')
         model = load(modelfile)
