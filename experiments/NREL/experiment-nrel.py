@@ -387,6 +387,7 @@ if __name__ == "__main__":
     # Anch2Ten(Config1(name="Anch2Ten"), n_thread=300, mode=0)
     # Anch3Ten(Config1(name="Anch3Ten"), n_thread=300, mode=0)   
 
-    Anch1Ten(Config1(name="Anch1Ten-1"), n_thread=300, mode=0)
-    Anch1Ten(Config2(name="Anch1Ten-1"), n_thread=300, mode=0)
+    # Anch1Ten(Config1(name="Anch1Ten-1"), n_thread=300, mode=0)
+    # Anch1Ten(Config2(name="Anch1Ten-1"), n_thread=300, mode=0)
+    print(os.path.dirname(os.path.abspath(__file__)))
 

@@ -166,7 +166,7 @@ class Config3(Config):
 
 def run_experiment(config: Config, n_thread : int):
     print(f"==================== {config.name} ====================")
-    for exp in range(11, 26):
+    for exp in range(26, 46):
         print(f"EXPERIMENT {exp}")
         X_train = np.loadtxt("X_train.dat", delimiter="\t")
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
