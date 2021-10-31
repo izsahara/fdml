@@ -11,6 +11,8 @@ sys.path.insert(0, "../../")
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
 from fdml.base_models2 import PSO, LBFGSB
+from sklearn.metrics import mean_squared_error, r2_score
+rmse = lambda yt, yp : mean_squared_error(yt, yp, squared=False)
 
 class Config:
     def __init__(self, name):
@@ -171,6 +173,7 @@ def run_experiment(config: Config, n_thread : int):
         X_train = np.loadtxt("X_train.dat", delimiter="\t")
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
         X_test = np.loadtxt("X_test.dat", delimiter="\t")
+        Y_test = np.loadtxt("X_test.dat", delimiter="\t")
 
         # model = config(X_train, Y_train)
         # modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
@@ -185,6 +188,9 @@ def run_experiment(config: Config, n_thread : int):
         mean = mean.reshape(-1, 1)
         var = var.reshape(-1, 1)
         np.savetxt(f"{config.name}/Z{exp}.dat", np.hstack([mean, var]), delimiter='\t')
+        rr = rmse(Y_test.ravel(), mean.ravel())
+        nrmse = rr / (np.max(Y_test) - np.min(Y_test))
+        print(f"NRMSE = {np.mean(nrmse)}")
 
 
 if __name__ == "__main__":
