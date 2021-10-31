@@ -167,7 +167,8 @@ class Config2(Config):
 
         model = SIDGP(layers=[layer1, layer2, layer3])
         print("Train Model")
-        model.train(n_iter=100, ess_burn=100)
+        # model.train(n_iter=100, ess_burn=100)
+        model.train(n_iter=1, ess_burn=1)
         model.estimate()
         filename = f"results/{N_TRAIN}/config{self.index}/models/{self.name}.fdmlmodel"
         os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -478,6 +479,6 @@ if __name__ == "__main__":
     # Anch3Ten(Config1(name="Anch3Ten"), n_thread=300, mode=0)   
 
     # Anch1Ten(Config1(name="Anch1Ten-1"), n_thread=300, mode=2)
-    Anch1Ten(Config2(name="Anch1Ten-1"), n_thread=300, mode=0)
-    Anch1Ten(Config3(name="Anch1Ten-1"), n_thread=300, mode=0)
+    Anch1Ten(Config2(name="Test"), n_thread=300, mode=0)
+    # Anch1Ten(Config3(name="Anch1Ten-1"), n_thread=300, mode=0)
 
