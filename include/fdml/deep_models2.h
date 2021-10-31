@@ -190,7 +190,7 @@ namespace fdml::deep_models2 {
 			MatrixVariant predict(const TMatrix& X, bool return_var = false)
 			{
 				update_cholesky(true);
-				std::cout << "DEBUG 5" << std::endl;
+				// std::cout << "DEBUG 5" << std::endl;
 				TMatrix Ks(inputs.rows(), X.rows());
 				Ks.noalias() = kernel->K(inputs, X);
 				TMatrix mu = Ks.transpose() * alpha;
@@ -205,7 +205,7 @@ namespace fdml::deep_models2 {
 			void linked_prediction(TVector& latent_mu, TVector& latent_var, const TMatrix& linked_mu, const TMatrix& linked_var, const int& n_thread) {
 
 				update_cholesky(true);
-				std::cout << "DEBUG 6" << std::endl;
+				// std::cout << "DEBUG 6" << std::endl;
 
 				kernel->expectations(linked_mu, linked_var);
 
@@ -321,7 +321,7 @@ namespace fdml::deep_models2 {
 				alpha = chol.solve(outputs);
 				// scale is not considered a variable in optimization, it is directly linked to chol
 				if (!(scale.is_fixed)) {				
-					if (print_debug) {std::cout << "DEBUG 4" << std::endl;}
+					// if (print_debug) {std::cout << "DEBUG 4" << std::endl;}
 					scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 				}
 			}
@@ -718,10 +718,10 @@ namespace fdml::deep_models2 {
 			}
 			MatrixPair predict(const TMatrix& X, int n_impute = 50, int n_thread = 1) {
 				
-				std::cout << "DEBUG 1" << std::endl;
+				// std::cout << "DEBUG 1" << std::endl;
 
 				sample(50);
-				std::cout << "DEBUG 2" << std::endl;
+				// std::cout << "DEBUG 2" << std::endl;
 
 				const std::size_t n_layers = layers.size();
 				TMatrix mean = TMatrix::Zero(X.rows(), 1);
@@ -753,7 +753,7 @@ namespace fdml::deep_models2 {
 					//print_utility(i, progress, " N_IMPUTE ");
 					sample();
 					layers.front().predict(X);
-					std::cout << "DEBUG 3" << std::endl;
+					// std::cout << "DEBUG 3" << std::endl;
 					std::size_t j = 1;
 					for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
 						if (layer->state != 2) { layer->state = 2; }
