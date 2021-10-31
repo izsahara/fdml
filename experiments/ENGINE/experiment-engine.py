@@ -172,10 +172,14 @@ def run_experiment(config: Config, n_thread : int):
         Y_train = np.loadtxt("Y_train.dat", delimiter="\t")
         X_test = np.loadtxt("X_test.dat", delimiter="\t")
 
-        model = config(X_train, Y_train)
+        # model = config(X_train, Y_train)
+        # modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
+        # dump(model, modelfile)
+        # modelfile.close()
+
         modelfile = open(f"{config.name}/{exp}.fdmlmodel", 'wb')
-        dump(model, modelfile)
-        modelfile.close()
+        model = load(modelfile)
+        modelfile.close()        
 
         mean, var = model.predict(X_test, n_impute=100, n_thread=n_thread)
         mean = mean.reshape(-1, 1)

@@ -320,7 +320,7 @@ namespace fdml::deep_models2 {
 				chol = K.llt();
 				alpha = chol.solve(outputs);
 				// scale is not considered a variable in optimization, it is directly linked to chol
-				if (!(*scale.is_fixed)) {				
+				if (!(scale.is_fixed)) {				
 					if (print_debug) {std::cout << "DEBUG 4" << std::endl;}
 					scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 				}
