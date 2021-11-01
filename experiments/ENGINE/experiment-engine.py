@@ -2,6 +2,8 @@
 AIRCRAFT-ENGINE EXPERIMENT
 CFG1 best so far
 CFG4 == CFG1 increase length_scale bounds
+CFG5 == CFG1 increase train iter
+CFG6 == CFG1 fix scales
 """
 
 import os
@@ -333,6 +335,76 @@ class Config5(Config):
         model.estimate()
         return model
 
+class Config6(Config):
+    def __init__(self):
+        super(Config6, self).__init__(name="CFG6")
+
+    def __call__(self, X_train, Y_train):
+        n_samp, n_ftr = X_train.shape
+
+        # ====================== Layer 1 ======================= #
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+
+        node11.solver.solver_iterations = 20
+        node12.solver.solver_iterations = 20
+        node13.solver.solver_iterations = 20
+
+        node11.likelihood_variance.fix()
+        node12.likelihood_variance.fix()
+        node13.likelihood_variance.fix()
+
+        node11.scale.fix()
+        node12.scale.fix()
+        node13.scale.fix()        
+
+        node11.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node12.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node13.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Layer 2 ======================= #
+
+        node21 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node22 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node23 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+
+        node21.solver.solver_iterations = 20
+        node22.solver.solver_iterations = 20
+        node23.solver.solver_iterations = 20
+
+        node21.likelihood_variance.fix()
+        node22.likelihood_variance.fix()
+        node23.likelihood_variance.fix()
+
+        node21.scale.fix()
+        node22.scale.fix()
+        node23.scale.fix()        
+
+        node21.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node22.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+        node23.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Layer 3 ======================= #
+        node31 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node31.solver.solver_iterations = 20
+        node31.likelihood_variance.fix()
+        node31.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
+
+        # ====================== Model ======================= #
+
+        layer1 = GPLayer(nodes=[node11, node12, node13])
+        layer2 = GPLayer(nodes=[node21, node22, node23])
+        layer3 = GPLayer(nodes=[node31])
+
+        layer1.set_inputs(X_train)
+        layer3.set_outputs(Y_train)
+
+        model = SIDGP(layers=[layer1, layer2, layer3])
+        model.train(n_iter=250, ess_burn=100)
+        model.estimate()
+        return model
+
 
 
 def run_experiment(config: Config, n_thread : int):
@@ -366,7 +438,8 @@ if __name__ == "__main__":
     # run_experiment(Config1(), n_thread=50)
     # run_experiment(Config2(), n_thread=100)
     # run_experiment(Config4(), n_thread=100)
-    run_experiment(Config5(), n_thread=100)
+    # run_experiment(Config5(), n_thread=100)
+    run_experiment(Config6(), n_thread=100)
 
 
 
