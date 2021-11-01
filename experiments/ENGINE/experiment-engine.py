@@ -376,11 +376,7 @@ class Config6(Config):
         node21.likelihood_variance.fix()
         node22.likelihood_variance.fix()
         node23.likelihood_variance.fix()
-
-        node21.scale.fix()
-        node22.scale.fix()
-        node23.scale.fix()        
-
+   
         node21.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         node22.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         node23.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
