@@ -26,8 +26,11 @@ class Config:
         raise NotImplementedError
 
 class Config1(Config):
-    def __init__(self):
-        super(Config1, self).__init__(name="CFG1")
+    def __init__(self, name=None):
+        if isinstance(name, type(None)):
+            super(Config1, self).__init__(name="CFG1")
+        else:
+            super(Config1, self).__init__(name=name)
 
     def __call__(self, X_train, Y_train):
         n_samp, n_ftr = X_train.shape
@@ -40,6 +43,10 @@ class Config1(Config):
         node11.solver.solver_iterations = 20
         node12.solver.solver_iterations = 20
         node13.solver.solver_iterations = 20
+
+        node11.likelihood_variance = 1e-10
+        node12.likelihood_variance = 1e-10
+        node13.likelihood_variance = 1e-10
 
         node11.likelihood_variance.fix()
         node12.likelihood_variance.fix()
@@ -59,6 +66,10 @@ class Config1(Config):
         node22.solver.solver_iterations = 15
         node23.solver.solver_iterations = 15
 
+        node21.likelihood_variance = 1e-10
+        node22.likelihood_variance = 1e-10
+        node23.likelihood_variance = 1e-10
+
         node21.likelihood_variance.fix()
         node22.likelihood_variance.fix()
         node23.likelihood_variance.fix()
@@ -70,6 +81,7 @@ class Config1(Config):
         # ====================== Layer 3 ======================= #
         node31 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node31.solver.solver_iterations = 15
+        node31.likelihood_variance = 1e-10
         node31.likelihood_variance.fix()
         node31.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
@@ -490,12 +502,12 @@ def run_experiment(config: Config, n_thread : int):
 
 
 if __name__ == "__main__":
-    # run_experiment(Config1(), n_thread=50)
+    run_experiment(Config1(name="CFG1-1"), n_thread=100)
     # run_experiment(Config2(), n_thread=100)
     # run_experiment(Config4(), n_thread=100)
     # run_experiment(Config5(), n_thread=100)
     # run_experiment(Config6(), n_thread=100)
-    run_experiment(Config7(), n_thread=5)
+    # run_experiment(Config7(), n_thread=5)
 
 
 
