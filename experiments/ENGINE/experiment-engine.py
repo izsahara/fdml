@@ -44,9 +44,9 @@ class Config1(Config):
         node12.solver.solver_iterations = 20
         node13.solver.solver_iterations = 20
 
-        node11.likelihood_variance = 1e-10
-        node12.likelihood_variance = 1e-10
-        node13.likelihood_variance = 1e-10
+        node11.likelihood_variance.value = 1e-10
+        node12.likelihood_variance.value = 1e-10
+        node13.likelihood_variance.value = 1e-10
 
         node11.likelihood_variance.fix()
         node12.likelihood_variance.fix()
@@ -66,9 +66,9 @@ class Config1(Config):
         node22.solver.solver_iterations = 15
         node23.solver.solver_iterations = 15
 
-        node21.likelihood_variance = 1e-10
-        node22.likelihood_variance = 1e-10
-        node23.likelihood_variance = 1e-10
+        node21.likelihood_variance.value = 1e-10
+        node22.likelihood_variance.value = 1e-10
+        node23.likelihood_variance.value = 1e-10
 
         node21.likelihood_variance.fix()
         node22.likelihood_variance.fix()
@@ -81,7 +81,7 @@ class Config1(Config):
         # ====================== Layer 3 ======================= #
         node31 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
         node31.solver.solver_iterations = 15
-        node31.likelihood_variance = 1e-10
+        node31.likelihood_variance.value = 1e-10
         node31.likelihood_variance.fix()
         node31.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
