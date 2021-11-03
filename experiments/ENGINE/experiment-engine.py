@@ -36,9 +36,9 @@ class Config1(Config):
         n_samp, n_ftr = X_train.shape
 
         # ====================== Layer 1 ======================= #
-        node11 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node12 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node13 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
 
         node11.solver.solver_iterations = 20
         node12.solver.solver_iterations = 20
@@ -58,9 +58,9 @@ class Config1(Config):
 
         # ====================== Layer 2 ======================= #
 
-        node21 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node22 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node23 = GPNode(kernel=SquaredExponential(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node23 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
 
         node21.solver.solver_iterations = 15
         node22.solver.solver_iterations = 15
@@ -79,7 +79,7 @@ class Config1(Config):
         node23.kernel.length_scale.bounds = (1e-5 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
 
         # ====================== Layer 3 ======================= #
-        node31 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node31 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
         node31.solver.solver_iterations = 15
         node31.likelihood_variance.value = 1e-10
         node31.likelihood_variance.fix()
@@ -107,9 +107,9 @@ class Config2(Config):
         n_samp, n_ftr = X_train.shape
 
         # ====================== Layer 1 ======================= #
-        node11 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node12 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node13 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node11 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node12 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node13 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
 
         node11.solver.solver_iterations = 30
         node12.solver.solver_iterations = 30
@@ -125,9 +125,9 @@ class Config2(Config):
 
         # ====================== Layer 2 ======================= #
 
-        node21 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node22 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
-        node23 = GPNode(kernel=Matern52(length_scale=np.ones(n_ftr), variance=1.0), solver=LBFGSB(verbosity=0))
+        node21 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node22 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
+        node23 = GPNode(kernel=Matern52(length_scale=np.ones(1), variance=1.0), solver=LBFGSB(verbosity=0))
 
         node21.solver.solver_iterations = 30
         node22.solver.solver_iterations = 30
