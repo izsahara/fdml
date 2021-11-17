@@ -636,7 +636,7 @@ namespace fdml::deep_models {
 				// }
 				// else { std::runtime_error("Unrecognized Sampling Method"); }
 
-				theta = TVector::Constant(1, -1.0);
+				theta = TVector::Constant(1, 1.0);
 				if (solver->type == "LBFGSB") {
 					std::vector<double> fhistory;
 					std::vector<TVector> phistory;

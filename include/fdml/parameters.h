@@ -35,7 +35,7 @@ namespace fdml::parameters {
         std::pair<T, T> bounds_;
         std::size_t size_ = 1;
         bool fixed_ = false;
-        std::string transform_ = "logexp";
+        std::string transform_ = "none";
     public:
         const bool* is_fixed = &fixed_;
     public:
@@ -130,20 +130,20 @@ namespace fdml::parameters {
         Parameter(std::string name, double value)  {
             name_ = name;
             value_ = value;
-            transform_ = "logexp";            
-            bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+            transform_ = "none";            
+            bounds_ = std::make_pair(1e-5, std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::pair<double, double> bounds) {
             name_ = name;
             value_ = value;
-            transform_ = "logexp";
+            transform_ = "none";
             bounds_ = bounds;
         }
         Parameter(std::string name, double value, std::string transform) {
             name_ = name;
             value_ = value;
             transform_ = transform;
-            bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+            bounds_ = std::make_pair(1e-5, std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::string transform, std::pair<double, double> bounds) : BaseParameter(name, value, transform, bounds) {}
      
@@ -172,11 +172,11 @@ namespace fdml::parameters {
         Parameter(std::string name, TVector value) {
             name_ = name;
             value_ = value;
-            transform_ = "logexp";
+            transform_ = "none";
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
-            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::max(); }
+            for (int i = 0; i < size_; ++i) { lower_bound[i] = 1e-5; }
             for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::max(); }
             bounds_ = std::make_pair(lower_bound, upper_bound);
         }
@@ -187,14 +187,14 @@ namespace fdml::parameters {
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
-            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::max(); }
+            for (int i = 0; i < size_; ++i) { lower_bound[i] = 1e-5; }
             for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::max(); }
             bounds_ = std::make_pair(lower_bound, upper_bound);
         }
         Parameter(std::string name, TVector value, std::pair<TVector, TVector> bounds) {
             name_ = name;
             value_ = value;
-            transform_ = "logexp";
+            transform_ = "none";
             size_ = value.size();
             bounds_ = bounds;
         }

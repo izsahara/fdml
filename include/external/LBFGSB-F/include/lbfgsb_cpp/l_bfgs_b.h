@@ -41,7 +41,7 @@ public:
           mMachinePrecisionFactor((check_precision_factor(machinePrecisionFactor), machinePrecisionFactor)),
           mProjectedGradientTolerance((check_gradient_tolerance(projectedGradientTolerance),
                   projectedGradientTolerance)),
-          mVerboseLevel(-1) {
+          mVerboseLevel(1) {
     }
 
     ~l_bfgs_b() = default;

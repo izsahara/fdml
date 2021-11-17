@@ -20,8 +20,8 @@ file(GLOB LBFGSB-H ${LBFGSB}/include/*.h)
 set(SOURCE_FILES ${LBFGSB-SRC})
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 # Install library
-install(TARGETS ${PROJECT_NAME} DESTINATION lib/${PROJECT_NAME})
+install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/lib/${PROJECT_NAME})
 # Install library headers
-install(FILES ${LBFGSB-H} DESTINATION include/TEST)
+install(FILES ${LBFGSB-H} DESTINATION ${PROJECT_SOURCE_DIR}/include/TEST)
 
 add_subdirectory(${EXESRC})

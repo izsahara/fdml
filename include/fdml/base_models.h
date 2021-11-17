@@ -136,7 +136,7 @@ namespace fdml::base_models {
 			virtual void set_params(const TVector& new_params) = 0; 
 			virtual TVector get_params() { TVector tmp; return tmp; }
 		public:
-			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-8, "logexp" };
+			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-8, "none" };
 			shared_ptr<Kernel> kernel;
 			shared_ptr<Solver> solver;
 			TVector mean = TVector::Zero(1);
@@ -488,7 +488,7 @@ namespace fdml::base_models {
 			TMatrix	 K;
 			TMatrix	 D;
 		public:			
-			Parameter<double> scale = { "scale", 1.0, "logexp" };
+			Parameter<double> scale = { "scale", 1.0, "none" };
 			double objective_value = 0.0;
 			BoolVector missing;
 

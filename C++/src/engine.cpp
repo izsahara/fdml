@@ -56,9 +56,9 @@ void engine() {
     node12.likelihood_variance.fix();
     node13.likelihood_variance.fix();
 
-    node11.scale.fix();
-    node12.scale.fix();
-    node13.scale.fix();
+    // node11.scale.fix();
+    // node12.scale.fix();
+    // node13.scale.fix();
 
     std::vector<Node2> nodes1{ node11, node12, node13 };
     Layer2 layer1(nodes1);
@@ -76,9 +76,9 @@ void engine() {
     node22.likelihood_variance.fix();
     node23.likelihood_variance.fix();
 
-    node21.scale.fix();
-    node22.scale.fix();
-    node23.scale.fix();
+    // node21.scale.fix();
+    // node22.scale.fix();
+    // node23.scale.fix();
 
     std::vector<Node2> nodes2{ node21, node22, node23 };
     Layer2 layer2(nodes2);
@@ -88,7 +88,7 @@ void engine() {
     //kernel31->length_scale.set_bounds(VectorPair(TVector::Constant(1, 1.0), TVector::Constant(1, 13.0)));
     Node2 node31(kernel31);
     node31.likelihood_variance.fix();
-    node31.scale.fix();
+    // node31.scale.fix();
 
     std::vector<Node2> nodes3{ node31 };
     Layer2 layer3(nodes3);
@@ -98,7 +98,7 @@ void engine() {
     SIDGP2 model(layers);
     model.train(100);
 
-    MatrixPair Z = model.predict(X_test, Y_test, 100, 200);
+    MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
     TMatrix mean = Z.first;
     TMatrix var = Z.second;
     // write_data("datasets/engine/mean.txt", mean);
