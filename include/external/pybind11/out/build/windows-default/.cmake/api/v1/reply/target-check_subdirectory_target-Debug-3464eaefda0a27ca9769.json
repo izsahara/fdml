@@ -1,0 +1,73 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target"
+		],
+		"files" : 
+		[
+			"tests/test_cmake_build/subdirectory_target/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 32,
+				"parent" : 0
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 1,
+			"id" : "test_subdirectory_target::@f8098e357e01e6e34c87"
+		}
+	],
+	"id" : "check_subdirectory_target::@f8098e357e01e6e34c87",
+	"name" : "check_subdirectory_target",
+	"paths" : 
+	{
+		"build" : "tests/test_cmake_build/subdirectory_target",
+		"source" : "tests/test_cmake_build/subdirectory_target"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 1,
+			"isGenerated" : true,
+			"path" : "out/build/windows-default/tests/test_cmake_build/subdirectory_target/CMakeFiles/check_subdirectory_target",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "out/build/windows-default/tests/test_cmake_build/subdirectory_target/CMakeFiles/check_subdirectory_target.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "UTILITY"
+}
