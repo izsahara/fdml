@@ -98,7 +98,7 @@ void engine() {
     SIDGP2 model(layers);
     model.train(100);
 
-    MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
+    MatrixPair Z = model.predict(X_test, Y_test, 100, 250);
     TMatrix mean = Z.first;
     TMatrix var = Z.second;
     // write_data("datasets/engine/mean.txt", mean);
