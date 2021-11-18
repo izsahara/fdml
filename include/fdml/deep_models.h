@@ -929,12 +929,12 @@ namespace fdml::deep_models {
 				return ((f - mean).array() * (cos(params))).matrix() + ((nu - mean).array() * (sin(params))).matrix() + mean;
 			}
 			TMatrix sample_mvn(const TMatrix& K) {
-				//Vmt19937_64 gen_eigen;
-				//TVector mean = TVector::Zero(K.rows());
-				//MvNormalGen sampler = makeMvNormalGen(mean, K);
-				//return sampler.generate(gen_eigen);
-				statistics::MVN sampler(K);
-				return sampler();
+				Vmt19937_64 gen_eigen;
+				TVector mean = TVector::Zero(K.rows());
+				MvNormalGen sampler = makeMvNormalGen(mean, K);
+				return sampler.generate(gen_eigen);
+				// statistics::MVN sampler(K);
+				// return sampler();
 			}
 			double log_likelihood_(const TMatrix& K, const TMatrix& outputs) {
 				TLLT chol(K);
