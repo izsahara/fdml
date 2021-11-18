@@ -8,7 +8,6 @@
 #include <unsupported/Eigen/SpecialFunctions>
 #include <Eigen/Dense>
 #include <Eigen/Cholesky>
-#include <EigenRand/EigenRand>
 #include <ThreadPool/thread_pool.hpp>
 
 static const double PI = std::atan(1) * 4;

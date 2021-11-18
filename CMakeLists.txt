@@ -7,7 +7,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/C++)
 
 include_directories(${HEADERS})
 include_directories(${HEADERS}/external/Eigen)
-include_directories(${HEADERS}/external/EigenRand)
 include_directories(${HEADERS}/external/ThreadPool)
 include_directories(${HEADERS}/external/optim/include)
 include_directories(${HEADERS}/external/rapidcsv/src)

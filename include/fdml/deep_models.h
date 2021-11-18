@@ -6,12 +6,6 @@
 #include <fdml/base_models.h>
 #include <chrono>
 #include <EigenRand/EigenRand>
-using Eigen::Rand::Vmt19937_64;
-using Eigen::Rand::normal;
-using Eigen::Rand::uniformReal;
-using Eigen::Rand::makeMvNormalGen;
-using Eigen::Rand::MvNormalGen;
-
 
 namespace fdml::deep_models {
 
@@ -929,12 +923,8 @@ namespace fdml::deep_models {
 				return ((f - mean).array() * (cos(params))).matrix() + ((nu - mean).array() * (sin(params))).matrix() + mean;
 			}
 			TMatrix sample_mvn(const TMatrix& K) {
-				Vmt19937_64 gen_eigen;
-				TVector mean = TVector::Zero(K.rows());
-				MvNormalGen sampler = makeMvNormalGen(mean, K);
-				return sampler.generate(gen_eigen);
-				// statistics::MVN sampler(K);
-				// return sampler();
+				statistics::MVN sampler(K);
+				return sampler();
 			}
 			double log_likelihood_(const TMatrix& K, const TMatrix& outputs) {
 				TLLT chol(K);
