@@ -113,7 +113,7 @@ namespace fdml::optimizers {
 	struct LBFGSB : public Solver {
 
 		int MM; // Memory Size
-		double pgtol{1e-9}; // Projected Gradient Tolerance
+		double pgtol{1e-5}; // Projected Gradient Tolerance
 		unsigned int max_iter{5000};
 		unsigned int max_fun{15000};
 		double factr{1e7}; // Machine Precision Factor
