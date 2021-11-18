@@ -6,7 +6,6 @@
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
 #include <chrono>
-#include <EigenRand/EigenRand>
 
 namespace fdml::deep_models {
 
