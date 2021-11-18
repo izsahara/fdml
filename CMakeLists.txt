@@ -16,7 +16,7 @@ include_directories(${HEADERS}/external/LBFGSB-F/include)
 enable_language(Fortran)
 set(LBFGSB "${PROJECT_SOURCE_DIR}/include/external/LBFGSB-F")
 file(GLOB LBFGSB-SRC ${LBFGSB}/Lbfgsb.3.0/*.f )
-file(GLOB LBFGSB-H ${LBFGSB}/include/*.h)
+file(GLOB LBFGSB-H ${HEADERS}/fdml/optimizers.h)
 set(SOURCE_FILES ${LBFGSB-SRC})
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 # Install library

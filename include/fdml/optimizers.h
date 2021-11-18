@@ -1,61 +1,272 @@
 #ifndef OPTIMIZERS_H
 #define OPTIMIZERS_H
 #define OPTIM_ENABLE_EIGEN_WRAPPERS
+
+#include <iostream>
+#include <cassert>
+#include <vector>
+#include <cstring>
+#include <string>
+#include <chrono>
+
 #include <fdml/base.h>
 #include <optim/optim.hpp>
 
+extern "C" {
+void setulb_wrapper(int *n, int *m, double x[], double l[], double u[], int nbd[], double *f,
+                    double g[], double *factr, double *pgtol, double wa[], int iwa[], int *itask,
+                    int *iprint, int *icsave, bool *lsave0, bool *lsave1, bool *lsave2, bool *lsave3,
+                    int isave[], double dsave[]);
+}
+
 namespace fdml::optimizers {
 
-	using SolverSettings = optim::algo_settings_t;
-	struct OptData {};
+	namespace utilities {
+		template<typename F>
+		TVector numerical_gradient(F &functor, const TVector& X, const TVector& lb, const TVector& ub, double grid_spacing = 1e-6) {
+			// check consistency of the dimensions
+			int inputDimension = X.size();
+			if (inputDimension != lb.size() || inputDimension != ub.size()) {
+				throw std::invalid_argument("The size of x does not match the bound's dimensions");
+			}
+			// check x is within bounds
+			for (int i = 0; i < inputDimension; i++) {
+				if (X[i] > ub[i] | X[i] < lb[i]) {
+					throw std::runtime_error("x is not contained within [lb, ub]");
+				}
+			}
+
+			TVector grad(X);
+			TVector workX(X);
+			for (int i = 0; i < inputDimension; i++) {
+				double effectiveGridOver = ((X[i] + grid_spacing) > ub[i]) ? ub[i] - X[i] : grid_spacing;
+				workX[i] = X[i] + effectiveGridOver;
+				double valueOver = functor.objective_value(workX);
+				double effectiveGridBelow = ((X[i] - grid_spacing) < lb[i]) ? X[i] - lb[i] : grid_spacing;
+				workX[i] = X[i] - effectiveGridBelow;
+				grad[i] = (valueOver - functor.objective_value(workX)) / (effectiveGridOver + effectiveGridBelow);
+				// restore original value
+				workX[i] = X[i];
+			}
+			return grad;
+		}		
+		
+		class Problem {
+		public:
+			Problem(unsigned int input_dim) : input_dim(input_dim) {}
+			Problem(unsigned int input_dim, const TVector& lb, const TVector& ub) : input_dim(input_dim), lower_bound(lb), upper_bound(ub) {}
+			virtual double operator()(const TVector& X, TVector& grad) = 0;
+			virtual double objective_value(const TVector& X) = 0;
+			virtual void gradient(const TVector& X, TVector& grad)  {
+				grad = numerical_gradient((*this), X, lower_bound, upper_bound);
+			};			
+			void set_lower_bound(const TVector& lb) {
+				if (lb.size() != input_dim){
+					throw std::runtime_error("lb.size() != input_dim");
+				}
+				lower_bound = lb;
+			}			
+			void set_upper_bound(const TVector& ub) {
+				if (ub.size() != input_dim){
+					throw std::runtime_error("ub.size() != input_dim");
+				}				
+				upper_bound = ub;
+			}
+			void set_bounds(const TVector& lb, const TVector& ub) {
+				set_lower_bound(lb);
+				set_upper_bound(ub);
+			}			
+			
+			VectorPair get_bounds(){ 
+				return std::make_pair(lower_bound, upper_bound);
+			}
+
+			const unsigned int input_dim;
+		private:
+			TVector lower_bound;				
+			TVector upper_bound;
+		};
+		
+	}
+
+	using SolverSettings = optim::algo_settings_t;	
+	
+	struct OptimData {};
+	using OptimFxn = std::function<double(const TVector& x, TVector* grad, void* optdata)>;
+	using Problem = utilities::Problem;	
 
 	struct Solver {
-		Solver(const std::string& type) : type(type) {}
-		Solver(const int& verbosity, const int& n_restarts, const std::string& type) :
-			verbosity(verbosity), n_restarts(n_restarts), type(type) {}
-		Solver(const int& verbosity, const int& n_restarts, const std::string& sampling_method, const std::string& type) :
-			verbosity(verbosity), n_restarts(n_restarts), sampling_method(sampling_method), type(type) {}
+		int verbosity = -1;	
+		bool from_optim = false;
+		Solver() = default;
+		Solver(bool from_optim) : from_optim(from_optim) {}
+		Solver(const int& verbosity) : verbosity(verbosity) {}
+		Solver(const int& verbosity, bool from_optim) : verbosity(verbosity), from_optim(from_optim) {}
+		virtual void solve(TVector& XX, Problem& problem) = 0;
+		virtual void solve(TVector& theta, OptimFxn objective, OptimData optdata) = 0;
+		protected:
+			virtual SolverSettings settings() const { SolverSettings settings_; return settings_; }
 
-		virtual SolverSettings settings() const { SolverSettings settings_; return settings_; }
-		virtual bool
-			solve(TVector& theta,
-				std::function<double(const TVector& x, TVector* grad, void* optdata)> objective,
-				OptData optdata, SolverSettings& settings) const
+	};
+
+	/* MODIFIED LBFGSB WRAPPER */
+	struct LBFGSB : public Solver {
+
+		int MM; // Memory Size
+		double pgtol{1e-9}; // Prohected Gradient Tolerance
+		unsigned int max_iter{5000};
+		unsigned int max_fun{15000};
+		double factr{1e7}; // Machine Precision Factor
+		double gscale = 1.0; // <= 1 used to scale the gradient for explosive functions
+
+		LBFGSB() : Solver(), MM(5) {}
+		LBFGSB(const int& verbosity) : Solver(verbosity), MM(5) {}	
+		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override {}
+		void solve(TVector& XX, Problem& problem)  override
 		{
-			return false;
-		}
+			run_check();
+			int NN = problem.input_dim;
+			// Setup Bounds
+			VectorPair bounds = problem.get_bounds();
+			std::vector<double> LB(NN);
+			std::vector<double> UB(NN);
+			TVector::Map(&LB[0], NN) = bounds.first;
+			TVector::Map(&UB[0], NN) = bounds.second;
 
-		// FDML
-		int verbosity = 0;
-		int n_restarts = 10;
-		std::string sampling_method = "uniform";
-		// Optim
+			std::vector<int> BND(NN);
+			std::vector<int> IWA(3*NN);
+			std::vector<double> WA(2 * MM * NN + 5 * NN + 11 * MM * MM + 8 * MM);
+
+			bool hasLowerBound, hasUpperBound; 
+			for (Eigen::Index i = 0; i < XX.size(); ++i){
+				hasLowerBound = !std::isinf(LB[i]);
+				hasUpperBound = !std::isinf(UB[i]);
+				if (hasLowerBound) {
+					if (hasUpperBound) {
+						BND[i] = 2;
+					} else {
+						BND[i] = 1;
+					}
+				} else if (hasUpperBound) {
+					BND[i] = 3;
+				} else {
+					BND[i] = 0;
+				}
+			}
+
+			double fobj = 0.0;
+			TVector grad;
+			problem.gradient(XX, grad);
+			if (gscale != 1.0) {
+				scale_gradient(grad, NN);
+			}	
+			int i = 0;
+			int itask = 0;
+			int icsave = 0;
+			bool test = false;					
+			// void setulb_wrapper(int *n, int *m, double x[], double l[], double u[], int nbd[], double *f,
+			//                     double g[], double *factr, double *pgtol, double wa[], int iwa[], int *itask,
+			//                     int *iprint, int *icsave, bool *lsave0, bool *lsave1, bool *lsave2, bool *lsave3,
+			//                     int isave[], double dsave[]);
+			while ((i < max_iter) && ((itask == 0) || (itask == 1) || (itask == 2) || (itask == 3) ))	
+			{
+				setulb_wrapper(&NN, &MM, &XX[0], &LB[0], &UB[0], &BND[0], &fobj, 
+							   &grad[0], &factr, &pgtol, &WA[0], &IWA[0], &itask, 
+							   &verbosity, &icsave, &itfbool[0], &itfbool[1], &itfbool[2], &itfbool[3],
+							   &itfint[0], &itfdbl[0]);
+				// assert that impossible values do not occur
+				assert(icsave <= 14 && icsave >= 0);
+				assert(itask <= 12 && itask >= 0);
+
+				if (itask == 2 || itask == 3) {
+					fobj = problem.objective_value(XX);
+					problem.gradient(XX, grad);
+					if (gscale != 1.0) {
+						scale_gradient(grad, NN);
+					}
+				}
+				i = itfint[29];
+			}
+		}
+	
+	private:
+		// Interface to Fortran code
+		bool itfbool[4];
+		int itfint[44];
+		double itfdbl[29];	
+
+		void scale_gradient(TVector& gradient, int gradientSize) {
+			for (int i = 0; i < gradientSize; i++) {
+				gradient[i] *= gscale;
+			}
+		}	
+		void run_check(){
+			if (MM < 1) {
+				throw std::invalid_argument("memory size (MM) should be >= 1");
+			}
+			if (max_iter < 1) {
+				throw std::invalid_argument("max_iter should be >= 1");
+			}	
+			if (factr <= 0) {
+				throw std::invalid_argument("factr should be > 0");
+			}		
+			if (pgtol < 0) {
+				throw std::invalid_argument("pgtol should be >= 0");
+			}	
+			if (gscale <= 0 || gscale > 1) {
+				throw std::invalid_argument("gscale should be > 0 and <= 1");
+			}											
+		}
+		SolverSettings settings() const override {
+			SolverSettings settings_;
+			settings_.lbfgsb_settings.MM = MM;
+			settings_.lbfgsb_settings.pgtol = pgtol;
+			settings_.lbfgsb_settings.max_iter = max_iter;
+			settings_.lbfgsb_settings.max_fun = max_fun;
+			settings_.lbfgsb_settings.factr = factr;
+			settings_.lbfgsb_settings.gscale = gscale;			
+			return settings_;
+		}
+	
+	};
+
+	struct OptimSolver : public Solver {
+		OptimSolver() : Solver(true) {}
+		OptimSolver(const int& verbosity) : Solver(verbosity, true) {}
+
 		int conv_failure_switch = 0;
 		int iter_max = 2000;
 		double err_tol = 1E-08;
-		bool vals_bound = true;
-		const std::string type;
+		bool vals_bound = true;		
 	};
 
-	struct PSO : public Solver {
-		PSO() : Solver("PSO") {}
-		PSO(const int& verbosity, const int& n_restarts) :
-			Solver(verbosity, n_restarts, "PSO") {}
-		PSO(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-			Solver(verbosity, n_restarts, sampling_method, "PSO") {}
-		PSO(const int& verbosity, const int& n_restarts, const std::string& sampling_method,
-			const TVector& initial_lb, const TVector& initial_ub) :
-			Solver(verbosity, n_restarts, sampling_method, "PSO"),
-			initial_lb(initial_lb), initial_ub(initial_ub) {}
-
-		bool solve
-		(TVector& theta,
-			std::function<double(const TVector& x, TVector* grad, void* optdata)> objective,
-			OptData optdata, SolverSettings& settings) const
+	struct PSO : public OptimSolver {
+		PSO() : OptimSolver() {}
+		PSO(const int& verbosity) : OptimSolver(verbosity) {}
+		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override
 		{
-			return optim::pso(theta, objective, &optdata, settings);
+			SolverSettings settings_ = settings();
+			bool success = optim::pso(theta, objective, &optdata, settings_);
 		}
-
+		void solve(TVector& XX, Problem& problem)  override {}
+		bool center_particle = true;
+		int n_pop = 100;
+		int n_gen = 1000;
+		int inertia_method = 1; // 1 for linear decreasing between w_min and w_max; 2 for dampening
+		double par_initial_w = 1.0;
+		double par_w_damp = 0.99;
+		double par_w_min = 0.10;
+		double par_w_max = 0.99;
+		int velocity_method = 1; // 1 for fixed; 2 for linear
+		double par_c_cog = 2.0;
+		double par_c_soc = 2.0;
+		double par_initial_c_cog = 2.5;
+		double par_final_c_cog = 0.5;
+		double par_initial_c_soc = 0.5;
+		double par_final_c_soc = 2.5;
+	private:
+		TVector initial_lb;
+		TVector initial_ub;
 		SolverSettings settings() const override {
 			SolverSettings settings_;
 			settings_.conv_failure_switch = conv_failure_switch;
@@ -82,24 +293,13 @@ namespace fdml::optimizers {
 			if (initial_ub.size()) { settings_.pso_settings.initial_ub = initial_ub; }
 			return settings_;
 		}
-		bool center_particle = true;
-		int n_pop = 100;
-		int n_gen = 1000;
-		int inertia_method = 1; // 1 for linear decreasing between w_min and w_max; 2 for dampening
-		double par_initial_w = 1.0;
-		double par_w_damp = 0.99;
-		double par_w_min = 0.10;
-		double par_w_max = 0.99;
-		int velocity_method = 1; // 1 for fixed; 2 for linear
-		double par_c_cog = 2.0;
-		double par_c_soc = 2.0;
-		double par_initial_c_cog = 2.5;
-		double par_final_c_cog = 0.5;
-		double par_initial_c_soc = 0.5;
-		double par_final_c_soc = 2.5;
-		TVector initial_lb; // this will default to -0.5
-		TVector initial_ub; // this will default to  0.5
 	};
+
+}
+#endif
+
+
+/* OPTIM SOLVERS
 
 	struct DifferentialEvolution : public Solver {
 		DifferentialEvolution() : Solver("DE") {}
@@ -159,49 +359,6 @@ namespace fdml::optimizers {
 		double par_tau_CR = 0.1;
 		TVector initial_lb; // this will default to -0.5
 		TVector initial_ub; // this will default to  0.5
-	};
-
-	struct LBFGSB : public Solver {
-		LBFGSB() : Solver("LBFGSB") {}
-		LBFGSB(const int& verbosity, const int& n_restarts) :
-			Solver(verbosity, n_restarts, "LBFGSB") {}
-		LBFGSB(const int& verbosity, const int& n_restarts, const std::string& sampling_method) :
-			Solver(verbosity, n_restarts, sampling_method, "LBFGSB") {}
-		SolverSettings settings() const override {
-			SolverSettings settings_;
-			settings_.lbfgsb_settings.m = m;
-			settings_.lbfgsb_settings.past = past;
-			settings_.lbfgsb_settings.max_iterations = max_iterations;
-			settings_.lbfgsb_settings.submin = submin;
-			settings_.lbfgsb_settings.max_linesearch = max_linesearch;
-			settings_.lbfgsb_settings.epsilon = epsilon;
-			settings_.lbfgsb_settings.delta = delta;
-			settings_.lbfgsb_settings.min_step = min_step;
-			settings_.lbfgsb_settings.max_step = max_step;
-			settings_.lbfgsb_settings.ftol = ftol;
-			settings_.lbfgsb_settings.wolfe = wolfe;
-			return settings_;
-		}
-		bool solve
-		(TVector& theta,
-			std::function<double(const TVector& x, TVector* grad, void* optdata)> objective,
-			OptData optdata, SolverSettings& settings) const
-		{
-			return true;
-			/*return optim::lbfgs(theta, objective, &optdata, settings);*/
-		}
-
-		int m = 6;
-		int past = 1;
-		int max_iterations = 10;
-		int submin = 20;
-		int max_linesearch = 20;
-		double epsilon= 1e-5;
-		double delta = 1e-10;
-		double min_step = 1e-20;
-		double max_step = 1e20;
-		double ftol = 1e-4;
-		double wolfe = 0.9;
 	};
 
 	struct GradientDescent : public Solver {
@@ -322,5 +479,5 @@ namespace fdml::optimizers {
 		double par_delta = 0.5; // shrinkage parameter
 	};
 
-}
-#endif
+
+*/

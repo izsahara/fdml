@@ -105,62 +105,21 @@ namespace fdml::deep_models {
 			void train() override {
 				TVector lower_bound, upper_bound, theta;
 				get_bounds(lower_bound, upper_bound, false);
+				theta = TVector::Constant(lower_bound.size(), -1.0);
 
-				TMatrix X(solver->n_restarts, lower_bound.size());
-				/* Try Uniform Distribution */
-				// if (solver->sampling_method == "uniform") {
-				// 	std::mt19937 generator(std::random_device{}());
-				// 	for (Eigen::Index c = 0; c < X.cols(); ++c) {
-				// 		std::uniform_real_distribution<> distribution(lower_bound[c], upper_bound[c]);
-				// 		auto uniform = [&](int, Eigen::Index) {return distribution(generator); };
-				// 		X.col(c) = TMatrix::NullaryExpr(solver->n_restarts, 1, uniform);
-				// 	}
-				// }
-				// else if (solver->sampling_method == "sobol") {
-				// 	X = statistics::sobol::generate_sobol(solver->n_restarts, lower_bound.size());
-				// 	metrics::scale_to_range(X, lower_bound, upper_bound);
-				// 	X.array() += 1e-6;
-				// }
-				// else { std::runtime_error("Unrecognized Sampling Method"); }
-
-				theta = TVector::Constant(1, -1.0);
-				if (solver->type == "LBFGSB") {
-					std::vector<double> fhistory;
-					std::vector<TVector> phistory;
-					Objective<TVector> objective(this, static_cast<int>(lower_bound.size()));
-					objective.set_lower_bound(lower_bound);
-					objective.set_upper_bound(upper_bound);
-					l_bfgs_b<TVector> lbfgsb_solver;
-
-					lbfgsb_solver.optimize(objective, theta);
-
-					// for (int i = 0; i < solver->n_restarts; ++i) {
-					// 	theta = X.row(i);
-					// 	auto [fsol, xsol] = lbfgsb_solver.minimize(objective, theta, objective_value, lower_bound, upper_bound);
-					// 	fhistory.push_back(fsol);
-					// 	phistory.push_back(xsol);
-					// }
-
-					// // Perform Checks on local history
-					// int min_idx = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
-					// double min_f = *std::min_element(fhistory.begin(), fhistory.end());
-					// objective_value = min_f;
-					// theta = phistory[min_idx];
-
-					if (theta.array().isNaN().any() || theta.array().isInf().any()) {
-						if (solver->verbosity > 0) { std::cout << "LBFGSB FAILED -> RUNNING PSO" << std::endl; }
-						// Better way than to swap pointers?
-						shared_ptr<PSO> _solver = make_shared<PSO>(solver->verbosity, solver->n_restarts, solver->sampling_method);
-						shared_ptr<Solver> solver2 = std::static_pointer_cast<Solver>(_solver);
-						solver.swap(solver2);
-						from_optim_(theta, lower_bound, upper_bound, X);
-					}
-					// set_params(theta);
+				if (solver->from_optim){
+					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
+					{return objective_(x, grad, nullptr, opt_data); };
+					opt::OptimData optdata;
+					solver->solve(theta, objective, optdata);
 				}
-				// else {from_optim_(theta, lower_bound, upper_bound, X);}
+				else {
+					// LBFGSB
+					Objective objective(this, static_cast<int>(lower_bound.size()));
+					objective.set_bounds(lower_bound, upper_bound);
+					solver->solve(theta, objective);
+				}
 			}
-
-
 
 			TVector gradients() override {
 				// dNLL = alpha*alpha^T - K^-1 [Rasmussen, Eq 5.9]
@@ -274,29 +233,6 @@ namespace fdml::deep_models {
 			const TMatrix get_outputs() { return outputs; }
 
 		private:
-			void from_optim_(TVector& theta, const TVector& lower_bound, const TVector& upper_bound, const TMatrix& X) {
-				std::vector<double> fhistory;
-				std::vector<TVector> phistory;
-				OptData optdata;
-				auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
-				{return objective_(x, grad, nullptr, opt_data); };
-				SolverSettings settings = solver->settings();
-				if (solver->vals_bound) {
-					settings.lower_bounds = lower_bound.array();
-					settings.upper_bounds = upper_bound.array();
-				}
-				bool success = false;
-				for (int i = 0; i < solver->n_restarts; ++i) {
-					theta = X.row(i);
-					success = solver->solve(theta, objective, optdata, settings);
-					fhistory.push_back(-log_marginal_likelihood());
-					phistory.push_back(get_params());
-				}
-				int minElementIndex = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
-				objective_value = *std::min_element(fhistory.begin(), fhistory.end());
-				set_params(phistory[minElementIndex]);
-				if (store_parameters) { history.push_back(phistory[minElementIndex]); }
-			}
 			double objective_(const TVector& x, TVector* grad, TVector* hess, void* opt_data) {
 				set_params(x);
 				if (grad) { (*grad) = gradients() * -1.0; }
@@ -618,62 +554,21 @@ namespace fdml::deep_models {
 			void train() override {
 				TVector lower_bound, upper_bound, theta;
 				get_bounds(lower_bound, upper_bound, false);
+				theta = TVector::Constant(lower_bound.size(), -1.0);
 
-				TMatrix X(solver->n_restarts, lower_bound.size());
-				/* Try Uniform Distribution */
-				// if (solver->sampling_method == "uniform") {
-				// 	std::mt19937 generator(std::random_device{}());
-				// 	for (Eigen::Index c = 0; c < X.cols(); ++c) {
-				// 		std::uniform_real_distribution<> distribution(lower_bound[c], upper_bound[c]);
-				// 		auto uniform = [&](int, Eigen::Index) {return distribution(generator); };
-				// 		X.col(c) = TMatrix::NullaryExpr(solver->n_restarts, 1, uniform);
-				// 	}
-				// }
-				// else if (solver->sampling_method == "sobol") {
-				// 	X = statistics::sobol::generate_sobol(solver->n_restarts, lower_bound.size());
-				// 	metrics::scale_to_range(X, lower_bound, upper_bound);
-				// 	X.array() += 1e-6;
-				// }
-				// else { std::runtime_error("Unrecognized Sampling Method"); }
-
-				theta = TVector::Constant(1, 1.0);
-				if (solver->type == "LBFGSB") {
-					std::vector<double> fhistory;
-					std::vector<TVector> phistory;
-					Objective<TVector> objective(this, static_cast<int>(lower_bound.size()));
-					objective.set_lower_bound(lower_bound);
-					objective.set_upper_bound(upper_bound);
-					l_bfgs_b<TVector> lbfgsb_solver;
-
-					lbfgsb_solver.optimize(objective, theta);
-
-					// for (int i = 0; i < solver->n_restarts; ++i) {
-					// 	theta = X.row(i);
-					// 	auto [fsol, xsol] = lbfgsb_solver.minimize(objective, theta, objective_value, lower_bound, upper_bound);
-					// 	fhistory.push_back(fsol);
-					// 	phistory.push_back(xsol);
-					// }
-
-					// // Perform Checks on local history
-					// int min_idx = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
-					// double min_f = *std::min_element(fhistory.begin(), fhistory.end());
-					// objective_value = min_f;
-					// theta = phistory[min_idx];
-
-					if (theta.array().isNaN().any() || theta.array().isInf().any()) {
-						if (solver->verbosity > 0) { std::cout << "LBFGSB FAILED -> RUNNING PSO" << std::endl; }
-						// Better way than to swap pointers?
-						shared_ptr<PSO> _solver = make_shared<PSO>(solver->verbosity, solver->n_restarts, solver->sampling_method);
-						shared_ptr<Solver> solver2 = std::static_pointer_cast<Solver>(_solver);
-						solver.swap(solver2);
-						from_optim_(theta, lower_bound, upper_bound, X);
-					}
-					// set_params(theta);
+				if (solver->from_optim){
+					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
+					{return objective_(x, grad, nullptr, opt_data); };
+					opt::OptimData optdata;
+					solver->solve(theta, objective, optdata);
 				}
-				// else {from_optim_(theta, lower_bound, upper_bound, X);}
+				else {
+					// LBFGSB
+					Objective objective(this, static_cast<int>(lower_bound.size()));
+					objective.set_bounds(lower_bound, upper_bound);
+					solver->solve(theta, objective);
+				}
 			}
-
-
 			TVector gradients() override {
 				std::vector<TMatrix> grad_;
 				if (alpha.size() == 0) { update_cholesky(); }
@@ -801,29 +696,6 @@ namespace fdml::deep_models {
 			}
 
 		private:
-			void from_optim_(TVector& theta, const TVector& lower_bound, const TVector& upper_bound, const TMatrix& X) {
-				std::vector<double> fhistory;
-				std::vector<TVector> phistory;
-				OptData optdata;
-				auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
-				{return objective_(x, grad, nullptr, opt_data); };
-				SolverSettings settings = solver->settings();
-				if (solver->vals_bound) {
-					settings.lower_bounds = lower_bound.array();
-					settings.upper_bounds = upper_bound.array();
-				}
-				bool success = false;
-				for (int i = 0; i < solver->n_restarts; ++i) {
-					theta = X.row(i);
-					success = solver->solve(theta, objective, optdata, settings);
-					fhistory.push_back(log_marginal_likelihood());
-					phistory.push_back(get_params());
-				}
-				int minElementIndex = std::min_element(fhistory.begin(), fhistory.end()) - fhistory.begin();
-				objective_value = *std::min_element(fhistory.begin(), fhistory.end());
-				set_params(phistory[minElementIndex]);
-				if (store_parameters) { history.push_back(phistory[minElementIndex]); }
-			}
 			double objective_(const TVector& x, TVector* grad, TVector* hess, void* opt_data) {
 				set_params(x);
 				if (grad) { (*grad) = gradients() * -1.0; }

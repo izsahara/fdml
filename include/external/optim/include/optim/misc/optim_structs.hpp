@@ -93,20 +93,15 @@ struct lbfgs_settings_t
     double wolfe_cons_2 = 0.90;  // line search tuning parameter
 };
 
-// L-BFGS-B (LBFGSpp)
+// L-BFGS-B (LBFGSB)
 struct lbfgsb_settings_t
 {
-    int m = 6;
-    int past = 0;
-    int max_iterations = 15000;
-    int submin = 20;
-    int max_linesearch = 20;
-    double epsilon = 1e-08;
-    double delta = 0;
-    double min_step = 1e-20;
-    double max_step = 1e20;
-    double ftol = 2.220446049250313e-09;
-    double wolfe = 0.9;
+    int MM = 5; 
+    double pgtol = 1e-9;
+    unsigned int max_iter = 5000;
+    unsigned int max_fun = 15000;
+    double factr = 1e7; 
+    double gscale = 1.0;
 };
 
 

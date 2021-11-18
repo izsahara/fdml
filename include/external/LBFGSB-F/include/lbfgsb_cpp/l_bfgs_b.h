@@ -22,13 +22,9 @@ void setulb_wrapper(int *n, int *m, double x[], double l[], double u[], int nbd[
 template<class T>
 class l_bfgs_b {
 public:
-    l_bfgs_b() : l_bfgs_b(5) {
+    l_bfgs_b() : l_bfgs_b(5) {};
 
-    };
-
-    l_bfgs_b(int memorySize) : l_bfgs_b(memorySize, 500, 1e7, 1e-9) {
-
-    }
+    l_bfgs_b(int memorySize) : l_bfgs_b(memorySize, 500, 1e7, 1e-9) {}
 
     // Typical values for machinePrecisionFactor : 1e+12 for
     // low accuracy; 1e+7 for moderate accuracy; 1e+1 for extremely
