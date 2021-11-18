@@ -134,7 +134,7 @@ namespace fdml::base_models {
 			virtual void set_params(const TVector& new_params) = 0; 
 			virtual TVector get_params() { TVector tmp; return tmp; }
 		public:
-			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-8, "none" };
+			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-10, "none" };
 			shared_ptr<Kernel> kernel;
 			shared_ptr<Solver> solver;
 			TVector mean = TVector::Zero(1);
