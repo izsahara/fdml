@@ -2,6 +2,7 @@
 #define DEEPMODELS_H
 // #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
+
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
 #include <chrono>
