@@ -1307,7 +1307,14 @@ namespace fdml::deep_models {
 				std::cout << std::endl;
 			}
 			void estimate(Eigen::Index n_burn = 0) {
-				if (n_burn == 0) { n_burn = std::size_t(0.75 * n_iter_); }
+				if (n_burn == 0) { 
+					n_burn = std::size_t(0.75 * n_iter_);
+				}
+				else {
+					if (n_burn > n_iter_){
+						throw std::runtime_error("n_burn > n_iter_");
+					}
+				}
 				for (std::vector<Layer2>::iterator layer = layers.begin(); layer != layers.end(); ++layer) {
 					layer->estimate_parameters(n_burn);
 				}
