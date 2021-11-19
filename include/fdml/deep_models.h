@@ -723,7 +723,7 @@ namespace fdml::deep_models {
 			Parameter<double> scale = { "scale", 1.0, "none" };
 			BoolVector missing;
 			double objective_value = 0.0;
-			bool store_parameters = false;
+			bool store_parameters = true;
 			bool connected = false;
 			std::vector<TVector> history;
 
