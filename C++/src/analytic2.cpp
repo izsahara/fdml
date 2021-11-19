@@ -86,6 +86,7 @@ void erf2d(std::string exp){
     model.estimate();
 
     // Plot
+    std::cout << "================ PLOT ================" << std::endl;
     MatrixPair Zplot = model.predict(X_plot, 100, 300);
     TMatrix Zpm = Zplot.first;
     TMatrix Zpv = Zplot.second;
@@ -95,6 +96,7 @@ void erf2d(std::string exp){
     write_data(Zpv_path, Zpv);
 
     // MCS
+    std::cout << "================= MCS ================" << std::endl;
     MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
     TMatrix Zmcs = Z.first;
     TMatrix Zvcs = Z.second;
