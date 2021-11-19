@@ -102,7 +102,7 @@ void engine() {
     std::vector<Layer2> layers{ layer1, layer2, layer3 };
     SIDGP2 model(layers);
     model.train(500);
-    model.estimate();
+    model.estimate(500);
 
     MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
     TMatrix mean = Z.first;
