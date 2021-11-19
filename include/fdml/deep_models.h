@@ -560,10 +560,8 @@ namespace fdml::deep_models {
 					Objective objective(this, static_cast<int>(lower_bound.size()));
 					objective.set_bounds(lower_bound, upper_bound);
 					solver->solve(theta, objective);
-					set_params(objective.Xopt);
 				}
-				theta = get_params();
-				std::cout << theta << std::endl;
+				set_params(theta);
 				if (store_parameters) {
 					if (!((theta.array().isNaN()).any())){
 						history.push_back(theta);						

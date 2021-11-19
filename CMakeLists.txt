@@ -5,6 +5,9 @@ set(HEADERS "${PROJECT_SOURCE_DIR}/include")
 set(EXESRC "${PROJECT_SOURCE_DIR}/C++/src")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/C++)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+
+
 include_directories(${HEADERS})
 include_directories(${HEADERS}/external/Eigen)
 include_directories(${HEADERS}/external/ThreadPool)
@@ -21,6 +24,6 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 # Install library
 install(TARGETS ${PROJECT_NAME} DESTINATION ${PROJECT_SOURCE_DIR}/lib/${PROJECT_NAME})
 # Install library headers
-install(FILES ${LBFGSB-H} DESTINATION ${PROJECT_SOURCE_DIR}include/TEST)
+install(FILES ${LBFGSB-H} DESTINATION ${PROJECT_SOURCE_DIR}/include)
 
 add_subdirectory(${EXESRC})
