@@ -38,15 +38,15 @@ TMatrix read_data(std::string filename) {
 }
 
 void engine() {    
-    // TMatrix X_train = read_data("../datasets/engine/X_train.txt");
-    // TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
-    // TMatrix X_test = read_data("../datasets/engine/X_test.txt");
-    // TMatrix Y_test = read_data("../datasets/engine/Y_test.txt");
+    TMatrix X_train = read_data("../datasets/engine/X_train.txt");
+    TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
+    TMatrix X_test = read_data("../datasets/engine/X_test.txt");
+    TMatrix Y_test = read_data("../datasets/engine/Y_test.txt");
     
-    TMatrix X_train = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/X_train.txt");
-    TMatrix Y_train = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/Y_train.txt");
-    TMatrix X_test = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/X_test.txt");
-    TMatrix Y_test = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/Y_test.txt");    
+    // TMatrix X_train = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/X_train.txt");
+    // TMatrix Y_train = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/Y_train.txt");
+    // TMatrix X_test = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/X_test.txt");
+    // TMatrix Y_test = read_data("/home/flowdiagnostics/GIT/fdml/datasets/engine/Y_test.txt");    
 
     // Layer 1
     shared_ptr<Kernel> kernel11 = make_shared<Matern52>(1.0, 1.0);
