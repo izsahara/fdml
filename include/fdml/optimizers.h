@@ -295,6 +295,31 @@ namespace fdml::optimizers {
 		}
 	};
 
+	struct ConjugateGradient : public OptimSolver {
+		ConjugateGradient() : OptimSolver() {}
+		ConjugateGradient(int& verbosity) : OptimSolver(verbosity) {}
+		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override
+		{
+			SolverSettings settings_ = settings();
+			bool success = optim::cg(theta, objective, &optdata, settings_);
+		}		
+
+		double restart_threshold = 0.1;
+
+	private:
+		SolverSettings settings() const override {
+			SolverSettings settings_;
+			settings_.conv_failure_switch = conv_failure_switch;
+			settings_.iter_max = iter_max;
+			settings_.grad_err_tol = err_tol;
+			settings_.vals_bound = vals_bound;
+			settings_.print_level = verbosity;
+			settings_.cg_settings.restart_threshold = restart_threshold;
+			return settings_;
+		}	
+	};
+
+
 }
 #endif
 
@@ -417,7 +442,7 @@ namespace fdml::optimizers {
 
 	struct ConjugateGradient : public Solver {
 		ConjugateGradient() : Solver("CG") {}
-		ConjugateGradient(int& verbosity, int& n_restarts) :
+		ConjugateGradient(int& verbosity) :
 			Solver(verbosity, n_restarts, "CG") {}
 		ConjugateGradient(int& verbosity, int& n_restarts, std::string& sampling_method) :
 			Solver(verbosity, n_restarts, sampling_method, "CG") {}
