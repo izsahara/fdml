@@ -563,6 +563,7 @@ namespace fdml::deep_models {
 					set_params(objective.Xopt);
 				}
 				theta = get_params();
+				std::cout << theta << std::endl;
 				if (store_parameters) {
 					if (!((theta.array().isNaN()).any())){
 						history.push_back(theta);						
