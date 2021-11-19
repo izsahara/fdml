@@ -44,9 +44,10 @@ void erf2d(std::string exp){
     TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
     TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
 
-    // Layer 1
-    shared_ptr<Kernel> kernel11 = make_shared<Matern52>(1.0, 1.0);
-    shared_ptr<Kernel> kernel12 = make_shared<Matern52>(1.0, 1.0);
+    Eigen::Index nftr = X_train.cols();
+    // ======================= Layer 1  ======================= //
+    shared_ptr<Kernel> kernel11 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
+    shared_ptr<Kernel> kernel12 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
 
     Node2 node11(kernel11);
     Node2 node12(kernel12);
@@ -58,9 +59,9 @@ void erf2d(std::string exp){
     Layer2 layer1(nodes1);
     layer1.set_inputs(X_train);
 
-    // Layer 2
-    shared_ptr<Kernel> kernel21 = make_shared<Matern52>(1.0, 1.0);
-    shared_ptr<Kernel> kernel22 = make_shared<Matern52>(1.0, 1.0);
+    // ======================= Layer 2  ======================= //
+    shared_ptr<Kernel> kernel21 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
+    shared_ptr<Kernel> kernel22 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
 
     Node2 node21(kernel21);
     Node2 node22(kernel22);
@@ -71,7 +72,7 @@ void erf2d(std::string exp){
     std::vector<Node2> nodes2{ node21, node22 };
     Layer2 layer2(nodes2);
 
-    // Layer 3
+    // ======================= Layer 3  ======================= //
     shared_ptr<Kernel> kernel31 = make_shared<Matern52>(1.0, 1.0);
     Node2 node31(kernel31);
     node31.likelihood_variance.fix();
@@ -85,7 +86,8 @@ void erf2d(std::string exp){
     model.train(500, 100);
     model.estimate();
 
-    // Plot
+    // ======================= PREDICT  ======================= //
+
     std::cout << "================ PLOT ================" << std::endl;
     MatrixPair Zplot = model.predict(X_plot, 100, 300);
     TMatrix Zpm = Zplot.first;
@@ -108,6 +110,6 @@ void erf2d(std::string exp){
 
 
 int main(){
-    erf2d("1");
+    erf2d("2");
     return 0;
 }
