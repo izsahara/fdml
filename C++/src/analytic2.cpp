@@ -38,11 +38,11 @@ TMatrix read_data(std::string filename) {
 }
 
 void erf2d(std::string exp){
-    TMatrix X_train = read_data("../datasets/analytic2/X_train.txt");
-    TMatrix Y_train = read_data("../datasets/analytic2/Y_train.txt");
-    TMatrix X_test = read_data("../datasets/analytic2/X_test.txt");
-    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.txt");    
-    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.txt");
+    TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
+    TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
+    TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
+    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
+    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
 
     // Layer 1
     shared_ptr<Kernel> kernel11 = make_shared<Matern52>(1.0, 1.0);
