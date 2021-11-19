@@ -82,6 +82,7 @@ namespace fdml::optimizers {
 			}
 
 			const unsigned int input_dim;
+			TVector Xopt;
 		private:
 			TVector lower_bound;				
 			TVector upper_bound;
@@ -187,6 +188,7 @@ namespace fdml::optimizers {
 				}
 				i = itfint[29];
 			}
+			problem.Xopt = XX;
 		}
 	
 	private:

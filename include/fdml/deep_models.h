@@ -549,21 +549,28 @@ namespace fdml::deep_models {
 				TVector lower_bound, upper_bound, theta;
 				get_bounds(lower_bound, upper_bound, false);
 				theta = TVector::Constant(lower_bound.size(), 0.0);
-
 				if (solver->from_optim){
 					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
 					{return objective_(x, grad, nullptr, opt_data); };
 					opt::OptimData optdata;
 					solver->solve(theta, objective, optdata);
-
 				}
 				else {
 					// LBFGSB
 					Objective objective(this, static_cast<int>(lower_bound.size()));
 					objective.set_bounds(lower_bound, upper_bound);
 					solver->solve(theta, objective);
+					set_params(objective.Xopt);
 				}
-				if (store_parameters) { history.push_back(get_params()); }
+				theta = get_params();
+				if (store_parameters) {
+					if (!((theta.array().isNaN()).any())){
+						history.push_back(theta);						
+					}
+					else {
+						std::cout << "NaN Detected" << std:: endl;
+					}					
+				}
 			}
 			TVector gradients() override {
 				std::vector<TMatrix> grad_;
