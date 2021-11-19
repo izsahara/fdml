@@ -655,15 +655,6 @@ namespace fdml::deep_models {
 				if (!(*likelihood_variance.is_fixed)) { likelihood_variance.transform_value(new_params.tail(1)(0)); }
 				update_cholesky();
 			}
-			TVector get_params() override {
-				TVector params = kernel->get_params();
-				if (!(*likelihood_variance.is_fixed)) {
-					likelihood_variance.transform_value(true);
-					params.conservativeResize(params.rows() + 1);
-					params.tail(1)(0) = likelihood_variance.value();
-				}
-				return params;
-			}
 			Eigen::Index params_size() {
 				TVector param = get_params();
 				return param.size();
