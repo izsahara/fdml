@@ -555,6 +555,7 @@ namespace fdml::deep_models {
 					{return objective_(x, grad, nullptr, opt_data); };
 					opt::OptimData optdata;
 					solver->solve(theta, objective, optdata);
+
 				}
 				else {
 					// LBFGSB
@@ -562,6 +563,7 @@ namespace fdml::deep_models {
 					objective.set_bounds(lower_bound, upper_bound);
 					solver->solve(theta, objective);
 				}
+				if (store_parameters) { history.push_back(get_params()); }
 			}
 			TVector gradients() override {
 				std::vector<TMatrix> grad_;
@@ -652,6 +654,15 @@ namespace fdml::deep_models {
 				kernel->set_params(new_params);
 				if (!(*likelihood_variance.is_fixed)) { likelihood_variance.transform_value(new_params.tail(1)(0)); }
 				update_cholesky();
+			}
+			TVector get_params() override {
+				TVector params = kernel->get_params();
+				if (!(*likelihood_variance.is_fixed)) {
+					likelihood_variance.transform_value(true);
+					params.conservativeResize(params.rows() + 1);
+					params.tail(1)(0) = likelihood_variance.value();
+				}
+				return params;
 			}
 			Eigen::Index params_size() {
 				TVector param = get_params();
