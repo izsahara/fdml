@@ -638,6 +638,12 @@ namespace fdml::deep_models {
 							kernel->IJ(I, J, linked_mu.row(i), linked_var.row(i), inputs, i);
 							double trace = (K.llt().solve(J)).trace();
 							double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+							if (std::isnan(Ialpha)){
+								std::cout << "Ialpha is nan" << << "\r" << std::flush;
+								if ( (I.array().isNaN()).any()  ){
+									std::cout << "NaN detected in I" << << "\r" << std::flush;
+								}
+							}
 							latent_mu[i] = (Ialpha);
 							latent_var[i] =
 								(abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum()
