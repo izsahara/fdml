@@ -639,9 +639,9 @@ namespace fdml::deep_models {
 							double trace = (K.llt().solve(J)).trace();
 							double Ialpha = (I.cwiseProduct(alpha)).array().sum();
 							if (std::isnan(Ialpha)){
-								std::cout << "Ialpha is nan" << << "\r" << std::flush;
+								std::cout << "Ialpha is nan" << "\r" << std::flush;
 								if ( (I.array().isNaN()).any()  ){
-									std::cout << "NaN detected in I" << << "\r" << std::flush;
+									std::cout << "NaN detected in I" << "\r" << std::flush;
 								}
 							}
 							latent_mu[i] = (Ialpha);
