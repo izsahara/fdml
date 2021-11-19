@@ -88,14 +88,14 @@ void erf2d(std::string exp){
 
     // ======================= PREDICT  ======================= //
 
-    std::cout << "================ PLOT ================" << std::endl;
-    MatrixPair Zplot = model.predict(X_plot, 100, 300);
-    TMatrix Zpm = Zplot.first;
-    TMatrix Zpv = Zplot.second;
-    std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
-    std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
-    write_data(Zpm_path, Zpm);
-    write_data(Zpv_path, Zpv);
+    // std::cout << "================ PLOT ================" << std::endl;
+    // MatrixPair Zplot = model.predict(X_plot, 100, 300);
+    // TMatrix Zpm = Zplot.first;
+    // TMatrix Zpv = Zplot.second;
+    // std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
+    // std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
+    // write_data(Zpm_path, Zpm);
+    // write_data(Zpv_path, Zpv);
 
     // MCS
     std::cout << "================= MCS ================" << std::endl;
@@ -110,6 +110,6 @@ void erf2d(std::string exp){
 
 
 int main(){
-    erf2d("2");
+    erf2d("3");
     return 0;
 }
