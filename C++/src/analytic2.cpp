@@ -99,9 +99,20 @@ void analytic2(std::string exp){
 
     // MCS
     std::cout << "================= MCS ================" << std::endl;
-    MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
-    TMatrix Zmcs = Z.first;
-    TMatrix Zvcs = Z.second;
+    TMatrix Zmcs, Zvcs;
+    while (true){
+        MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+        Zmcs = Z.first;
+        Zvcs = Z.second;
+        if (!(Zmcs.array().isNaN()).any()) {
+            break;
+        }
+        else {
+            std::cout << "NaN detected -> Retrain" << std::endl;
+            model.train(500, 100);
+            model.estimate();
+        }
+    }
     std::string Zmcs_path = "../results/analytic2/" + exp + "MCSM.dat";
     std::string Zvcs_path = "../results/analytic2/" + exp + "MCSV.dat";
     write_data(Zmcs_path, Zmcs);
@@ -113,7 +124,8 @@ void analytic2(std::string exp){
 
 
 int main(){
-    for (unsigned int i = 12; i < 16; ++i){
+    for (unsigned int i = 13; i < 16; ++i){
+        std::cout << "================= EXP " << i << " " << "================" << std::endl;
         analytic2(std::to_string(i));
     }
     return 0;

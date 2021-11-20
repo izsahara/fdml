@@ -1440,6 +1440,9 @@ namespace fdml::deep_models {
 					}
 					TVector tmp_mu = mean.array() / double(i);
 					verbose(i, progress, tmp_mu);
+					if ((tmp_mu.array().isNaN()).any()) {
+						return std::make_pair(mean, variance);
+					}
 				}
 				std::cout << std::endl;
 				mean.array() /= double(n_impute);
@@ -1448,7 +1451,6 @@ namespace fdml::deep_models {
 
 				return std::make_pair(mean, variance);
 			}			
-
 			void set_observed(const TMatrix& X, const TMatrix& Z) {
 				if (X.size() != layers.front().o_input.size()) {
 					layers.front().set_inputs(X);
