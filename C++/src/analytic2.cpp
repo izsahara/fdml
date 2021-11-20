@@ -105,11 +105,16 @@ void analytic2(std::string exp){
     std::string Zmcs_path = "../results/analytic2/" + exp + "MCSM.dat";
     std::string Zvcs_path = "../results/analytic2/" + exp + "MCSV.dat";
     write_data(Zmcs_path, Zmcs);
-    write_data(Zvcs_path, Zvcs);    
+    write_data(Zvcs_path, Zvcs);
+
+    double nrmse = rmse(Y_test, Zmcs) / (Y_test.maxCoeff() - Y_test.minCoeff());
+    std::cout << "NRMSE = " << nrmse << std::endl;    
 }
 
 
 int main(){
-    analytic2("1");
+    for (unsigned int i = 12; i < 16; ++i){
+        analytic2(std::to_string(i));
+    }
     return 0;
 }
