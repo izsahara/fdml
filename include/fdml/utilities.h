@@ -389,7 +389,7 @@ namespace fdml::utilities {
             TVector operator()() const
             {
                 auto seed = std::random_device{}();
-                std::mt19937 gen_primitive(seed);
+                std::default_random_engine gen_primitive(seed);
                 std::normal_distribution<> dist;
                 return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) { return dist(gen_primitive); });
             }
