@@ -74,7 +74,7 @@ void analytic3(std::string exp){
     node22.likelihood_variance.fix();
     node23.likelihood_variance.fix();
 
-    std::vector<Node2> nodes2{ node21, node2, node23 };
+    std::vector<Node2> nodes2{ node21, node22, node23 };
     Layer2 layer2(nodes2);
 
     // ======================= Layer 3  ======================= //
