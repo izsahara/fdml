@@ -37,7 +37,7 @@ TMatrix read_data(std::string filename) {
     return data;
 }
 
-void erf2d(std::string exp){
+void analytic2(std::string exp){
     TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
     TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
     TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
@@ -88,14 +88,14 @@ void erf2d(std::string exp){
 
     // ======================= PREDICT  ======================= //
 
-    // std::cout << "================ PLOT ================" << std::endl;
-    // MatrixPair Zplot = model.predict(X_plot, 100, 300);
-    // TMatrix Zpm = Zplot.first;
-    // TMatrix Zpv = Zplot.second;
-    // std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
-    // std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
-    // write_data(Zpm_path, Zpm);
-    // write_data(Zpv_path, Zpv);
+    std::cout << "================ PLOT ================" << std::endl;
+    MatrixPair Zplot = model.predict(X_plot, 100, 300);
+    TMatrix Zpm = Zplot.first;
+    TMatrix Zpv = Zplot.second;
+    std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
+    std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
+    write_data(Zpm_path, Zpm);
+    write_data(Zpv_path, Zpv);
 
     // MCS
     std::cout << "================= MCS ================" << std::endl;
@@ -110,6 +110,6 @@ void erf2d(std::string exp){
 
 
 int main(){
-    erf2d("3");
+    analytic2("1");
     return 0;
 }

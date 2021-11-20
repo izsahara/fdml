@@ -377,6 +377,56 @@ namespace fdml::utilities {
                 {norm_matrix(i, j) = normal_sampler(gen_primitive); });
             return norm_matrix;
         }
+        
+        class NumpyNormal {
+        public:
+            NumpyNormal(): m_haveNextVal(false) {}
+            NumpyNormal(std::uint_fast32_t newSeed) : m_haveNextVal(false), m_mersenneEngine(newSeed){}
+            std::uint_fast32_t min() const { return m_mersenneEngine.min(); }
+            std::uint_fast32_t max() const { return m_mersenneEngine.max(); }
+            void seed(std::uint_fast32_t newSeed) {
+                m_mersenneEngine.seed(newSeed);
+            }
+            void discard(unsigned long long z) {
+                // NOTE!!  Advances and discards twice as many values as passed in to keep tracking with Numpy order
+                //Burn some CPU cyles here
+                for (unsigned i = 0; i < z; ++i)
+                    getDouble();
+            }      
+            uint_fast32_t operator()() {
+                return m_mersenneEngine();
+            }
+            double getDouble() {
+                if (m_haveNextVal) {
+                    m_haveNextVal = false;
+                    return m_nextVal;
+                }
+
+                double f, x1, x2, r2;
+                do {
+                    int a1 = m_mersenneEngine() >> 5;
+                    int b1 = m_mersenneEngine() >> 6;
+                    int a2 = m_mersenneEngine() >> 5;
+                    int b2 = m_mersenneEngine() >> 6;
+                    x1 = 2.0 * ((a1 * 67108864.0 + b1) / 9007199254740992.0) - 1.0;
+                    x2 = 2.0 * ((a2 * 67108864.0 + b2) / 9007199254740992.0) - 1.0;
+                    r2 = x1 * x1 + x2 * x2;
+                } while (r2 >= 1.0 || r2 == 0.0);
+
+                /* Box-Muller transform */
+                f = sqrt(-2.0 * log(r2) / r2);
+                m_haveNextVal = true;
+                m_nextVal = f * x1;
+                return f * x2;
+            }               
+            std::string getGeneratorType() const { return "NumpyNormal"; }
+
+        private:
+            bool m_haveNextVal;
+            double m_nextVal;
+            std::mt19937 m_mersenneEngine;
+        };        
+        
         // Taken from: https://stackoverflow.com/a/40245513
         struct MVN
         {
@@ -391,7 +441,11 @@ namespace fdml::utilities {
                 auto seed = std::random_device{}();
                 std::default_random_engine gen_primitive(seed);
                 std::normal_distribution<> dist;
-                return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) { return dist(gen_primitive); });
+                // NumpyNormal generator;
+                return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) { 
+                    return dist(gen_primitive);
+                    // return generator.getDouble();
+                    });
             }
             TVector mean;
             TMatrix transform;

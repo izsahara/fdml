@@ -101,10 +101,10 @@ void engine() {
 
     std::vector<Layer2> layers{ layer1, layer2, layer3 };
     SIDGP2 model(layers);
-    model.train(500);
-    model.estimate(400);
+    model.train(100);
+    model.estimate();
 
-    MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+    MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
     TMatrix mean = Z.first;
     TMatrix var = Z.second;
     // write_data("datasets/engine/mean.txt", mean);
