@@ -93,17 +93,6 @@ struct lbfgs_settings_t
     double wolfe_cons_2 = 0.90;  // line search tuning parameter
 };
 
-// L-BFGS-B (LBFGSB)
-struct lbfgsb_settings_t
-{
-    int MM = 5; 
-    double pgtol = 1e-9;
-    unsigned int max_iter = 5000;
-    unsigned int max_fun = 15000;
-    double factr = 1e7; 
-    double gscale = 1.0;
-};
-
 
 // Nelder-Mead
 
@@ -210,7 +199,30 @@ struct broyden_settings_t
     double par_sigma_2 = 0.001;
 };
 
-// 
+// ===================== EXTERNAL ===================== //
+
+// L-BFGS-B (LBFGSB)
+struct lbfgsb_settings_t
+{
+    int MM = 5;
+    double pgtol = 1e-9;
+    unsigned int max_iter = 5000;
+    unsigned int max_fun = 15000;
+    double factr = 1e7;
+    double gscale = 1.0;
+};
+
+// Rprop
+struct Rprop_settings_t
+{
+    double Delta0 = 0.1;
+    double Deltamin = 1e-6;
+    double Deltamax = 50.0;
+    double etaminus = 0.5;
+    double etaplus = 1.2;
+    double eps_stop = 0.0;
+    unsigned int n_iter = 100;
+};
 
 struct algo_settings_t
 {
@@ -256,10 +268,6 @@ struct algo_settings_t
     // GD
     gd_settings_t gd_settings;
 
-    // L-BFGS(-B)
-    lbfgs_settings_t lbfgs_settings;
-    lbfgsb_settings_t lbfgsb_settings;
-
     // Nelder-Mead
     nm_settings_t nm_settings;
 
@@ -271,6 +279,15 @@ struct algo_settings_t
 
     // Broyden
     broyden_settings_t broyden_settings;
+
+    lbfgs_settings_t lbfgs_settings;
+    
+    // L-BFGS(-B)
+    lbfgsb_settings_t lbfgsb_settings;
+    // Rprop
+    Rprop_settings_t Rprop_settings;
+
+
 };
 
 #endif
