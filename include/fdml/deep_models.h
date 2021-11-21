@@ -529,6 +529,7 @@ namespace fdml::deep_models {
 				K *= target.scale.value();
 				TMatrix nu = sample_mvn(K);
 				double log_y = 0.0;
+				if (!std::isfinite(log_y)){ throw std::runtime_error("log_y is not finite");}
 
 				for (std::vector<Node>::iterator node = linked.nodes.begin(); node != linked.nodes.end(); ++node) {
 					const TMatrix W = node->inputs;
@@ -555,6 +556,7 @@ namespace fdml::deep_models {
 						Kw2 *= linked.nodes[n].scale.value();
 						log_yp += log_likelihood(Kw2, Y2);
 					}
+					if (!std::isfinite(log_yp)){ throw std::runtime_error("log_y is not finite");}
 					// DEBUG
 					//std::cout << "log_yp = " << log_yp << " " << "log_y" << log_y << std::endl;
 					//
