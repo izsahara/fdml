@@ -529,7 +529,7 @@ namespace fdml::deep_models {
 				K *= target.scale.value();
 				TMatrix nu = sample_mvn(K);
 				double log_y = 0.0;
-				if (!std::isfinite(log_y)) { throw std::runtime_error("log_y is not finite"); }
+				if (!std::isfinite(log_y)) { std::cout << "log_y" = log_y << "\r" << std::flush; }
 
 				for (std::vector<Node>::iterator node = linked.nodes.begin(); node != linked.nodes.end(); ++node) {
 					const TMatrix W = node->inputs;
