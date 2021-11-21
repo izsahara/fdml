@@ -397,7 +397,7 @@ namespace fdml::utilities {
             }
             TVector operator()() const
             {
-                Eigen::set_NbThreads(1);
+                Eigen::setNbThreads(1);
                 // auto seed = std::random_device{}();
                 // std::default_random_engine gen_primitive(seed);
                 std::mt19937 gen_primitive(std::random_device{}());
