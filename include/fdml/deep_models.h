@@ -556,7 +556,7 @@ namespace fdml::deep_models {
 						Kw2 *= linked.nodes[n].scale.value();
 						log_yp += log_likelihood(Kw2, Y2);
 					}
-					if (!std::isfinite(log_yp)) { throw std::runtime_error("log_y is not finite"); }
+					if (!std::isfinite(log_y)) { std::cout << "log_y = " << log_y << "\r" << std::flush; }
 					// DEBUG
 					//std::cout << "log_yp = " << log_yp << " " << "log_y" << log_y << std::endl;
 					//
