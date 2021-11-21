@@ -78,18 +78,18 @@ void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     MatrixPair Zplot = model.predict(X_plot, 100, 300);
     TMatrix Zpm = Zplot.first;
     TMatrix Zpv = Zplot.second;
-    std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
-    std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
+    std::string Zpm_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "PM.dat";
+    std::string Zpv_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "PV.dat";
     write_data(Zpm_path, Zpm);
     write_data(Zpv_path, Zpv);
 }
 
 void analytic2(std::string exp){
-    TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
-    TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
-    TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
-    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
-    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
+    TMatrix X_train = read_data("/home/alfaisal/FAIZ/fdml/datasets/analytic2/X_train.dat");
+    TMatrix Y_train = read_data("/home/alfaisal/FAIZ/fdml/datasets/analytic2/Y_train.dat");
+    TMatrix X_test = read_data("/home/alfaisal/FAIZ/fdml/datasets/analytic2/X_test.dat");
+    TMatrix Y_test = read_data("/home/alfaisal/FAIZ/fdml/datasets/analytic2/Y_test.dat");    
+    TMatrix X_plot = read_data("/home/alfaisal/FAIZ/fdml/datasets/analytic2/X_plot.dat");
 
     TMatrix Zmcs, Zvcs;
     while (true){
@@ -106,8 +106,8 @@ void analytic2(std::string exp){
         }
     }
 
-    std::string Zmcs_path = "../results/analytic2/" + exp + "MCSM.dat";
-    std::string Zvcs_path = "../results/analytic2/" + exp + "MCSV.dat";
+    std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSM.dat";
+    std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSV.dat";
     write_data(Zmcs_path, Zmcs);
     write_data(Zvcs_path, Zvcs);
 
