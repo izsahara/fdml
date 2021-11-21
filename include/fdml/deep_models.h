@@ -749,17 +749,6 @@ namespace fdml::deep_models {
 				for (int i = 0; i < n_impute; ++i) {
 					double progress = double(i) * 100.0 / double(n_impute);
 					sample();
-					// DEBUG
-					//for (unsigned int ll = 0; ll < layers.size(); ++ll) {
-					//	std::string fpath = "E:/23620029-Faiz/GIT/datasets/analytic2/debug/L" + std::to_string(ll);
-					//	for (unsigned int nn = 0; nn < layers[ll].nodes.size(); ++nn) {
-					//		fpath += "N" + std::to_string(nn);
-					//		save_data(fpath + "-I.dat", layers[ll].nodes[nn].inputs);
-					//		save_data(fpath + "-O.dat", layers[ll].nodes[nn].outputs);
-					//		fpath = "E:/23620029-Faiz/GIT/datasets/analytic2/debug/L" + std::to_string(ll);
-					//	}
-					//}
-					// DEBUG
 					layers.front().predict(X);
 					std::size_t j = 1;
 					for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
@@ -808,11 +797,6 @@ namespace fdml::deep_models {
 		private:
 			int n_iter_ = 0;
 			std::vector<Layer> layers;
-			// DEBUG
-			void save_data(const std::string& fpath, const TMatrix& XX) {
-				operations::write_data(fpath, XX);
-			}
-			// DEBUG
 		public:
 			int verbosity = 1;
 		};

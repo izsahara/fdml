@@ -10,9 +10,16 @@ using namespace fdml::kernels;
 using namespace fdml::base_models::gaussian_process;
 using namespace fdml::deep_models::gaussian_process;
 using fdml::utilities::metrics::rmse;
-using fdml::utilities::operations::write_data;
 using std::cout;
 using std::endl;
+
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
+template <typename Derived>
+void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
+{
+    std::ofstream file(name.c_str());
+    file << matrix.format(CSVFormat);
+}
 
 TMatrix read_data(std::string filename) {
 
