@@ -124,7 +124,7 @@ namespace fdml::optimizers {
 		LBFGSB(const int& verbosity) : Solver(verbosity), MM(10) {}	
 		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override {}
 		void solve(TVector& XX, Problem& problem)  override
-		{
+		{			
 			run_check();
 			int NN = problem.input_dim;
 			// Setup Bounds
@@ -155,8 +155,8 @@ namespace fdml::optimizers {
 				}
 			}
 
-			double fobj = 0.0;
-			TVector grad(XX);
+			TVector grad;
+			double fobj = problem(XX, grad);
 			// problem.gradient(XX, grad);
 			if (gscale != 1.0) {
 				scale_gradient(grad, NN);
