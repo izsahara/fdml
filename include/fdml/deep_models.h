@@ -98,9 +98,9 @@ namespace fdml::deep_models {
 
 			
 			void train() override {
-				TVector lower_bound, upper_bound, theta;
+				TVector lower_bound, upper_bound;
 				get_bounds(lower_bound, upper_bound, false);
-				theta = get_params(false);
+				TVector theta = get_params(false);
 				if (solver->from_optim){
 					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
 					{return objective_(x, grad, nullptr, opt_data); };
