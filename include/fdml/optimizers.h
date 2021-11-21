@@ -57,9 +57,11 @@ namespace fdml::optimizers {
 			Problem(unsigned int input_dim, const TVector& lb, const TVector& ub) : input_dim(input_dim), lower_bound(lb), upper_bound(ub) {}
 			virtual double operator()(const TVector& X, TVector& grad) = 0;
 			virtual double objective_value(const TVector& X) = 0;
-			virtual void gradient(const TVector& X, TVector& grad)  {
+			virtual void approx_gradient(const TVector& X, TVector& grad)  {
 				grad = numerical_gradient((*this), X, lower_bound, upper_bound);
-			};			
+			}
+			virtual void gradient(TVector& grad) = 0;
+			
 			void set_lower_bound(const TVector& lb) {
 				if (lb.size() != input_dim){
 					throw std::runtime_error("lb.size() != input_dim");
@@ -83,6 +85,7 @@ namespace fdml::optimizers {
 
 			const unsigned int input_dim;
 			TVector Xopt;
+			double fopt;
 		private:
 			TVector lower_bound;				
 			TVector upper_bound;
@@ -114,7 +117,7 @@ namespace fdml::optimizers {
 	struct LBFGSB : public Solver {
 
 		int MM; // Memory Size
-		double pgtol{1e-9}; // Projected Gradient Tolerance
+		double pgtol{1e-5}; // Projected Gradient Tolerance
 		unsigned int max_iter{15000};
 		unsigned int max_fun{15000};
 		double factr{1e7}; // Machine Precision Factor
@@ -124,7 +127,7 @@ namespace fdml::optimizers {
 		LBFGSB(const int& verbosity) : Solver(verbosity), MM(10) {}	
 		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override {}
 		void solve(TVector& XX, Problem& problem)  override
-		{			
+		{
 			run_check();
 			int NN = problem.input_dim;
 			// Setup Bounds
@@ -157,7 +160,7 @@ namespace fdml::optimizers {
 
 			TVector grad;
 			double fobj = problem(XX, grad);
-			// problem.gradient(XX, grad);
+			// problem.approx_gradient(XX, grad);
 			if (gscale != 1.0) {
 				scale_gradient(grad, NN);
 			}	
@@ -165,10 +168,7 @@ namespace fdml::optimizers {
 			int itask = 0;
 			int icsave = 0;
 			bool test = false;					
-			// void setulb_wrapper(int *n, int *m, double x[], double l[], double u[], int nbd[], double *f,
-			//                     double g[], double *factr, double *pgtol, double wa[], int iwa[], int *itask,
-			//                     int *iprint, int *icsave, bool *lsave0, bool *lsave1, bool *lsave2, bool *lsave3,
-			//                     int isave[], double dsave[]);
+
 			while ((i < max_iter) && ((itask == 0) || (itask == 1) || (itask == 2) || (itask == 3) ))	
 			{
 				setulb_wrapper(&NN, &MM, &XX[0], &LB[0], &UB[0], &BND[0], &fobj, 
@@ -181,7 +181,7 @@ namespace fdml::optimizers {
 
 				if (itask == 2 || itask == 3) {
 					fobj = problem.objective_value(XX);
-					problem.gradient(XX, grad);
+					problem.gradient(grad); // problem.approx_gradient(XX, grad) ?
 					if (gscale != 1.0) {
 						scale_gradient(grad, NN);
 					}
@@ -189,6 +189,7 @@ namespace fdml::optimizers {
 				i = itfint[29];
 			}
 			problem.Xopt = XX;
+			problem.fopt = fobj;
 		}
 	
 	private:
@@ -232,6 +233,72 @@ namespace fdml::optimizers {
 	
 	};
 
+	/* REWRITE OF BLUM & RIEDMILLER (2013) LIBGP->RPROP */
+	/* REFERENCE: https://github.com/mblum/libgp        */
+	struct Rprop : public Solver {
+		Rprop() : Solver() {}
+		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override {}
+		void solve(TVector& XX, Problem& problem)  override {
+			TVector Delta = TVector::Ones(problem.input_dim) * Delta0;
+			problem.Xopt = XX;
+			TVector grad_old = TVector::Ones(problem.input_dim);
+
+			auto sign = [](double& x) {
+				if (x > 0) { return 1.0; }
+				else if (x < 0) { return -1.0; }
+				else { return 0.0; }
+			};
+
+
+			double best = log(0);
+			TVector grad(XX);
+			for (unsigned int i = 0; i < n_iter; ++i) {
+				problem.gradient(grad);
+				grad_old = grad_old.cwiseProduct(grad);
+				for (int j = 0; j < grad_old.size(); ++j) {
+					if (grad_old(j) > 0) {
+						Delta(j) = std::min(Delta(j) * etaplus, Deltamax);
+					}
+					else if (grad_old(j) < 0) {
+						Delta(j) = std::max(Delta(j) * etaminus, Deltamin);
+						grad(j) = 0;
+					}
+					XX(j) += -sign(grad(j)) * Delta(j);
+				}
+				grad_old = grad;
+				if (grad_old.norm() < eps_stop) { break; }
+				double nll = problem(XX, grad);
+				if (verbosity > 0) std::cout << i << " " << nll << std::endl;
+				if (nll > best) {
+					best = nll;
+					problem.Xopt = XX;
+					problem.fopt = best;
+				}
+			}
+		}
+		
+		double Delta0 = 0.1;
+		double Deltamin = 1e-6;
+		double Deltamax = 50.0;
+		double etaminus = 0.5;
+		double etaplus = 1.2;
+		double eps_stop = 0.0;
+		unsigned int n_iter = 100;
+	private:
+		SolverSettings settings() const override {
+			SolverSettings settings_;
+			settings_.Rprop_settings.Delta0 = Delta0;
+			settings_.Rprop_settings.Deltamin = Deltamin;
+			settings_.Rprop_settings.Deltamax = Deltamax;
+			settings_.Rprop_settings.etaminus = etaminus;
+			settings_.Rprop_settings.etaplus = etaplus;
+			settings_.Rprop_settings.eps_stop = eps_stop;
+			settings_.Rprop_settings.n_iter = n_iter;
+			return settings_;
+		}
+	};
+	
+	
 	struct OptimSolver : public Solver {
 		OptimSolver() : Solver(true) {}
 		OptimSolver(const int& verbosity) : Solver(verbosity, true) {}
@@ -239,7 +306,7 @@ namespace fdml::optimizers {
 		int conv_failure_switch = 0;
 		int iter_max = 2000;
 		double err_tol = 1E-08;
-		bool vals_bound = true;		
+		bool vals_bound = false;		
 	};
 
 	struct PSO : public OptimSolver {
