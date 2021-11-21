@@ -428,13 +428,14 @@ namespace fdml::utilities {
         };        
         
         // Taken from: https://stackoverflow.com/a/40245513
+        // Try thread_local std::mt19937 engine(std::random_device{}());
         struct MVN
         {
             MVN(TMatrix const& covar) : MVN(TVector::Zero(covar.rows()), covar) {}
             MVN(TVector const& mean, TMatrix const& covar) : mean(mean)
             {
                 Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(covar);
-                transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+                transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
             }
             TVector operator()() const
             {
