@@ -10,16 +10,9 @@ using namespace fdml::kernels;
 using namespace fdml::base_models::gaussian_process;
 using namespace fdml::deep_models::gaussian_process;
 using fdml::utilities::metrics::rmse;
+using fdml::utilities::operations::write_data;
 using std::cout;
 using std::endl;
-
-const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
-template <typename Derived>
-void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
-{
-    std::ofstream file(name.c_str());
-    file << matrix.format(CSVFormat);
-}
 
 TMatrix read_data(std::string filename) {
 
@@ -37,57 +30,50 @@ TMatrix read_data(std::string filename) {
     return data;
 }
 
-void analytic2(std::string exp){
-    TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
-    TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
-    TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
-    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
-    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
-
+SIDGP config1(const TMatrix& X_train, const TMatrix& Y_train){
     Eigen::Index nftr = X_train.cols();
     // ======================= Layer 1  ======================= //
     shared_ptr<Kernel> kernel11 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
     shared_ptr<Kernel> kernel12 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
 
-    Node2 node11(kernel11);
-    Node2 node12(kernel12);
+    Node node11(kernel11);
+    Node node12(kernel12);
 
     node11.likelihood_variance.fix();
     node12.likelihood_variance.fix();
 
-    std::vector<Node2> nodes1{ node11, node12 };
-    Layer2 layer1(nodes1);
+    std::vector<Node> nodes1{ node11, node12 };
+    Layer layer1(nodes1);
     layer1.set_inputs(X_train);
 
     // ======================= Layer 2  ======================= //
     shared_ptr<Kernel> kernel21 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
     shared_ptr<Kernel> kernel22 = make_shared<Matern52>(TVector::Ones(nftr, 1.0), 1.0);
 
-    Node2 node21(kernel21);
-    Node2 node22(kernel22);
+    Node node21(kernel21);
+    Node node22(kernel22);
 
     node21.likelihood_variance.fix();
     node22.likelihood_variance.fix();
 
-    std::vector<Node2> nodes2{ node21, node22 };
-    Layer2 layer2(nodes2);
+    std::vector<Node> nodes2{ node21, node22 };
+    Layer layer2(nodes2);
 
     // ======================= Layer 3  ======================= //
     shared_ptr<Kernel> kernel31 = make_shared<Matern52>(1.0, 1.0);
-    Node2 node31(kernel31);
+    Node node31(kernel31);
     node31.likelihood_variance.fix();
 
-    std::vector<Node2> nodes3{ node31 };
-    Layer2 layer3(nodes3);
+    std::vector<Node> nodes3{ node31 };
+    Layer layer3(nodes3);
     layer3.set_outputs(Y_train);
 
-    std::vector<Layer2> layers{ layer1, layer2, layer3 };
-    SIDGP2 model(layers);
-    model.train(500, 100);
-    model.estimate();
+    std::vector<Layer> layers{ layer1, layer2, layer3 };
+    SIDGP model(layers);
+    return model;
+}
 
-    // ======================= PREDICT  ======================= //
-
+void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     std::cout << "================ PLOT ================" << std::endl;
     MatrixPair Zplot = model.predict(X_plot, 100, 300);
     TMatrix Zpm = Zplot.first;
@@ -96,23 +82,30 @@ void analytic2(std::string exp){
     std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
     write_data(Zpm_path, Zpm);
     write_data(Zpv_path, Zpv);
+}
 
-    // MCS
-    std::cout << "================= MCS ================" << std::endl;
+void analytic2(const std::string& exp){
+    TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
+    TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
+    TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
+    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
+    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
+
     TMatrix Zmcs, Zvcs;
     while (true){
-        MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+        SIDGP model = config1(X_train, Y_train);
+        model.train(500, 100);        
+        model.estimate();
+        plot(X_plot, exp, model);
+        std::cout << "================= MCS ================" << std::endl;
+        MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
         Zmcs = Z.first;
         Zvcs = Z.second;
         if (!(Zmcs.array().isNaN()).any()) {
             break;
         }
-        else {
-            std::cout << "NaN detected -> Retrain" << std::endl;
-            model.train(500, 100);
-            model.estimate();
-        }
     }
+
     std::string Zmcs_path = "../results/analytic2/" + exp + "MCSM.dat";
     std::string Zvcs_path = "../results/analytic2/" + exp + "MCSV.dat";
     write_data(Zmcs_path, Zmcs);
@@ -124,7 +117,7 @@ void analytic2(std::string exp){
 
 
 int main(){
-    for (unsigned int i = 13; i < 16; ++i){
+    for (unsigned int i = 14; i < 21; ++i){
         std::cout << "================= EXP " << i << " " << "================" << std::endl;
         analytic2(std::to_string(i));
     }

@@ -42,7 +42,7 @@ namespace fdml::parameters {
         BaseParameter() = default;
         BaseParameter(const BaseParameter&) = default;
         BaseParameter(BaseParameter&&) = default;
-        BaseParameter(std::string name, T value, std::string transform, std::pair<T, T> bounds) : name_(name), value_(value), transform_(transform), bounds_(bounds) {}
+        BaseParameter(std::string name, T value, std::string transform, std::pair<T, T> bounds) : name_(name), transform_(transform), value_(value), bounds_(bounds) {}
 
         virtual void fix() { fixed_ = true; is_fixed = &fixed_; }
         virtual void unfix() { fixed_ = false; is_fixed = &fixed_; }
@@ -129,20 +129,20 @@ namespace fdml::parameters {
         Parameter() : BaseParameter() {}
         Parameter(std::string name, double value)  {
             name_ = name;
-            value_ = value;
             transform_ = "logexp";            
+            value_ = value;          
             bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::pair<double, double> bounds) {
             name_ = name;
-            value_ = value;
             transform_ = "logexp";
+            value_ = value;          
             bounds_ = bounds;
         }
         Parameter(std::string name, double value, std::string transform) {
             name_ = name;
-            value_ = value;
             transform_ = transform;
+            value_ = value;          
             bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::string transform, std::pair<double, double> bounds) : BaseParameter(name, value, transform, bounds) {}
@@ -171,8 +171,8 @@ namespace fdml::parameters {
         Parameter() : BaseParameter() {}
         Parameter(std::string name, TVector value) {
             name_ = name;
-            value_ = value;
             transform_ = "logexp";
+            value_ = value;          
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
@@ -182,8 +182,8 @@ namespace fdml::parameters {
         }
         Parameter(std::string name, TVector value, std::string transform) {
             name_ = name;
-            value_ = value;
             transform_ = transform;
+            value_ = value;          
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
@@ -193,8 +193,8 @@ namespace fdml::parameters {
         }
         Parameter(std::string name, TVector value, std::pair<TVector, TVector> bounds) {
             name_ = name;
-            value_ = value;
             transform_ = "logexp";
+            value_ = value;          
             size_ = value.size();
             bounds_ = bounds;
         }

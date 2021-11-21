@@ -85,6 +85,13 @@ namespace fdml::utilities {
     }
 
     namespace operations {
+        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
+        template <typename Derived>
+        void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
+        {
+            std::ofstream file(name.c_str());
+            file << matrix.format(CSVFormat);
+        }        
         // Print
         void cursor_position(int x,int y)    
         {
