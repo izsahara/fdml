@@ -439,8 +439,9 @@ namespace fdml::utilities {
             }
             TVector operator()() const
             {
-                auto seed = std::random_device{}();
-                std::default_random_engine gen_primitive(seed);
+                // auto seed = std::random_device{}();
+                // std::default_random_engine gen_primitive(seed);
+                thread_local std::mt19937 gen_primitive(std::random_device{}());
                 std::normal_distribution<> dist;
                 // NumpyNormal generator;
                 return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) { 
