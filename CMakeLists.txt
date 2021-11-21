@@ -5,7 +5,7 @@ set(HEADERS "${PROJECT_SOURCE_DIR}/include")
 set(EXESRC "${PROJECT_SOURCE_DIR}/C++/src")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/C++)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 
 include_directories(${HEADERS})

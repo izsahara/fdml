@@ -158,8 +158,8 @@ namespace fdml::optimizers {
 				}
 			}
 
-			TVector grad;
-			double fobj = problem(XX, grad);
+			TVector grad(XX);
+			double fobj = 0.0;
 			// problem.approx_gradient(XX, grad);
 			if (gscale != 1.0) {
 				scale_gradient(grad, NN);

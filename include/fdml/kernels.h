@@ -46,7 +46,7 @@ namespace fdml::kernels {
 		virtual void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) = 0;
 
 		virtual void set_params(const TVector& params) = 0;
-		virtual TVector get_params(bool inverse_transform = true) { TVector tmp; return tmp; }
+		virtual TVector get_params() { TVector tmp; return tmp; }
 		virtual void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) = 0;
 	
 		// Python Pickling
@@ -121,16 +121,16 @@ namespace fdml::kernels {
 				variance.transform_value(params.coeff(length_scale.value().size()));
 			}
 		}
-		TVector get_params(bool inverse_transform = true) override {
+		TVector get_params() override {
 			std::vector<double> params;
 			if (!(*length_scale.is_fixed)) {
-				length_scale.transform_value(inverse_transform);
+				length_scale.transform_value(true);
 				std::size_t n = length_scale.size();
 				params.resize(n);
 				TVector::Map(&params[0], n) = length_scale.value();
 			}
 			if (!(*variance.is_fixed)) {
-				variance.transform_value(inverse_transform);
+				variance.transform_value(true);
 				params.push_back(variance.value());
 			}
 			return Eigen::Map<TVector>(params.data(), params.size());
