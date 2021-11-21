@@ -123,30 +123,30 @@ namespace fdml::parameters {
     template<>
     class Parameter<double> : public BaseParameter<double>
     {
-        
-    public:        
+
+    public:
 
         Parameter() : BaseParameter() {}
-        Parameter(std::string name, double value)  {
+        Parameter(std::string name, double value) {
             name_ = name;
-            transform_ = "logexp";            
-            value_ = value;          
+            transform_ = "logexp";
+            value_ = value;
             bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::pair<double, double> bounds) {
             name_ = name;
             transform_ = "logexp";
-            value_ = value;          
+            value_ = value;
             bounds_ = bounds;
         }
         Parameter(std::string name, double value, std::string transform) {
             name_ = name;
             transform_ = transform;
-            value_ = value;          
+            value_ = value;
             bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         }
         Parameter(std::string name, double value, std::string transform, std::pair<double, double> bounds) : BaseParameter(name, value, transform, bounds) {}
-     
+
         void set_bounds(const std::pair<double, double>& new_bounds) override {
             if (bounds_.first > bounds_.second) { throw std::runtime_error("Lower Bound > Upper Bound"); }
             bounds_ = new_bounds;
@@ -159,7 +159,7 @@ namespace fdml::parameters {
             value_ = oValue;
             return *this;
         }
-        
+
     };
 
     template<>
@@ -172,7 +172,7 @@ namespace fdml::parameters {
         Parameter(std::string name, TVector value) {
             name_ = name;
             transform_ = "logexp";
-            value_ = value;          
+            value_ = value;
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
@@ -183,7 +183,7 @@ namespace fdml::parameters {
         Parameter(std::string name, TVector value, std::string transform) {
             name_ = name;
             transform_ = transform;
-            value_ = value;          
+            value_ = value;
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
@@ -194,15 +194,17 @@ namespace fdml::parameters {
         Parameter(std::string name, TVector value, std::pair<TVector, TVector> bounds) {
             name_ = name;
             transform_ = "logexp";
-            value_ = value;          
+            value_ = value;
             size_ = value.size();
             bounds_ = bounds;
         }
         Parameter(std::string name, TVector value, std::string transform, std::pair<TVector, TVector> bounds) : BaseParameter(name, value, transform, bounds) { size_ = value.size(); }
-        
+
         void set_bounds(const std::pair<TVector, TVector>& new_bounds) override {
             if ((bounds_.first.array() > bounds_.second.array()).any())
-            { throw std::runtime_error("Lower Bound > Upper Bound"); }
+            {
+                throw std::runtime_error("Lower Bound > Upper Bound");
+            }
             bounds_ = new_bounds;
         }
 

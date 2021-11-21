@@ -1,6 +1,6 @@
 #ifndef DEEPMODELS_H
 #define DEEPMODELS_H
-//  #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 
 #include <fdml/kernels.h>
@@ -96,13 +96,13 @@ namespace fdml::deep_models {
 				return lpg;
 			}
 
-			
+
 			void train() override {
 				TVector lower_bound, upper_bound;
 				get_bounds(lower_bound, upper_bound, false);
 				// TVector theta = get_params(false);
 				TVector theta = get_params();
-				if (solver->from_optim){
+				if (solver->from_optim) {
 					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
 					{return objective_(x, grad, nullptr, opt_data); };
 					opt::OptimData optdata;
@@ -117,12 +117,12 @@ namespace fdml::deep_models {
 				}
 				set_params(theta);
 				if (store_parameters) {
-					if (!((theta.array().isNaN()).any())){
-						history.push_back(theta);						
+					if (!((theta.array().isNaN()).any())) {
+						history.push_back(theta);
 					}
 					else {
-						std::cout << "NaN Detected" << std:: endl;
-					}					
+						std::cout << "NaN Detected" << std::endl;
+					}
 				}
 			}
 			TVector gradients() override {
@@ -271,7 +271,7 @@ namespace fdml::deep_models {
 				}
 			}
 			TVector get_params(bool inverse_transform = true) override {
-				TVector params  = kernel->get_params(inverse_transform);
+				TVector params = kernel->get_params(inverse_transform);
 				if (!(*likelihood_variance.is_fixed)) {
 					likelihood_variance.transform_value(inverse_transform);
 					params.conservativeResize(params.rows() + 1);
@@ -529,7 +529,7 @@ namespace fdml::deep_models {
 				K *= target.scale.value();
 				TMatrix nu = sample_mvn(K);
 				double log_y = 0.0;
-				if (!std::isfinite(log_y)){ throw std::runtime_error("log_y is not finite");}
+				if (!std::isfinite(log_y)) { throw std::runtime_error("log_y is not finite"); }
 
 				for (std::vector<Node>::iterator node = linked.nodes.begin(); node != linked.nodes.end(); ++node) {
 					const TMatrix W = node->inputs;
@@ -556,7 +556,7 @@ namespace fdml::deep_models {
 						Kw2 *= linked.nodes[n].scale.value();
 						log_yp += log_likelihood(Kw2, Y2);
 					}
-					if (!std::isfinite(log_yp)){ throw std::runtime_error("log_y is not finite");}
+					if (!std::isfinite(log_yp)) { throw std::runtime_error("log_y is not finite"); }
 					// DEBUG
 					//std::cout << "log_yp = " << log_yp << " " << "log_y" << log_y << std::endl;
 					//
@@ -569,7 +569,7 @@ namespace fdml::deep_models {
 					}
 				}
 			}
-						
+
 		};
 
 		class SIDGP : public Imputer {
@@ -648,11 +648,11 @@ namespace fdml::deep_models {
 				std::cout << std::endl;
 			}
 			void estimate(Eigen::Index n_burn = 0) {
-				if (n_burn == 0) { 
+				if (n_burn == 0) {
 					n_burn = std::size_t(0.75 * n_iter_);
 				}
 				else {
-					if (n_burn > n_iter_){
+					if (n_burn > n_iter_) {
 						throw std::runtime_error("n_burn > n_iter_");
 					}
 				}
@@ -735,7 +735,7 @@ namespace fdml::deep_models {
 							std::setprecision(1) << std::fixed << p << std::setw(5) << std::left << " % |";
 						std::cout << std::setw(7) <<
 							std::left << "N_IMPUTE" << std::setw(1) << std::left << "" << i << "  " <<
-							std::setw(7) << std::left << "NRMSE = " << 
+							std::setw(7) << std::left << "NRMSE = " <<
 							std::setw(3) << std::left << std::setprecision(5) << std::fixed <<
 							metrics::rmse(Yref, mu) / (Yref.maxCoeff() - Yref.minCoeff()) << "\r" << std::flush;
 						if (i == n_impute - 1) {
@@ -785,7 +785,7 @@ namespace fdml::deep_models {
 				variance.array() -= square(mean.array());
 
 				return std::make_pair(mean, variance);
-			}			
+			}
 
 			void set_observed(const TMatrix& X, const TMatrix& Z) {
 				if (X.size() != layers.front().o_input.size()) {

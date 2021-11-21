@@ -152,15 +152,17 @@ namespace fdml::base_models {
 			GP* model;
 			Objective(GP* model, const int& dim) : model(model), opt::Problem(dim) {}
 
-			double objective_value(const TVector& x) override {
-				model->set_params(x);	
-				return model->log_marginal_likelihood();
-			}			
-
 			double operator()(const TVector& x, TVector& grad) override {
 				model->set_params(x);	
 				grad = model->gradients();
 				return model->log_marginal_likelihood();
+			}
+			double objective_value(const TVector& x) override {
+				model->set_params(x);	
+				return model->log_marginal_likelihood();
+			}			
+			void gradient(TVector& grad) override {
+				grad = model->gradients();
 			}
 		};
 
