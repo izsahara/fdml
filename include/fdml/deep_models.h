@@ -270,10 +270,10 @@ namespace fdml::deep_models {
 					upper.tail(1)(0) = likelihood_variance.get_bounds().second;
 				}
 			}
-			TVector get_params() override {
-				TVector params = kernel->get_params();
+			TVector get_params(bool inverse_transform = true) override {
+				TVector params = kernel->get_params(inverse_transform);
 				if (!(*likelihood_variance.is_fixed)) {
-					likelihood_variance.transform_value(true);
+					likelihood_variance.transform_value(inverse_transform);
 					params.conservativeResize(params.rows() + 1);
 					params.tail(1)(0) = likelihood_variance.value();
 				}

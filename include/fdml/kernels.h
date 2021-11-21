@@ -46,9 +46,9 @@ namespace fdml::kernels {
 		virtual void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) = 0;
 
 		virtual void set_params(const TVector& params) = 0;
-		virtual TVector get_params() { TVector tmp; return tmp; }
+		virtual TVector get_params(bool inverse_transform = true) { TVector tmp; return tmp; }
 		virtual void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) = 0;
-	
+
 		// Python Pickling
 		virtual const Parameter<double> get_variance() const { return variance; }
 		virtual const Parameter<TVector> get_lengthscale() const { return length_scale; }
@@ -60,7 +60,7 @@ namespace fdml::kernels {
 
 	};
 
-	
+
 	class Stationary : public Kernel {
 
 	protected:
@@ -81,7 +81,7 @@ namespace fdml::kernels {
 			grad.push_back((K.cwiseProduct(dNLL)).array().sum() / variance.value());
 		}
 
-	public: 
+	public:
 		Stationary() {}
 		Stationary(const Stationary& kernel) : Kernel(kernel) {}
 		Stationary(const double& length_scale, const double& variance) : Kernel(length_scale, variance) {}
@@ -95,7 +95,7 @@ namespace fdml::kernels {
 		TMatrix diag(const TMatrix& X1) override {
 			// Stationary Stationary
 			return variance.value() * TMatrix::Ones(X1.rows(), 1);
-		}		
+		}
 		void get_bounds(TVector& lower, TVector& upper, bool transformed = false) override {
 			if (!(*length_scale.is_fixed)) {
 				if (transformed) { length_scale.transform_bounds(); }
@@ -111,7 +111,7 @@ namespace fdml::kernels {
 				lower.tail(1)(0) = variance.get_bounds().first;
 				upper.tail(1)(0) = variance.get_bounds().second;
 			}
-		};		
+		};
 		void set_params(const TVector& params) override
 		{
 			if (!(*length_scale.is_fixed)) {
@@ -121,16 +121,16 @@ namespace fdml::kernels {
 				variance.transform_value(params.coeff(length_scale.value().size()));
 			}
 		}
-		TVector get_params() override {
+		TVector get_params(bool inverse_transform = true) override {
 			std::vector<double> params;
 			if (!(*length_scale.is_fixed)) {
-				length_scale.transform_value(true);
+				length_scale.transform_value(inverse_transform);
 				std::size_t n = length_scale.size();
 				params.resize(n);
 				TVector::Map(&params[0], n) = length_scale.value();
 			}
 			if (!(*variance.is_fixed)) {
-				variance.transform_value(true);
+				variance.transform_value(inverse_transform);
 				params.push_back(variance.value());
 			}
 			return Eigen::Map<TVector>(params.data(), params.size());
@@ -140,7 +140,7 @@ namespace fdml::kernels {
 		virtual void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) = 0;
 	};
 
-	
+
 	class SquaredExponential : public Stationary {
 
 	private:
@@ -253,7 +253,7 @@ namespace fdml::kernels {
 					tmp = length_scale.value();
 				}
 				TMatrix Xsc = X.array().rowwise() / tmp.transpose().array();
-				
+
 				pdist(Xsc, Xsc, disi, true);
 				TMatrix disi2 = TMatrix::Zero(X.rows(), X.rows());
 				for (int i = 0; i < disi.size(); ++i) {
@@ -271,7 +271,7 @@ namespace fdml::kernels {
 			}
 		}
 
-		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override 
+		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
 		{
 			if (!(*length_scale.is_fixed)) {
 				TMatrix dK_dR = -R.cwiseProduct(K);
@@ -283,7 +283,7 @@ namespace fdml::kernels {
 			}
 			if (!(*variance.is_fixed)) { dK_dvariance(K, dNLL, grad); }
 		}
-	
+
 
 		void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) override {
 			TMatrix Xz = ((X.transpose().array().colwise() - mean.array())).transpose();
@@ -302,7 +302,7 @@ namespace fdml::kernels {
 			QD2 = 2 * square(length_scale.value().array()).array();
 		}
 
-	private:		
+	private:
 		// SE Expectation Terms
 		TMatrix xi_term1;
 		TMatrix xi_term2;
@@ -312,7 +312,7 @@ namespace fdml::kernels {
 
 	};
 
-	
+
 	class Matern32 : public Stationary {
 
 	public:
@@ -325,7 +325,7 @@ namespace fdml::kernels {
 		Matern32(const TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
 		Matern32(const TVector& length_scale, double& variance) : Stationary(length_scale, variance) {}
 		//
-		
+
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2) override {
 			TMatrix R(X1.rows(), X2.rows());
 			TVector tmp;
@@ -342,7 +342,7 @@ namespace fdml::kernels {
 			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(3);
 			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix();
-		}				
+		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R1) override {
 			// sqrt euclidean distance R1
 			TVector tmp;
@@ -377,7 +377,7 @@ namespace fdml::kernels {
 			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(3);
 			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix() + noise;
-		}		
+		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
 			TMatrix R(X1.rows(), X2.rows());
 			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
@@ -395,12 +395,12 @@ namespace fdml::kernels {
 			return;
 		}
 
-		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override 
+		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
 		{
 			if (!(*length_scale.is_fixed)) {
 				TMatrix dK_dR = (variance.value() * (-3 * R.array()) * exp(-(R * sqrt(3)).array())).matrix();
 				std::vector<TMatrix> dK;
-				pdist(X, X, dK);				
+				pdist(X, X, dK);
 				TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));
 				tmp.diagonal().array() = 0.0;
 				dK_dlengthscale(dK, grad, tmp, dK_dR, dNLL, R);
@@ -440,7 +440,7 @@ namespace fdml::kernels {
 			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
 			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(5);
-			return ((1 + R.array() + square(R.array()) / 3) * ( exp(-R.array()) ) ).matrix();
+			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix();
 		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R1) override {
 			// sqrt euclidean distance R
@@ -543,7 +543,7 @@ namespace fdml::kernels {
 			else {
 				ls = TRVector::Constant(1, X.cols(), length_scale.value().coeff(0));
 			}
-			TRVector mu  = static_cast<TRVector>(mean);
+			TRVector mu = static_cast<TRVector>(mean);
 			TRVector var = static_cast<TRVector>(variance_);
 
 			// Find all variances that are zero
@@ -552,13 +552,15 @@ namespace fdml::kernels {
 
 			std::vector<Eigen::Index> zero_indices;
 			std::vector<Eigen::Index> non_zero_indices;
-			for (Eigen::Index i = 0; i < variance_.size(); ++i) 
-			{if (variance_[i] == 0.0) { zero_indices.push_back(i); }}
+			for (Eigen::Index i = 0; i < variance_.size(); ++i)
+			{
+				if (variance_[i] == 0.0) { zero_indices.push_back(i); }
+			}
 			std::set_difference(indices.begin(), indices.end(), zero_indices.begin(), zero_indices.end(),
 				std::inserter(non_zero_indices, non_zero_indices.begin()));
 
-			TMatrix  Xz  = (-(X.array().rowwise() - mean.transpose().array()));
-			TMatrix  muA = Xz.array().rowwise() - (sqrt(5) * var.array()) / ls.array() ;
+			TMatrix  Xz = (-(X.array().rowwise() - mean.transpose().array()));
+			TMatrix  muA = Xz.array().rowwise() - (sqrt(5) * var.array()) / ls.array();
 			TMatrix  muB = (Xz.array().rowwise() + (sqrt(5) * var.array()) / ls.array());
 			TRVector muC = mu.array() - ((2.0 * sqrt(5) * var.array()) / ls.array());
 			TRVector muD = mu.array() + ((2.0 * sqrt(5) * var.array()) / ls.array());
@@ -570,8 +572,8 @@ namespace fdml::kernels {
 				tmp_ls = ls(zero_indices);
 				// Id = (1 + sqrt(5)*np.abs(zX[i])/length[i] + 5*zX[i]**2/(3*length[i]**2)) * np.exp(-sqrt(5)*np.abs(zX[i])/length[i])
 				TMatrix Id = (1.0 + ((sqrt(5.0) * abs(tmp_Xz.array())).array().rowwise() / tmp_ls.array()) +
-							 (5.0 * square(tmp_Xz.array())).rowwise() / (3.0 * square(tmp_ls.array()))) *
-							 (exp((-sqrt(5.0) * abs(tmp_Xz.array()).array()).rowwise() / tmp_ls.array()));
+					(5.0 * square(tmp_Xz.array())).rowwise() / (3.0 * square(tmp_ls.array()))) *
+					(exp((-sqrt(5.0) * abs(tmp_Xz.array()).array()).rowwise() / tmp_ls.array()));
 				I.array() *= (Id.rowwise().prod()).array();
 				J.array() *= (I * I.transpose()).array();
 			};
@@ -580,10 +582,10 @@ namespace fdml::kernels {
 			{
 				TVector J0 = TVector::Ones(X.rows() * X.rows());
 				// Mask with non zero variance indicies
-				TMatrix  tmp_X   = X(Eigen::all, non_zero_indices);
+				TMatrix  tmp_X = X(Eigen::all, non_zero_indices);
 				TRVector tmp_ls;
 				tmp_ls = ls(non_zero_indices);
-				TVector  tmp_mu  = mean(non_zero_indices);
+				TVector  tmp_mu = mean(non_zero_indices);
 				TRVector tmp_var = var(non_zero_indices);
 				TMatrix  tmp_muA = muA(Eigen::all, non_zero_indices);
 				TMatrix  tmp_muB = muB(Eigen::all, non_zero_indices);
@@ -591,28 +593,28 @@ namespace fdml::kernels {
 				TRVector tmp_muD = muD(non_zero_indices);
 
 				/* ================================ COMPUTE I  ================================ */
-				TMatrix Xz  = (-(tmp_X.array().rowwise() - tmp_mu.transpose().array()));
+				TMatrix Xz = (-(tmp_X.array().rowwise() - tmp_mu.transpose().array()));
 				TMatrix mt1 = ((-(Xz.array().rowwise() * (2.0 * sqrt(5.0) * tmp_ls.array()).matrix().array()).array()).array().rowwise() +
-							  (5.0 * tmp_var.array()).matrix().array());
+					(5.0 * tmp_var.array()).matrix().array());
 				TMatrix pt1 = (((Xz.array().rowwise() * (2.0 * sqrt(5.0) * tmp_ls.array()).matrix().array()).array()).array().rowwise() +
-							  (5.0 * tmp_var.array()).matrix().array());
+					(5.0 * tmp_var.array()).matrix().array());
 
-				TMatrix t1  = exp(mt1.array().rowwise() / (2 * square(tmp_ls.array())).matrix().array()).array() *
-							  ((((1.0 + ((sqrt(5.0) * tmp_muA.array()).rowwise() / tmp_ls.array()).array()) +
-							  (5.0 * ((square(tmp_muA.array()).rowwise() + tmp_var.array()).rowwise() / (3 * square(tmp_ls.array()))).array())).array() *
-							  (pnorm((tmp_muA.array().rowwise() / sqrt(tmp_var.array())).matrix())).array()) +
-							  ((sqrt(5.0) + ((5.0 * tmp_muA.array()).rowwise() / (3.0 * tmp_ls.array())).array()) *
-							  ((exp((-0.5 * square(tmp_muA.array())).rowwise() / tmp_var.array())).array().rowwise() *
-							  (sqrt(0.5 * (tmp_var.array() / PI)) / tmp_ls.array()).matrix().array())));
+				TMatrix t1 = exp(mt1.array().rowwise() / (2 * square(tmp_ls.array())).matrix().array()).array() *
+					((((1.0 + ((sqrt(5.0) * tmp_muA.array()).rowwise() / tmp_ls.array()).array()) +
+						(5.0 * ((square(tmp_muA.array()).rowwise() + tmp_var.array()).rowwise() / (3 * square(tmp_ls.array()))).array())).array() *
+						(pnorm((tmp_muA.array().rowwise() / sqrt(tmp_var.array())).matrix())).array()) +
+						((sqrt(5.0) + ((5.0 * tmp_muA.array()).rowwise() / (3.0 * tmp_ls.array())).array()) *
+							((exp((-0.5 * square(tmp_muA.array())).rowwise() / tmp_var.array())).array().rowwise() *
+								(sqrt(0.5 * (tmp_var.array() / PI)) / tmp_ls.array()).matrix().array())));
 
-				TMatrix t2  = exp(pt1.array().rowwise() / (2 * square(tmp_ls.array())).matrix().array()) * (
-							  (((1.0 - ((sqrt(5.0) * tmp_muB.array()).rowwise() / tmp_ls.array()).array()) +
-							  (5.0 * ((square(tmp_muB.array()).rowwise() + tmp_var.array()).rowwise() / (3 * square(tmp_ls.array()))).array())).array() *
-							  pnorm(((-tmp_muB.array()).rowwise() / sqrt(tmp_var.array())).matrix()).array()) +
-							  ((sqrt(5.0) - ((5.0 * tmp_muB.array()).rowwise() / (3.0 * tmp_ls.array())).array()).array() *
-							  ((exp((-0.5 * square(tmp_muB.array())).rowwise() / tmp_var.array())).array().rowwise() *
-							  (sqrt(0.5 * (tmp_var.array() / PI)) / tmp_ls.array()).matrix().array()).array()));
-				
+				TMatrix t2 = exp(pt1.array().rowwise() / (2 * square(tmp_ls.array())).matrix().array()) * (
+					(((1.0 - ((sqrt(5.0) * tmp_muB.array()).rowwise() / tmp_ls.array()).array()) +
+						(5.0 * ((square(tmp_muB.array()).rowwise() + tmp_var.array()).rowwise() / (3 * square(tmp_ls.array()))).array())).array() *
+						pnorm(((-tmp_muB.array()).rowwise() / sqrt(tmp_var.array())).matrix()).array()) +
+					((sqrt(5.0) - ((5.0 * tmp_muB.array()).rowwise() / (3.0 * tmp_ls.array())).array()).array() *
+						((exp((-0.5 * square(tmp_muB.array())).rowwise() / tmp_var.array())).array().rowwise() *
+							(sqrt(0.5 * (tmp_var.array() / PI)) / tmp_ls.array()).matrix().array()).array()));
+
 				I.array() *= ((t1 + t2).rowwise().prod()).array();
 
 				/* ================================ COMPUTE J  ================================ */
@@ -653,78 +655,78 @@ namespace fdml::kernels {
 					double sqrtf = sqrt(5.0);
 					double EX4 = 25.0 / (denominator);
 					/* ================================ COMPUTE E3  ================================ */
-					TMatrix E30   = 1.0 + (((25.0 * op_sq_prod.array()) -								
-									(((op_prod.array() * (5.0 * tmp_ls(c))) + (3.0 * pow(tmp_ls(c), 3))) * ((3.0 * sqrtf) * op_sum.array())).array() +
-									((op_sq_sum.array() + (3.0 * op_prod.array())) * (15.0 * ls_sqrd))) / (denominator));
-					TMatrix E31   = (((op_sq_sum.array() * (15.0 * sqrtf * tmp_ls(c))) -								
-									(((50.0 * op_prod.array()) + (75.0 * ls_sqrd)) * op_sum.array()) +
-									(op_prod.array() * (60.0 * sqrtf * tmp_ls(c)))) +
-									(18.0 * sqrtf * pow(tmp_ls(c), 3))) / (denominator);
-					TMatrix E32   = (5.0 * (((5.0 * op_sq_sum.array()) + (15.0 * ls_sqrd)) - (op_sum.array() * (9.0 * sqrtf * tmp_ls(c))) +								
-									(20.0 * op_prod.array()))) / (denominator);			
-					TMatrix E33   =	(10.0 *  ((- 5.0 * op_sum.array()) + (3.0 * sqrtf * tmp_ls(c)))) / (denominator);								
-					TMatrix E3A31 = E30.array() + (tmp_muC(c) * E31.array()) + (CE32(c) * E32.array()) + (CE33(c) * E33.array()) + (CE34(c) * EX4);				
-					TMatrix E3A32 = E31.array() + (tmp_muC(c) + XX.col(1).array()) * E32.array() +								
-									(pow(tmp_muC(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(1).array()) + (tmp_muC(c) * XX.col(1).array())) * E33.array() +
-									(pow(tmp_muC(c), 3) + pow(XX.col(1).array(), 3) + (pow(tmp_muC(c), 2) * XX.col(1).array()) + (tmp_muC(c) * square(XX.col(1).array())) +
-									(3.0 * tmp_var(c) * XX.col(1).array()) + (5.0 * tmp_var(c) * tmp_muC(c))) * EX4;
+					TMatrix E30 = 1.0 + (((25.0 * op_sq_prod.array()) -
+						(((op_prod.array() * (5.0 * tmp_ls(c))) + (3.0 * pow(tmp_ls(c), 3))) * ((3.0 * sqrtf) * op_sum.array())).array() +
+						((op_sq_sum.array() + (3.0 * op_prod.array())) * (15.0 * ls_sqrd))) / (denominator));
+					TMatrix E31 = (((op_sq_sum.array() * (15.0 * sqrtf * tmp_ls(c))) -
+						(((50.0 * op_prod.array()) + (75.0 * ls_sqrd)) * op_sum.array()) +
+						(op_prod.array() * (60.0 * sqrtf * tmp_ls(c)))) +
+						(18.0 * sqrtf * pow(tmp_ls(c), 3))) / (denominator);
+					TMatrix E32 = (5.0 * (((5.0 * op_sq_sum.array()) + (15.0 * ls_sqrd)) - (op_sum.array() * (9.0 * sqrtf * tmp_ls(c))) +
+						(20.0 * op_prod.array()))) / (denominator);
+					TMatrix E33 = (10.0 * ((-5.0 * op_sum.array()) + (3.0 * sqrtf * tmp_ls(c)))) / (denominator);
+					TMatrix E3A31 = E30.array() + (tmp_muC(c) * E31.array()) + (CE32(c) * E32.array()) + (CE33(c) * E33.array()) + (CE34(c) * EX4);
+					TMatrix E3A32 = E31.array() + (tmp_muC(c) + XX.col(1).array()) * E32.array() +
+						(pow(tmp_muC(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(1).array()) + (tmp_muC(c) * XX.col(1).array())) * E33.array() +
+						(pow(tmp_muC(c), 3) + pow(XX.col(1).array(), 3) + (pow(tmp_muC(c), 2) * XX.col(1).array()) + (tmp_muC(c) * square(XX.col(1).array())) +
+							(3.0 * tmp_var(c) * XX.col(1).array()) + (5.0 * tmp_var(c) * tmp_muC(c))) * EX4;
 
-					TMatrix P1	  = (exp((10.0 * tmp_var(c) + (sqrtf * tmp_ls(c) * (op_sum.array() - (2.0 * tmp_mu(c))))) / ls_sqrd)) *								
-									((0.5 * E3A31.array() * (1.0 + erf((tmp_muC(c) - XX.col(1).array()) / sqrt(2.0 * tmp_var(c))))) +
-									(E3A32.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(1).array() - tmp_muC(c)) / tmp_var(c))));
+					TMatrix P1 = (exp((10.0 * tmp_var(c) + (sqrtf * tmp_ls(c) * (op_sum.array() - (2.0 * tmp_mu(c))))) / ls_sqrd)) *
+						((0.5 * E3A31.array() * (1.0 + erf((tmp_muC(c) - XX.col(1).array()) / sqrt(2.0 * tmp_var(c))))) +
+							(E3A32.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(1).array() - tmp_muC(c)) / tmp_var(c))));
 					/* ================================ COMPUTE E4  ================================ */
-					TMatrix E40	  = 1.0 + (((25.0 * op_sq_prod.array()) + 
-									(3.0 * sqrtf * ((3.0 * pow(tmp_ls(c), 3)) - (5.0 * tmp_ls(c) * op_prod.array())) * (XX.col(1).array() - XX.col(0).array())) +
-									(15.0 * ls_sqrd * (op_sq_sum.array() - (3.0 * op_prod.array())))) / (denominator));
-					TMatrix E41   = 5.0 * ((3.0 * sqrtf * tmp_ls(c) * (square(XX.col(1).array()) - square(XX.col(0).array()))) +
-									(3.0 * ls_sqrd * op_sum.array()) - (10.0 * op_prod.array() * op_sum.array())) / (denominator);
-					TMatrix E42   = 5.0 * ((5.0 * op_sq_sum.array()) - (3.0 * ls_sqrd) -  (3.0 * sqrtf * tmp_ls(c) * (XX.col(1).array() - XX.col(0).array())) +
-									(20.0 * op_prod.array())) / (denominator);		
-					TMatrix E43	  = -50.0 * (V1.array() + V2.array()) / (denominator);
+					TMatrix E40 = 1.0 + (((25.0 * op_sq_prod.array()) +
+						(3.0 * sqrtf * ((3.0 * pow(tmp_ls(c), 3)) - (5.0 * tmp_ls(c) * op_prod.array())) * (XX.col(1).array() - XX.col(0).array())) +
+						(15.0 * ls_sqrd * (op_sq_sum.array() - (3.0 * op_prod.array())))) / (denominator));
+					TMatrix E41 = 5.0 * ((3.0 * sqrtf * tmp_ls(c) * (square(XX.col(1).array()) - square(XX.col(0).array()))) +
+						(3.0 * ls_sqrd * op_sum.array()) - (10.0 * op_prod.array() * op_sum.array())) / (denominator);
+					TMatrix E42 = 5.0 * ((5.0 * op_sq_sum.array()) - (3.0 * ls_sqrd) - (3.0 * sqrtf * tmp_ls(c) * (XX.col(1).array() - XX.col(0).array())) +
+						(20.0 * op_prod.array())) / (denominator);
+					TMatrix E43 = -50.0 * (V1.array() + V2.array()) / (denominator);
 					TMatrix E4A41 = E40.array() +
-									(tmp_mu(c) * E41.array()) + ((pow(tmp_mu(c), 2) + tmp_var(c)) * E42.array()) +
-									((pow(tmp_mu(c), 3) + 3.0 * tmp_var(c) * tmp_mu(c)) * E43.array()) +
-									((pow(tmp_mu(c), 4) + 6.0 * tmp_var(c) * pow(tmp_mu(c), 2) + 3.0 * pow(tmp_var(c), 2)) * EX4);				
+						(tmp_mu(c) * E41.array()) + ((pow(tmp_mu(c), 2) + tmp_var(c)) * E42.array()) +
+						((pow(tmp_mu(c), 3) + 3.0 * tmp_var(c) * tmp_mu(c)) * E43.array()) +
+						((pow(tmp_mu(c), 4) + 6.0 * tmp_var(c) * pow(tmp_mu(c), 2) + 3.0 * pow(tmp_var(c), 2)) * EX4);
 					TMatrix E4A42 = E41.array() +
-									((tmp_mu(c) + XX.col(0).array()) * E42.array()) +
-									((pow(tmp_mu(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(0).array()) + (tmp_mu(c) * XX.col(0).array())) * E43.array()) +
-									((pow(tmp_mu(c), 3) + pow(XX.col(0).array(), 3) + (pow(tmp_mu(c), 2) * XX.col(0).array()) + (tmp_mu(c) * square(XX.col(0).array())) +
-									(3.0 * tmp_var(c) * XX.col(0).array()) + (5.0 * tmp_mu(c) * tmp_var(c))) * EX4);
+						((tmp_mu(c) + XX.col(0).array()) * E42.array()) +
+						((pow(tmp_mu(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(0).array()) + (tmp_mu(c) * XX.col(0).array())) * E43.array()) +
+						((pow(tmp_mu(c), 3) + pow(XX.col(0).array(), 3) + (pow(tmp_mu(c), 2) * XX.col(0).array()) + (tmp_mu(c) * square(XX.col(0).array())) +
+							(3.0 * tmp_var(c) * XX.col(0).array()) + (5.0 * tmp_mu(c) * tmp_var(c))) * EX4);
 					TMatrix E4A43 = E41.array() +
-									((tmp_mu(c) + XX.col(1).array()) * E42.array()) +
-									((pow(tmp_mu(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(1).array()) + (tmp_mu(c) * XX.col(1).array())) * E43.array()) +
-									((pow(tmp_mu(c), 3) + pow(XX.col(1).array(), 3) + (pow(tmp_mu(c), 2) * XX.col(1).array()) + (tmp_mu(c) * square(XX.col(1).array())) +
-									(3.0 * tmp_var(c) * XX.col(1).array()) + (5.0 * tmp_mu(c) * tmp_var(c))) * EX4);
+						((tmp_mu(c) + XX.col(1).array()) * E42.array()) +
+						((pow(tmp_mu(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(1).array()) + (tmp_mu(c) * XX.col(1).array())) * E43.array()) +
+						((pow(tmp_mu(c), 3) + pow(XX.col(1).array(), 3) + (pow(tmp_mu(c), 2) * XX.col(1).array()) + (tmp_mu(c) * square(XX.col(1).array())) +
+							(3.0 * tmp_var(c) * XX.col(1).array()) + (5.0 * tmp_mu(c) * tmp_var(c))) * EX4);
 
-					TMatrix P2    = exp(-sqrtf * (XX.col(1).array() - XX.col(0).array()) / tmp_ls(c)) * 					
-									((0.5 * E4A41.array() * (erf((XX.col(1).array() - tmp_mu(c)) / (sqrt(2.0 * tmp_var(c)))) -
-									erf((XX.col(0).array() - tmp_mu(c)) / (sqrt(2.0 * tmp_var(c)))))) +
-									(E4A42.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(0).array() - tmp_mu(c)) / tmp_var(c))) -
-									(E4A43.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(1).array() - tmp_mu(c)) / tmp_var(c))));
+					TMatrix P2 = exp(-sqrtf * (XX.col(1).array() - XX.col(0).array()) / tmp_ls(c)) *
+						((0.5 * E4A41.array() * (erf((XX.col(1).array() - tmp_mu(c)) / (sqrt(2.0 * tmp_var(c)))) -
+							erf((XX.col(0).array() - tmp_mu(c)) / (sqrt(2.0 * tmp_var(c)))))) +
+							(E4A42.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(0).array() - tmp_mu(c)) / tmp_var(c))) -
+							(E4A43.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(1).array() - tmp_mu(c)) / tmp_var(c))));
 					/* ================================ COMPUTE E5  ================================ */
-					TMatrix E50	  = 1.0 + (((25.0 * op_sq_prod.array()) +
-									(3.0 * sqrtf * ((3.0 * pow(tmp_ls(c), 3)) + (5.0 * tmp_ls(c) * op_prod.array())) * op_sum.array()) +
-									(15.0 * ls_sqrd * (op_sq_sum.array() + (3.0 * op_prod.array())))) / (denominator));
-					TMatrix E51   = (((op_sq_sum.array() * (15.0 * sqrtf * tmp_ls(c))) +
-									(((50.0 * op_prod.array()) + (75.0 * ls_sqrd)) * op_sum.array()) +
-									(op_prod.array() * (60.0 * sqrtf * tmp_ls(c)))) +
-									(18.0 * sqrtf * pow(tmp_ls(c), 3))) / (denominator);
-					TMatrix E52   = (5.0 * (((5.0 * op_sq_sum.array()) + (15.0 * ls_sqrd)) + (op_sum.array() * (9.0 * sqrtf * tmp_ls(c))) + (20.0 * op_prod.array()))) / (denominator);
-					TMatrix E53   = (10.0 * ((5.0 * op_sum.array()) + (3.0 * sqrtf * tmp_ls(c)))) / (denominator);
+					TMatrix E50 = 1.0 + (((25.0 * op_sq_prod.array()) +
+						(3.0 * sqrtf * ((3.0 * pow(tmp_ls(c), 3)) + (5.0 * tmp_ls(c) * op_prod.array())) * op_sum.array()) +
+						(15.0 * ls_sqrd * (op_sq_sum.array() + (3.0 * op_prod.array())))) / (denominator));
+					TMatrix E51 = (((op_sq_sum.array() * (15.0 * sqrtf * tmp_ls(c))) +
+						(((50.0 * op_prod.array()) + (75.0 * ls_sqrd)) * op_sum.array()) +
+						(op_prod.array() * (60.0 * sqrtf * tmp_ls(c)))) +
+						(18.0 * sqrtf * pow(tmp_ls(c), 3))) / (denominator);
+					TMatrix E52 = (5.0 * (((5.0 * op_sq_sum.array()) + (15.0 * ls_sqrd)) + (op_sum.array() * (9.0 * sqrtf * tmp_ls(c))) + (20.0 * op_prod.array()))) / (denominator);
+					TMatrix E53 = (10.0 * ((5.0 * op_sum.array()) + (3.0 * sqrtf * tmp_ls(c)))) / (denominator);
 					TMatrix E5A51 = E50.array() - (tmp_muD(c) * E51.array()) + (DE52(c) * E52.array()) - (DE53(c) * E53.array()) + (DE54(c) * EX4);
 					TMatrix E5A52 = E51.array() - (tmp_muD(c) + XX.col(0).array()) * E52.array() +
-									(pow(tmp_muD(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(0).array()) + (tmp_muD(c) * XX.col(0).array())) * E53.array() -
-									(pow(tmp_muD(c), 3) + pow(XX.col(0).array(), 3) + (pow(tmp_muD(c), 2) * XX.col(0).array()) + (tmp_muD(c) * square(XX.col(0).array())) +
-									(3.0 * tmp_var(c) * XX.col(0).array()) + (5.0 * tmp_var(c) * tmp_muD(c))) * EX4;
-					TMatrix P3	  = (exp((10.0 * tmp_var(c) - (sqrtf * tmp_ls(c) * (op_sum.array() - (2.0 * tmp_mu(c))))) / ls_sqrd)) *
-									((0.5 * E5A51.array() * (1.0 + erf((XX.col(0).array() - tmp_muD(c)) / sqrt(2.0 * tmp_var(c))))) +
-									(E5A52.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(0).array() - tmp_muD(c)) / tmp_var(c))));					
-					J0.array()   *= (P1.array() + P2.array() + P3.array());
-				
+						(pow(tmp_muD(c), 2) + (2.0 * tmp_var(c)) + square(XX.col(0).array()) + (tmp_muD(c) * XX.col(0).array())) * E53.array() -
+						(pow(tmp_muD(c), 3) + pow(XX.col(0).array(), 3) + (pow(tmp_muD(c), 2) * XX.col(0).array()) + (tmp_muD(c) * square(XX.col(0).array())) +
+							(3.0 * tmp_var(c) * XX.col(0).array()) + (5.0 * tmp_var(c) * tmp_muD(c))) * EX4;
+					TMatrix P3 = (exp((10.0 * tmp_var(c) - (sqrtf * tmp_ls(c) * (op_sum.array() - (2.0 * tmp_mu(c))))) / ls_sqrd)) *
+						((0.5 * E5A51.array() * (1.0 + erf((XX.col(0).array() - tmp_muD(c)) / sqrt(2.0 * tmp_var(c))))) +
+							(E5A52.array() * sqrt(0.5 * tmp_var(c) / PI) * exp(-0.5 * square(XX.col(0).array() - tmp_muD(c)) / tmp_var(c))));
+					J0.array() *= (P1.array() + P2.array() + P3.array());
+
 				}
 				J.array() *= Eigen::Map<TMatrix>(J0.data(), X.rows(), X.rows()).array();
-			
-			};				
+
+			};
 			if (zero_indices.size() > 0) { zero_variance(); }
 			if (non_zero_indices.size() > 0) { non_zero_variance(); }
 		}
@@ -733,9 +735,9 @@ namespace fdml::kernels {
 		{
 			if (!(*length_scale.is_fixed)) {
 				//  self.variance*( 10./3*r - 5. * r  -  5.*np.sqrt(5.)/3*r**2) * np.exp(-np.sqrt(5.)*r)
-				TMatrix dK_dR = (variance.value() * ((10 / 3) * R.array() - 5 * R.array() - (5 * sqrt(5) / 3) 
-								 * square(R.array())) 
-								 * exp(sqrt(5) * R.array())).matrix();
+				TMatrix dK_dR = (variance.value() * ((10 / 3) * R.array() - 5 * R.array() - (5 * sqrt(5) / 3)
+					* square(R.array()))
+					* exp(sqrt(5) * R.array())).matrix();
 				std::vector<TMatrix> dK;
 				pdist(X, X, dK);
 				TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));

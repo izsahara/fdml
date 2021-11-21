@@ -393,14 +393,13 @@ namespace fdml::utilities {
             MVN(TVector const& mean, TMatrix const& covar) : mean(mean)
             {
                 Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(covar);
-                transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+                transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
             }
             TVector operator()() const
             {
-                Eigen::setNbThreads(1);
                 // auto seed = std::random_device{}();
                 // std::default_random_engine gen_primitive(seed);
-                std::mt19937 gen_primitive(std::random_device{}());
+                thread_local std::mt19937 gen_primitive(std::random_device{}());
                 std::normal_distribution<> dist;
                 // NumpyNormal generator;
                 return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {
