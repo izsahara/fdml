@@ -1,6 +1,6 @@
 #ifndef DEEPMODELS_H
 #define DEEPMODELS_H
- #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+//  #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 
 #include <fdml/kernels.h>

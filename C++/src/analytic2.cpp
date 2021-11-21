@@ -84,7 +84,7 @@ void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     write_data(Zpv_path, Zpv);
 }
 
-void analytic2(const std::string& exp){
+void analytic2(std::string exp){
     TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
     TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
     TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");

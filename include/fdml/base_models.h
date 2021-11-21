@@ -132,7 +132,7 @@ namespace fdml::base_models {
 			virtual TVector gradients() { TVector tmp; return tmp; }
 			virtual double log_marginal_likelihood() { return 0.0; }
 			virtual void set_params(const TVector& new_params) = 0; 
-			virtual TVector get_params() { TVector tmp; return tmp; }
+			virtual TVector get_params(bool inverse_transform = true) { TVector tmp; return tmp; }
 		public:
 			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-10, "none" };
 			shared_ptr<Kernel> kernel;
@@ -301,10 +301,10 @@ namespace fdml::base_models {
 					upper.tail(1)(0) = likelihood_variance.get_bounds().second;
 				}
 			}
-			TVector get_params() override {
-				TVector params = kernel->get_params();
+			TVector get_params(bool inverse_transform = true) override {
+				TVector params = kernel->get_params(inverse_transform);
 				if (!(*likelihood_variance.is_fixed)) {
-					likelihood_variance.transform_value(true);
+					likelihood_variance.transform_value(inverse_transform);
 					params.conservativeResize(params.rows() + 1);
 					params.tail(1)(0) = likelihood_variance.value();
 				}
