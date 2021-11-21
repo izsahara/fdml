@@ -379,6 +379,8 @@ namespace fdml::utilities {
             return norm_matrix;
         }
         // Taken from: https://stackoverflow.com/a/40245513
+        #pragma GCC push_options
+        #pragma GCC optimize ("O0")
         struct MVN
         {
             MVN(TMatrix const& covar) : MVN(TVector::Zero(covar.rows()), covar) {}
@@ -402,6 +404,7 @@ namespace fdml::utilities {
             TVector mean;
             TMatrix transform;
         };
+        #pragma GCC pop_options
     }
 
     namespace kernelpca {
