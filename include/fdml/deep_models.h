@@ -101,7 +101,7 @@ namespace fdml::deep_models {
 				TVector lower_bound, upper_bound;
 				get_bounds(lower_bound, upper_bound, false);
 				// TVector theta = get_params(false);
-				TVector theta = TVector::Zero(lower_bound.size());
+				TVector theta = get_params();
 				if (solver->from_optim){
 					auto objective = [this](const TVector& x, TVector* grad, void* opt_data)
 					{return objective_(x, grad, nullptr, opt_data); };
@@ -271,8 +271,7 @@ namespace fdml::deep_models {
 				}
 			}
 			TVector get_params(bool inverse_transform = true) override {
-				TVector params;
-				params = kernel->get_params(inverse_transform);
+				TVector params  = kernel->get_params(inverse_transform);
 				if (!(*likelihood_variance.is_fixed)) {
 					likelihood_variance.transform_value(inverse_transform);
 					params.conservativeResize(params.rows() + 1);
