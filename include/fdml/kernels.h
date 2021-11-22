@@ -104,13 +104,13 @@ namespace fdml::kernels {
 				lower.head(length_scale.size()) = length_scale.get_bounds().first;
 				upper.head(length_scale.size()) = length_scale.get_bounds().second;
 			}
-			if (!(*variance.is_fixed)) {
-				if (transformed) { variance.transform_bounds(); }
-				lower.conservativeResize(lower.size() + 1);
-				upper.conservativeResize(upper.size() + 1);
-				lower.tail(1)(0) = variance.get_bounds().first;
-				upper.tail(1)(0) = variance.get_bounds().second;
-			}
+			// if (!(*variance.is_fixed)) {
+			// 	if (transformed) { variance.transform_bounds(); }
+			// 	lower.conservativeResize(lower.size() + 1);
+			// 	upper.conservativeResize(upper.size() + 1);
+			// 	lower.tail(1)(0) = variance.get_bounds().first;
+			// 	upper.tail(1)(0) = variance.get_bounds().second;
+			// }
 		};
 		void set_params(const TVector& params) override
 		{
