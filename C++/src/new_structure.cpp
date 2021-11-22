@@ -113,7 +113,7 @@ public:
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
 		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " 
-		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse << "%] "
+		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
 		   << std::flush;
 	}
 };
@@ -745,7 +745,7 @@ public:
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
 		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
-		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "|");
+		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "[TRAIN]");
 		for (int i = 0; i < n_iter; ++i) {
 			//double progress = double(i) * 100.0 / double(n_iter);
 			train_prog->write((double(i) / double(n_iter)));
@@ -776,7 +776,7 @@ public:
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
 		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
-		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
@@ -918,15 +918,4 @@ int main() {
         analytic2(std::to_string(i));
     }
     return 0;
-	// engine();
-
-	/*
-	* Graph graph(std::make_pair(X_train, Y_train), 2, 3);
-	* graph(0, 0)->set_kernel(std::shared_ptr<Kernel>(new Matern52));
-	* graph.layer(0)->set_kernels(TKernel::TMatern52);
-	
-	
-	*/
-	return 0;
-
 }
