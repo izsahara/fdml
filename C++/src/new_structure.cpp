@@ -743,7 +743,7 @@ public:
 		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
-		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
+		std::cout << "START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
 		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "[TRAIN]");
 		for (int i = 0; i < n_iter; ++i) {
 			//double progress = double(i) * 100.0 / double(n_iter);
@@ -756,7 +756,7 @@ public:
 		delete train_prog;
 		auto train_end = std::chrono::system_clock::now();
 		std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
-		std::cout << "TRAIN END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 	}
 	void estimate(Eigen::Index n_burn = 0) {
@@ -774,7 +774,7 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
@@ -796,7 +796,7 @@ public:
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);
@@ -812,8 +812,8 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
-		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
@@ -835,7 +835,7 @@ public:
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);
