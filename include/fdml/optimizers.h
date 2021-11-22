@@ -23,7 +23,7 @@ namespace fdml::optimizers {
 
 	namespace utilities {
 		template<typename F>
-		TVector numerical_gradient(F &functor, const TVector& X, const TVector& lb, const TVector& ub, double grid_spacing = 1e-6) {
+		TVector numerical_gradient(F &functor, const TVector& X, const TVector& lb, const TVector& ub, double grid_spacing = 1e-3) {
 			// check consistency of the dimensions
 			int inputDimension = X.size();
 			if (inputDimension != lb.size() || inputDimension != ub.size()) {
@@ -31,7 +31,7 @@ namespace fdml::optimizers {
 			}
 			// check x is within bounds
 			for (int i = 0; i < inputDimension; i++) {
-				if (X[i] > ub[i] | X[i] < lb[i]) {
+				if (X[i] > ub[i] || X[i] < lb[i]) {
 					throw std::runtime_error("x is not contained within [lb, ub]");
 				}
 			}
@@ -186,7 +186,7 @@ namespace fdml::optimizers {
 				if (itask == 2 || itask == 3) {
 					fobj = problem.objective_value(XX);
 					//problem.gradient(grad); 
-					problem.approx_gradient(XX, grad)
+					problem.approx_gradient(XX, grad);
 					if (gscale != 1.0) {
 						scale_gradient(grad, NN);
 					}
