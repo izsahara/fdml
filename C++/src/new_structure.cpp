@@ -330,7 +330,7 @@ private:
 public:
 	Node(double likelihood_variance = 1E-9) : GP(likelihood_variance) {
         if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-		if (!kernel->variance.fixed()) {kernel->variance.fix();
+		if (!kernel->variance.fixed()) {kernel->variance.fix();}
     }
 	void set_kernel(const KernelPtr& rkernel){
 		kernel = std::move(rkernel);
