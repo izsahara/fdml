@@ -861,7 +861,7 @@ void engine() {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(500, 10);
+	model.train(100, 10);
 	model.estimate();
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
 	TMatrix mean = Z.first;
