@@ -157,7 +157,6 @@ private:
 		else { NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value()))); }
 		NLL -= log_prior();
 		return NLL;
-		return 0.0;
 	}
 	double log_prior() {
 		// Gamma Distribution
