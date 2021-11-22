@@ -135,6 +135,8 @@ namespace fdml::base_models {
 				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
 				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
+				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
+				if (!kernel->variance.fixed()) { kernel->variance.fix(); }				
 			}
 
 			
