@@ -730,7 +730,8 @@ namespace fdml::deep_models {
 			}
 
 			MatrixPair predict(const TMatrix& X, TMatrix& Yref, int n_impute = 50, int n_thread = 1) {
-				sample(50);
+				bool nanflag = false;
+				sample(nanflag, 50);
 				const std::size_t n_layers = layers.size();
 				TMatrix mean = TMatrix::Zero(X.rows(), 1);
 				TMatrix variance = TMatrix::Zero(X.rows(), 1);
@@ -761,7 +762,7 @@ namespace fdml::deep_models {
 				};
 				for (int i = 0; i < n_impute; ++i) {
 					double progress = double(i) * 100.0 / double(n_impute);
-					sample();
+					sample(nanflag, 10);
 					layers.front().predict(X);
 					std::size_t j = 1;
 					for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
