@@ -1,4 +1,4 @@
-#pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
@@ -11,6 +11,13 @@ using namespace fdml::utilities;
 using namespace fdml::base_models;
 using namespace fdml::base_models::gaussian_process;
 
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
+template <typename Derived>
+void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
+{
+    std::ofstream file(name.c_str());
+    file << matrix.format(CSVFormat);
+}
 
 TMatrix read_data(std::string filename) {
 
@@ -825,9 +832,23 @@ void engine() {
 	TMatrix var = Z.second;	
 }
 
-void analytic2() {
+void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
+    std::cout << "================ PLOT ================" << std::endl;
+    MatrixPair Zplot = model.predict(X_plot, 100, 300);
+    TMatrix Zpm = Zplot.first;
+    TMatrix Zpv = Zplot.second;
+    std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
+    std::string Zpv_path = "../results/analytic2/" + exp + "PV.dat";
+    write_data(Zpm_path, Zpm);
+    write_data(Zpv_path, Zpv);
+}
+
+void analytic2(std::string exp) {
 	TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
 	TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
+    TMatrix X_test = read_data("../datasets/analytic2/X_test.dat");
+    TMatrix Y_test = read_data("../datasets/analytic2/Y_test.dat");    
+    TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 
 	graph.layer(0)->set_kernels(TKernel::TMatern52);
@@ -839,11 +860,28 @@ void analytic2() {
 
 	SIDGP model(graph);
 	model.train(100, 10);
+    model.estimate();
+    plot(X_plot, exp, model);
+    std::cout << "================= MCS ================" << std::endl;
+    MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
+    Zmcs = Z.first;
+    Zvcs = Z.second;
+    std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSM.dat";
+    std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSV.dat";
+    write_data(Zmcs_path, Zmcs);
+    write_data(Zvcs_path, Zvcs);
+
+    double nrmse = rmse(Y_test, Zmcs) / (Y_test.maxCoeff() - Y_test.minCoeff());
+    std::cout << "NRMSE = " << nrmse << std::endl;    
 }
 
 int main() {
-	//analytic2();
-	engine();
+    for (unsigned int i = 14; i < 21; ++i){
+        std::cout << "================= EXP " << i << " " << "================" << std::endl;
+        analytic2(std::to_string(i));
+    }
+    return 0;
+	// engine();
 
 	/*
 	* Graph graph(std::make_pair(X_train, Y_train), 2, 3);
