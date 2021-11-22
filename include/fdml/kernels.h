@@ -129,10 +129,10 @@ namespace fdml::kernels {
 				params.resize(n);
 				TVector::Map(&params[0], n) = length_scale.value();
 			}
-			if (!(*variance.is_fixed)) {
-				variance.transform_value(inverse_transform);
-				params.push_back(variance.value());
-			}
+			// if (!(*variance.is_fixed)) {
+			// 	variance.transform_value(inverse_transform);
+			// 	params.push_back(variance.value());
+			// }
 			return Eigen::Map<TVector>(params.data(), params.size());
 		}
 		virtual void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) = 0;
