@@ -127,6 +127,16 @@ namespace fdml::base_models {
 				shared_ptr<LBFGSB> _solver = make_shared<LBFGSB>();
 				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
 			}
+			// New Structure
+			GP(const double& likelihood_variance) : Model("GP") {
+				if (likelihood_variance < 0) { throw std::runtime_error("Noise Variance must be positive"); }
+				this->likelihood_variance = likelihood_variance;
+				shared_ptr<LBFGSB> _solver = make_shared<LBFGSB>();
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
+				kernel = std::static_pointer_cast<Kernel>(_kernel);
+			}
+
 			
 			virtual void train() = 0;
 			virtual TVector gradients() { TVector tmp; return tmp; }
