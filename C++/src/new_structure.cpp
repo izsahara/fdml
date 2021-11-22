@@ -113,7 +113,7 @@ public:
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
 		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " 
-		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
+		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse << "%] "
 		   << std::flush;
 	}
 };
