@@ -101,7 +101,7 @@ void analytic2(std::string exp){
     TMatrix Zmcs, Zvcs;
     while (true){
         SIDGP model = config1(X_train, Y_train);
-        model.train(500, 100);        
+        model.train(500, 10);        
         model.estimate();
         plot(X_plot, exp, model);
         std::cout << "================= MCS ================" << std::endl;
