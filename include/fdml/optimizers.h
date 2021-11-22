@@ -103,6 +103,10 @@ namespace fdml::optimizers {
 		int verbosity = -1;	
 		bool from_optim = false;
 		Solver() = default;
+		Solver(const Solver& solver) {
+			verbosity = solver.verbosity;
+			from_optim = solver.from_optim;
+		}
 		Solver(bool from_optim) : from_optim(from_optim) {}
 		Solver(const int& verbosity) : verbosity(verbosity) {}
 		Solver(const int& verbosity, bool from_optim) : verbosity(verbosity), from_optim(from_optim) {}
@@ -117,7 +121,7 @@ namespace fdml::optimizers {
 	struct LBFGSB : public Solver {
 
 		int MM; // Memory Size
-		double pgtol{1e-9}; // Projected Gradient Tolerance
+		double pgtol{1e-5}; // Projected Gradient Tolerance
 		unsigned int max_iter{15000};
 		unsigned int max_fun{15000};
 		double factr{1e7}; // Machine Precision Factor
@@ -158,9 +162,9 @@ namespace fdml::optimizers {
 				}
 			}
 
-			TVector grad(XX);
-			double fobj = 0.0;
-			// problem.approx_gradient(XX, grad);
+			TVector grad;
+			double fobj = problem.objective_value(XX);
+			problem.approx_gradient(XX, grad);
 			if (gscale != 1.0) {
 				scale_gradient(grad, NN);
 			}	
@@ -181,7 +185,8 @@ namespace fdml::optimizers {
 
 				if (itask == 2 || itask == 3) {
 					fobj = problem.objective_value(XX);
-					problem.gradient(grad); // problem.approx_gradient(XX, grad) ?
+					//problem.gradient(grad); 
+					 problem.approx_gradient(XX, grad) ?
 					if (gscale != 1.0) {
 						scale_gradient(grad, NN);
 					}
