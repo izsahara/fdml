@@ -593,7 +593,7 @@ namespace fdml::deep_models {
 			}
 			void sample(bool& nanflag, const int& n_burn) {
 				int i = 0;
-				while (!nanflag || i < n_burn){
+				while (!nanflag && i < n_burn){
 					for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end() - 1; ++layer) {
 						for (std::size_t n = 0; n < layer->nodes.size(); ++n) {							
 							ess_update(layer->nodes[n], *std::next(layer), n, nanflag);

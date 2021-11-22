@@ -131,7 +131,7 @@ namespace fdml::parameters {
             name_ = name;
             transform_ = "logexp";
             value_ = value;
-            bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+            bounds_ = std::make_pair(-std::numeric_limits<double>::infinity() , std::numeric_limits<double>::infinity());
         }
         Parameter(std::string name, double value, std::pair<double, double> bounds) {
             name_ = name;
@@ -143,7 +143,7 @@ namespace fdml::parameters {
             name_ = name;
             transform_ = transform;
             value_ = value;
-            bounds_ = std::make_pair(-std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+            bounds_ = std::make_pair(-std::numeric_limits<double>::infinity() , std::numeric_limits<double>::infinity());
         }
         Parameter(std::string name, double value, std::string transform, std::pair<double, double> bounds) : BaseParameter(name, value, transform, bounds) {}
 
@@ -176,8 +176,8 @@ namespace fdml::parameters {
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
-            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::max(); }
-            for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::max(); }
+            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::infinity(); }
+            for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::infinity(); }
             bounds_ = std::make_pair(lower_bound, upper_bound);
         }
         Parameter(std::string name, TVector value, std::string transform) {
@@ -187,8 +187,8 @@ namespace fdml::parameters {
             size_ = value.size();
             TVector lower_bound(size_);
             TVector upper_bound(size_);
-            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::max(); }
-            for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::max(); }
+            for (int i = 0; i < size_; ++i) { lower_bound[i] = -std::numeric_limits<double>::infinity();; }
+            for (int i = 0; i < size_; ++i) { upper_bound[i] = std::numeric_limits<double>::infinity();; }
             bounds_ = std::make_pair(lower_bound, upper_bound);
         }
         Parameter(std::string name, TVector value, std::pair<TVector, TVector> bounds) {
