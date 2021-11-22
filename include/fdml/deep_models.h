@@ -510,7 +510,7 @@ namespace fdml::deep_models {
 				var = (node.kernel->variance.value() * (c - beta)).cwiseAbs();
 			}
 		public:
-			void ess_update(Node& target, Layer& linked, const std::size_t& node_idx, bool nanflag) {
+			void ess_update(Node& target, Layer& linked, const std::size_t& node_idx, bool& nanflag) {
 				/* Elliptical Slice Sampling Update (Algorithm 1)
 				* Nishihara, R., Murray, I. & Adams, R. P. (2014), �Parallel MCMC with generalized elliptical slice sampling�,
 				* The Journal of Machine Learning Research 15(1), 2087�2112.
@@ -593,7 +593,7 @@ namespace fdml::deep_models {
 			}
 			void sample(bool& nanflag, const int& n_burn) {
 				int i = 0;
-				while (!nanflag && i < n_burn){
+				while (!nanflag || i < n_burn){
 					for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end() - 1; ++layer) {
 						for (std::size_t n = 0; n < layer->nodes.size(); ++n) {							
 							ess_update(layer->nodes[n], *std::next(layer), n, nanflag);
@@ -636,7 +636,7 @@ namespace fdml::deep_models {
 				};
 				n_iter_ = n_iter;
 				int i = 0;
-				while(!nanflag && i < n_iter){
+				while(!nanflag || i < n_iter){
 					double progress = double(i + 1) * 100.0 / double(n_iter);
 					// I-step
 					sample(nanflag, ess_burn);
