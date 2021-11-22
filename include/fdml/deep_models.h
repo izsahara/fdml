@@ -611,7 +611,7 @@ namespace fdml::deep_models {
 				}
 			}
 
-			void train(int n_iter = 50, int ess_burn = 10) {
+			void train(bool& nanflag, int n_iter = 50, int ess_burn = 10) {
 				auto train_start = std::chrono::system_clock::now();
 				std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
 				auto verbose = [this, &train_start_t, &n_iter](const int& n, const int& i, const double& p) {
@@ -635,7 +635,6 @@ namespace fdml::deep_models {
 					}
 				};
 				n_iter_ = n_iter;
-				bool nanflag = false;
 				int i = 0;
 				while(!nanflag && i < n_iter){
 					double progress = double(i + 1) * 100.0 / double(n_iter);

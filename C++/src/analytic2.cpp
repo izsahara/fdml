@@ -99,9 +99,12 @@ void analytic2(std::string exp){
     TMatrix X_plot = read_data("../datasets/analytic2/X_plot.dat");
 
     TMatrix Zmcs, Zvcs;
+    int riter = 1;
     while (true){
         SIDGP model = config1(X_train, Y_train);
-        model.train(500, 10);        
+        bool nanflag = false;
+        model.train(nanflag, 500, 10);
+        if (nanflag) { std::cout << "Restart " << riter << std::endl; riter++; continue; }        
         model.estimate();
         plot(X_plot, exp, model);
         std::cout << "================= MCS ================" << std::endl;
