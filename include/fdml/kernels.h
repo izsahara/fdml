@@ -430,7 +430,7 @@ namespace fdml::kernels {
 			TVector tmp;
 			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
 			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			}
 			else {
 				ARD = true;
@@ -447,7 +447,7 @@ namespace fdml::kernels {
 			TVector tmp;
 			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
 			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			}
 			else {
 				ARD = true;
@@ -465,7 +465,7 @@ namespace fdml::kernels {
 			TVector tmp;
 			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
 			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			}
 			else {
 				ARD = true;
@@ -480,8 +480,17 @@ namespace fdml::kernels {
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
 			TMatrix R(X1.rows(), X2.rows());
 			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
-			const TMatrix X1sc = X1.array() / length_scale.value()[idx];
-			const TMatrix X2sc = X2.array() / length_scale.value()[idx];
+			TVector tmp;
+			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
+			{   // Expand lengthscale dimensions
+				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
+			}
+			else {
+				ARD = true;
+				tmp = length_scale.value();
+			}			
+			const TMatrix X1sc = X1.array() / tmp[idx];
+			const TMatrix X2sc = X2.array() / tmp[idx];
 			euclidean_distance(X1sc, X2sc, R, false);
 			R *= sqrt(5);
 			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix() + noise;
@@ -494,7 +503,7 @@ namespace fdml::kernels {
 				TVector tmp;
 				if (length_scale.size() < X.cols())
 				{   // Expand lengthscale dimensions
-					tmp = TVector::Constant(X.cols(), 1, length_scale.value()(0));
+					tmp = TVector::Constant(X.cols(), length_scale.value()(0));
 				}
 				else {
 					tmp = length_scale.value();
