@@ -358,29 +358,17 @@ namespace fdml::utilities {
         // Random Utilities
         double random_uniform(double a, double b) {
             auto seed = std::random_device{}();
-            std::mt19937 gen_primitive(seed);
+            std::mt19937_64 gen_primitive(seed);
             std::uniform_real_distribution<> uniform_dist(a, b);
             return uniform_dist(gen_primitive);
         }
         double random_uniform() {
             auto seed = std::random_device{}();
-            std::mt19937 gen_primitive(seed);
+            std::mt19937_64 gen_primitive(seed);
             std::uniform_real_distribution<> uniform_dist;
             return uniform_dist(gen_primitive);
         }
-        TMatrix gen_normal_matrix(Eigen::Index n_rows, Eigen::Index n_samples) {
-            std::normal_distribution<double> normal_sampler{ 0,1 };
-            TMatrix norm_matrix = TMatrix::Zero(n_rows, n_samples);
-            auto seed = std::random_device{}();
-            std::mt19937 gen_primitive(seed);
-            operations::visit_lambda(norm_matrix, 
-                [&norm_matrix, &normal_sampler, &gen_primitive](double v, int i, int j)                
-                {norm_matrix(i, j) = normal_sampler(gen_primitive); });
-            return norm_matrix;
-        }
         // Taken from: https://stackoverflow.com/a/40245513
-        #pragma GCC push_options
-        #pragma GCC optimize ("O0")
         struct MVN
         {
             MVN(TMatrix const& covar) : MVN(TVector::Zero(covar.rows()), covar) {}
@@ -393,7 +381,7 @@ namespace fdml::utilities {
             {
                 // auto seed = std::random_device{}();
                 // std::default_random_engine gen_primitive(seed);
-                thread_local std::mt19937 gen_primitive(std::random_device{}());
+                thread_local std::mt19937_64 gen_primitive(std::random_device{}());
                 std::normal_distribution<> dist;
                 // NumpyNormal generator;
                 return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {
@@ -404,7 +392,7 @@ namespace fdml::utilities {
             TVector mean;
             TMatrix transform;
         };
-        #pragma GCC pop_options
+
     }
 
     namespace kernelpca {

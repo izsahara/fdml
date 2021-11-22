@@ -82,7 +82,7 @@ SIDGP config1(const TMatrix& X_train, const TMatrix& Y_train){
 
 void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     std::cout << "================ PLOT ================" << std::endl;
-    MatrixPair Zplot = model.predict(X_plot, 100, 5);
+    MatrixPair Zplot = model.predict(X_plot, 100, 300);
     TMatrix Zpm = Zplot.first;
     TMatrix Zpv = Zplot.second;
     std::string Zpm_path = "../results/analytic2/" + exp + "PM.dat";
@@ -105,7 +105,7 @@ void analytic2(std::string exp){
         model.estimate();
         plot(X_plot, exp, model);
         std::cout << "================= MCS ================" << std::endl;
-        MatrixPair Z = model.predict(X_test, Y_test, 75, 5);
+        MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
         Zmcs = Z.first;
         Zvcs = Z.second;
         if (!(Zmcs.array().isNaN()).any()) {

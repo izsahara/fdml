@@ -130,7 +130,8 @@ namespace fdml::deep_models {
 				if (alpha.size() == 0) { update_cholesky(); }
 				// Kernel Derivatives
 				kernel->fod(inputs, grad_);
-				TVector grad(grad_.size());
+				// TVector grad(grad_.size());
+				TVector grad = TVector::Zero(grad_.size());
 				for (int i = 0; i < grad_.size(); ++i) {
 					TMatrix KKT = chol.solve(grad_[i]);
 					double trace = KKT.trace();
