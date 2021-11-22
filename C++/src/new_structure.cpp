@@ -1,4 +1,4 @@
-// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
@@ -53,7 +53,7 @@ class ProgressBar
 
 public:
 	ProgressBar(std::ostream& os, std::size_t line_width,
-		std::string message_, const char symbol = '.')
+		std::string message_, const char symbol = '|')
 		: os{ os },
 		bar_width{ line_width - overhead },
 		message{ std::move(message_) },
@@ -79,24 +79,38 @@ public:
 		os << '\n';
 	}
 
-	void write(double fraction);
+	void write(double fraction) {
+		// clamp fraction to valid range [0,1]
+		if (fraction < 0)
+			fraction = 0;
+		else if (fraction > 1)
+			fraction = 1;
+
+		auto width = bar_width - message.size();
+		auto offset = bar_width - static_cast<unsigned>(width * fraction);
+
+		os << '\r' << message;
+		os.write(full_bar.data() + offset, width);
+		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << std::flush;
+	}
+	void write(double fraction, double nrmse) {
+		// clamp fraction to valid range [0,1]
+		if (fraction < 0)
+			fraction = 0;
+		else if (fraction > 1)
+			fraction = 1;
+
+		auto width = bar_width - message.size();
+		auto offset = bar_width - static_cast<unsigned>(width * fraction);
+
+		os << '\r' << message;
+		os.write(full_bar.data() + offset, width);
+		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " 
+		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
+		   << std::flush;
+	}
 };
 
-void ProgressBar::write(double fraction)
-{
-	// clamp fraction to valid range [0,1]
-	if (fraction < 0)
-		fraction = 0;
-	else if (fraction > 1)
-		fraction = 1;
-
-	auto width = bar_width - message.size();
-	auto offset = bar_width - static_cast<unsigned>(width * fraction);
-
-	os << '\r' << message;
-	os.write(full_bar.data() + offset, width);
-	os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << std::flush;
-}
 //
 class Node : public GP {
 private:
@@ -242,6 +256,70 @@ private:
 		}
 		return params;
 	}
+	MatrixPair predict(const TMatrix& X)
+	{
+		// Update Cholesky
+		K = kernel->K(inputs, inputs, D);
+		K.diagonal().array() += likelihood_variance.value();
+		chol = K.llt();
+		alpha = chol.solve(outputs);
+		//
+		TMatrix Ks(inputs.rows(), X.rows());
+		Ks.noalias() = kernel->K(inputs, X);
+		TMatrix mu = Ks.transpose() * alpha;
+		TMatrix Kss = kernel->diag(X);
+		TMatrix V = chol.solve(Ks);
+		TMatrix var = abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array()));
+		return std::make_pair(mu, var);		
+	}
+	void linked_predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
+		// Update Cholesky
+		K = kernel->K(inputs, inputs, D);
+		K.diagonal().array() += likelihood_variance.value();
+		chol = K.llt();
+		alpha = chol.solve(outputs);
+		//
+		const Eigen::Index nrows = linked.first.rows();
+		kernel->expectations(linked.first, linked.second);
+		if (n_thread == 1) {
+			for (Eigen::Index i = 0; i < nrows; ++i) {
+				TMatrix I = TMatrix::Ones(inputs.rows(), 1);
+				TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
+				kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
+				double trace = (K.llt().solve(J)).trace();
+				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+				latent_mu[i] = (Ialpha);
+				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+			}
+		}
+		else {
+			Eigen::initParallel(); // /openmp (MSVC) or -fopenmp (GCC) flag
+			thread_pool pool;
+			int split = int(nrows / n_thread);
+			const int remainder = int(nrows) % n_thread;
+			auto task = [=, &latent_mu, &latent_var](int begin, int end)
+			{
+				for (Eigen::Index i = begin; i < end; ++i) {
+					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
+					TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
+					kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
+					double trace = (K.llt().solve(J)).trace();
+					double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+					latent_mu[i] = (Ialpha);
+					latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+				}
+			};
+			for (int s = 0; s < n_thread; ++s) {
+				pool.push_task(task, int(s * split), int(s * split) + split);
+			}
+			pool.wait_for_tasks();
+			if (remainder > 0) {
+				task(nrows - remainder, nrows);
+			}
+			pool.reset();
+		}
+
+	}
 
 public:
 	Node(double likelihood_variance = 1E-9) : GP(likelihood_variance) {}
@@ -251,17 +329,24 @@ public:
 	void set_solver(const SolverPtr& rsolver) {
 		solver = std::move(rsolver);
 	}
-	
-
 private:
 	friend class Layer;
 	friend class SIDGP;
+	unsigned int n_thread = 1;
 	double objective_(const TVector& x, TVector* grad, TVector* hess, void* opt_data) {
 		set_params(x);
 		if (grad) { (*grad) = gradients() * 1.0; }
 		return log_marginal_likelihood();
 	}
-
+	TMatrix get_parameter_history() {
+		if (history.size() == 0) throw std::runtime_error("No Parameters Saved, set store_parameters = true");
+		Eigen::Index param_size = get_params().size();
+		TMatrix h(history.size(), param_size);
+		for (std::vector<TVector>::size_type i = 0; i != history.size(); ++i) {
+			h.row(i) = history[i];
+		}
+		return h;
+	}
 public:
 	Parameter<double> scale = { "scale", 1.0, "none" };
 	bool store_parameters = true;
@@ -408,6 +493,27 @@ private:
 			node->train();
 		}
 	}
+	void predict(const TMatrix& X) {
+		TMatrix node_mu(X.rows(), static_cast<Eigen::Index>(n_nodes));
+		TMatrix node_var(X.rows(), static_cast<Eigen::Index>(n_nodes));
+		for (Eigen::Index i = 0; i < n_nodes; ++i)
+		{
+			MatrixPair pred = m_nodes[i].predict(X);
+			node_mu.block(0, i, X.rows(), 1) = pred.first;
+			node_var.block(0, i, X.rows(), 1) = pred.second;
+		}
+		latent_output = std::make_pair(node_mu, node_var);
+	}
+	void predict(const MatrixPair& linked) {
+		latent_output = std::make_pair(
+						TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)),
+						TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)));
+		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
+			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
+			node->n_thread = n_thread;
+			node->linked_predict(linked, latent_output.first.col(cc), latent_output.second.col(cc));
+		}
+	}
 	void connect(const TMatrix& Ginput) {
 		if (locked) throw std::runtime_error("Layer Locked");
 		if (cstate != TLayer::TInputConnected)
@@ -440,7 +546,13 @@ private:
 		}
 		return ll;
 	}
-
+	void estimate_parameters(const Eigen::Index& n_burn) {
+		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
+			TMatrix history = node->get_parameter_history();
+			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
+			node->set_params(theta);
+		}
+	}
 public:
 	TLayer cstate; // Current Layer State
 	unsigned int n_nodes;
@@ -448,13 +560,16 @@ private:
 	std::vector<Node> m_nodes;
 	TLayer ostate = TLayer::TUnchanged; // Old Layer State;
 	bool locked = false;
+	unsigned int n_thread = 1;
 	TMatrix observed_input;
 	TMatrix observed_output;
+	MatrixPair latent_output;
 	friend struct Graph;
 	friend class SIDGP;
 };
 
 struct Graph {
+	unsigned int n_thread = 1;
 	unsigned int n_hidden;
 	const int n_layers;
 
@@ -536,9 +651,10 @@ private:
 				cp->train();
 				continue;
 			case(LinkedPredict):
-				break;
+				cp->n_thread = n_thread;
+				cp->predict(std::prev(cp)->latent_output);
+				continue;
 			}
-
 		}
 	}	
 	friend class SIDGP;
@@ -618,6 +734,7 @@ public:
 	}
 
 	void train(int n_iter = 50, int ess_burn = 10) {
+		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
 		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
@@ -628,7 +745,6 @@ public:
 			// I-step
 			sample(ess_burn);
 			// M-step
-			//std::cout << std::setw(3) << std::left << std::setprecision(1) << std::fixed << progress << std::setw(5) << std::left << " % |";
 			graph.propagate(Task::Train);
 		}
 		delete train_prog;
@@ -637,12 +753,77 @@ public:
 		std::cout << "TRAIN END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 	}
+	void estimate(Eigen::Index n_burn = 0) {
+		if (n_burn == 0) n_burn = std::size_t(0.75 * train_iter);		
+		else if (n_burn > train_iter) throw std::runtime_error("n_burn > train_iter");	
+		for (std::vector<Layer>::iterator layer = graph.m_layers.begin(); layer != graph.m_layers.end(); ++layer) {
+			layer->estimate_parameters(n_burn);
+		}
+	}
 
+	MatrixPair predict(const TMatrix& X, TMatrix& Yref, unsigned int n_impute = 50, unsigned int n_thread = 1) {
+		sample(50);
+		TMatrix mean = TMatrix::Zero(X.rows(), 1);
+		TMatrix variance = TMatrix::Zero(X.rows(), 1);
+		std::vector<MatrixPair> predictions;
+
+		auto pred_start = std::chrono::system_clock::now();
+		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
+		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		graph.n_thread = n_thread;
+		for (int i = 0; i < n_impute; ++i) {
+			sample();
+			graph.layer(0)->predict(X);
+			graph.propagate(Task::LinkedPredict);
+			MatrixPair output = graph.layer(-1)->latent_output;
+			if (i == 0) {
+				mean = output.first;
+				variance = square(output.first.array()).matrix() + output.second;
+			}
+			else {
+				mean.noalias() += output.first;
+				variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			}
+			double nrmse = metrics::rmse(Yref, mean) / (Yref.maxCoeff() - Yref.minCoeff());
+			pred_prog->write((double(i) / double(n_impute)), nrmse);
+		}
+		delete pred_prog;
+
+		auto pred_end = std::chrono::system_clock::now();
+		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
+		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+		mean.array() /= double(n_impute);
+		variance.array() /= double(n_impute);
+		variance.array() -= square(mean.array());
+
+		return std::make_pair(mean, variance);
+	}
+
+public:
 	Graph graph;
+	unsigned int train_iter = 0;
 	unsigned int verbosity = 1;
 };
 
-
+void engine() {
+	TMatrix X_train = read_data("../datasets/engine/X_train.txt");
+	TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
+	TMatrix X_test = read_data("../datasets/engine/X_test.txt");
+	TMatrix Y_test = read_data("../datasets/engine/Y_test.txt");
+	Graph graph(std::make_pair(X_train, Y_train), 1);
+	for (Eigen::Index i = 0; i < X_train.cols(); ++i) {
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+	}
+	SIDGP model(graph);
+	model.train(500, 10);
+	model.estimate();
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+	TMatrix mean = Z.first;
+	TMatrix var = Z.second;	
+}
 
 void analytic2() {
 	TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
@@ -657,11 +838,12 @@ void analytic2() {
 	graph.layer(2)->fix_likelihood_variance();
 
 	SIDGP model(graph);
-	model.train(500, 100);
+	model.train(100, 10);
 }
 
 int main() {
-	analytic2();
+	//analytic2();
+	engine();
 
 	/*
 	* Graph graph(std::make_pair(X_train, Y_train), 2, 3);
