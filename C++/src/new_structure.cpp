@@ -901,8 +901,8 @@ void analytic2(std::string exp) {
     plot(X_plot, exp, model);
     std::cout << "================= MCS ================" << std::endl;
     MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
-    Zmcs = Z.first;
-    Zvcs = Z.second;
+    TMatrix Zmcs = Z.first;
+    TMatrix Zvcs = Z.second;
     std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSM.dat";
     std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/analytic2/" + exp + "MCSV.dat";
     write_data(Zmcs_path, Zmcs);
