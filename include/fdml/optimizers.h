@@ -186,7 +186,7 @@ namespace fdml::optimizers {
 				if (itask == 2 || itask == 3) {
 					fobj = problem.objective_value(XX);
 					//problem.gradient(grad); 
-					 problem.approx_gradient(XX, grad) ?
+					problem.approx_gradient(XX, grad)
 					if (gscale != 1.0) {
 						scale_gradient(grad, NN);
 					}
