@@ -768,6 +768,7 @@ namespace fdml::deep_models {
 					}
 					TVector tmp_mu = mean.array() / double(i);
 					verbose(i, progress, tmp_mu);
+					if ((tmp_mu.array().isNaN()).any()) return std::make_pair(mean, variance);
 				}
 				std::cout << std::endl;
 				mean.array() /= double(n_impute);
