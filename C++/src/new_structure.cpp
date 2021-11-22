@@ -621,8 +621,7 @@ public:
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
 		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
-		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "TRAIN");
-		std::string bar = "|";
+		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "|");
 		for (int i = 0; i < n_iter; ++i) {
 			//double progress = double(i) * 100.0 / double(n_iter);
 			train_prog->write((double(i) / double(n_iter)));
@@ -658,7 +657,7 @@ void analytic2() {
 	graph.layer(2)->fix_likelihood_variance();
 
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(500, 100);
 }
 
 int main() {
