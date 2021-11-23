@@ -269,6 +269,9 @@ private:
 		K.diagonal().array() += likelihood_variance.value();
 		chol = K.llt();
 		alpha = chol.solve(outputs);
+		if (!(*scale.is_fixed)) {
+			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
+		}		
 		//
 		TMatrix Ks(inputs.rows(), X.rows());
 		Ks.noalias() = kernel->K(inputs, X);
@@ -284,6 +287,9 @@ private:
 		K.diagonal().array() += likelihood_variance.value();
 		chol = K.llt();
 		alpha = chol.solve(outputs);
+		if (!(*scale.is_fixed)) {
+			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
+		}		
 		//
 		const Eigen::Index nrows = linked.first.rows();
 		kernel->expectations(linked.first, linked.second);
