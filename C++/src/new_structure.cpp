@@ -1,4 +1,3 @@
-// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
@@ -15,8 +14,8 @@ const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignC
 template <typename Derived>
 void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 {
-    std::ofstream file(name.c_str());
-    file << matrix.format(CSVFormat);
+	std::ofstream file(name.c_str());
+	file << matrix.format(CSVFormat);
 }
 
 TMatrix read_data(std::string filename) {
@@ -38,15 +37,18 @@ TMatrix read_data(std::string filename) {
 // Move to kernels.h
 enum TKernel { TSquaredExponential, TMatern52 };
 // Move to optimizers.h
-enum TSolver { TLBFGSB, TPSO };
+enum TSolver { TLBFGSB, TPSO, TCG, TRprop };
 
-enum TLayer  { TInput, TInputConnected, THidden, TObserved, TUnchanged };
+enum TLayer { TInput, TInputConnected, THidden, TObserved, TUnchanged };
 enum Task { Init, Train, LinkedPredict };
 using KernelPtr = std::shared_ptr<Kernel>;
 using SolverPtr = std::shared_ptr<Solver>;
 
 using fdml::optimizers::LBFGSB;
 using fdml::optimizers::PSO;
+using fdml::optimizers::ConjugateGradient;
+using fdml::optimizers::Rprop;
+
 static std::mt19937_64 rng(std::random_device{}());
 
 class ProgressBar
@@ -112,9 +114,9 @@ public:
 
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
-		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " 
-		   << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
-		   << std::flush;
+		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] "
+			<< " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
+			<< std::flush;
 	}
 };
 
@@ -173,7 +175,7 @@ private:
 		return lp;
 	}
 	void get_bounds(TVector& lower, TVector& upper) {
-		kernel->get_bounds(lower, upper, false);
+		kernel->get_bounds(lower, upper);
 
 		if (!(*likelihood_variance.is_fixed)) {
 			lower.conservativeResize(lower.rows() + 1);
@@ -225,8 +227,7 @@ private:
 		std::vector<TMatrix> grad_;
 		if (alpha.size() == 0) { update_cholesky(); }
 		// Kernel Derivatives
-		kernel->fod(inputs, grad_);
-		// TVector grad(grad_.size());
+		kernel->gradients(inputs, grad_);
 		TVector grad = TVector::Zero(grad_.size());
 		for (int i = 0; i < grad_.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
@@ -251,10 +252,10 @@ private:
 		if (!(*likelihood_variance.is_fixed)) likelihood_variance.transform_value(new_params.tail(1)(0));
 		update_cholesky();
 	}
-	TVector get_params(bool inverse_transform = true) override {
-		TVector params = kernel->get_params(inverse_transform);
+	TVector get_params() override {
+		TVector params = kernel->get_params();
 		if (!(*likelihood_variance.is_fixed)) {
-			likelihood_variance.transform_value(inverse_transform);
+			likelihood_variance.transform_value();
 			params.conservativeResize(params.rows() + 1);
 			params.tail(1)(0) = likelihood_variance.value();
 		}
@@ -285,6 +286,7 @@ private:
 				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
 				latent_mu[i] = (Ialpha);
 				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+
 			}
 		}
 		else {
@@ -343,18 +345,10 @@ private:
 		return h;
 	}
 	void update_cholesky() {
-		//K = kernel->K(inputs, inputs, D);
-		//K.diagonal().array() += likelihood_variance.value();
-		//chol = K.llt();
-		//alpha = chol.solve(outputs);
-		//if (!(*scale.is_fixed)) {
-		//	scale = (outputs.transpose() * alpha)(0) / outputs.rows();
-		//}
-		TMatrix noise = TMatrix::Identity(inputs.rows(), outputs.rows());
-		K = kernel->K(inputs, inputs, D);
-		K += (noise * likelihood_variance.value());
+		K = kernel->K(inputs, inputs, likelihood_variance.value());
 		chol = K.llt();
 		alpha = chol.solve(outputs);
+		// scale is not considered a variable in optimization, it is directly linked to chol
 		if (!(*scale.is_fixed)) {
 			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 		}
@@ -368,21 +362,19 @@ protected:
 	TVector  alpha;
 	TLLT	 chol;
 	TMatrix	 K;
-	TMatrix	 D;
-
 };
 
 class Layer {
 public:
 	Layer() = default;
-	Layer(const TLayer& layer_state, const unsigned int& n_nodes) : cstate(layer_state), n_nodes(n_nodes) { 
+	Layer(const TLayer& layer_state, const unsigned int& n_nodes) : cstate(layer_state), n_nodes(n_nodes) {
 		m_nodes.resize(n_nodes);
 		for (unsigned int nn = 0; nn < n_nodes; ++nn) {
 			m_nodes[nn] = Node();
 		}
 	}
-	
-	void set_input(const TMatrix& input){
+
+	void set_input(const TMatrix& input) {
 		if (cstate == TLayer::TInput) {
 			observed_input.noalias() = input;
 			set_output(input);
@@ -397,9 +389,9 @@ public:
 		}
 
 	}
-	void set_output(const TMatrix& output){
+	void set_output(const TMatrix& output) {
 
-		if (!locked) { 
+		if (!locked) {
 			if (cstate == TLayer::THidden)
 			{
 				cstate = TLayer::TObserved;
@@ -412,7 +404,7 @@ public:
 			nn->outputs = output.col(nn - m_nodes.begin());
 		}
 	}
-	
+
 	TMatrix get_input() {
 		if (cstate == TLayer::TInput) return observed_input;
 		else return m_nodes[0].inputs;
@@ -431,29 +423,29 @@ public:
 	void set_kernels(const TKernel& kernel) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			switch (kernel) {
-				case TSquaredExponential:
-					nn->set_kernel(KernelPtr(new SquaredExponential));
-					continue;
-				case TMatern52:
-					nn->set_kernel(KernelPtr(new Matern52));
-					continue;
-				default:
-					nn->set_kernel(KernelPtr(new SquaredExponential));
-					continue;
+			case TSquaredExponential:
+				nn->set_kernel(KernelPtr(new SquaredExponential));
+				continue;
+			case TMatern52:
+				nn->set_kernel(KernelPtr(new Matern52));
+				continue;
+			default:
+				nn->set_kernel(KernelPtr(new SquaredExponential));
+				continue;
 			}
 		}
 	}
-	void set_kernels(const TKernel& kernel, const TVector& length_scale) {
+	void set_kernels(const TKernel& kernel, TVector& length_scale) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			switch (kernel) {
 			case TSquaredExponential:
-				nn->set_kernel(KernelPtr(new SquaredExponential(length_scale, 1.0)));
+				nn->set_kernel(KernelPtr(new SquaredExponential(length_scale)));
 				continue;
 			case TMatern52:
-				nn->set_kernel(KernelPtr(new Matern52(length_scale, 1.0)));
+				nn->set_kernel(KernelPtr(new Matern52(length_scale)));
 				continue;
 			default:
-				nn->set_kernel(KernelPtr(new SquaredExponential(length_scale, 1.0)));
+				nn->set_kernel(KernelPtr(new SquaredExponential(length_scale)));
 				continue;
 			}
 		}
@@ -467,8 +459,11 @@ public:
 			case TPSO:
 				nn->set_solver(SolverPtr(new PSO));
 				continue;
-			default:
-				nn->set_solver(SolverPtr(new LBFGSB));
+			//case TCG:
+			//	nn->set_solver(SolverPtr(new ConjugateGradient));
+			//	continue;
+			case TRprop:
+				nn->set_solver(SolverPtr(new Rprop));
 				continue;
 			}
 		}
@@ -482,9 +477,9 @@ public:
 	void add_node(const Node& node) {
 		if (locked) throw std::runtime_error("Layer Locked");
 		std::vector<Node> intrm(n_nodes + 1);
-		intrm.insert(intrm.end(), 
-					 std::make_move_iterator(m_nodes.begin() + n_nodes), 
-					 std::make_move_iterator(m_nodes.end()));
+		intrm.insert(intrm.end(),
+			std::make_move_iterator(m_nodes.begin() + n_nodes),
+			std::make_move_iterator(m_nodes.end()));
 		intrm.back() = node;
 		m_nodes = intrm;
 		n_nodes += 1;
@@ -518,8 +513,8 @@ private:
 	}
 	void predict(const MatrixPair& linked) {
 		latent_output = std::make_pair(
-						TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)),
-						TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)));
+			TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)),
+			TMatrix::Zero(linked.first.rows(), static_cast<Eigen::Index>(n_nodes)));
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->n_thread = n_thread;
@@ -535,7 +530,7 @@ private:
 		}
 		observed_input = Ginput;
 	}
-	Layer& evalK()  {
+	Layer& evalK() {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			if (cstate == TLayer::TInputConnected) nn->evalK(observed_input);
 			else nn->evalK();
@@ -587,8 +582,8 @@ struct Graph {
 	unsigned int n_hidden;
 	const int n_layers;
 
-	Graph(const MatrixPair& data, int n_hidden) : 
-		n_hidden(n_hidden), n_layers(n_hidden + 2) 
+	Graph(const MatrixPair& data, int n_hidden) :
+		n_hidden(n_hidden), n_layers(n_hidden + 2)
 	{
 		unsigned int n_nodes = static_cast<unsigned int>(data.first.cols());
 		m_layers.resize(n_layers);
@@ -630,7 +625,7 @@ struct Graph {
 
 private:
 	std::vector<Layer> m_layers;
-	
+
 	void lock() {
 		for (std::vector<Layer>::iterator ll = m_layers.begin(); ll != m_layers.end(); ++ll) {
 			ll->locked = true;
@@ -658,7 +653,7 @@ private:
 				}
 				else {
 					/* Dimension Expansion */
-				}			
+				}
 				continue;
 			case (Train):
 				if (cp == m_layers.begin() + 1) std::prev(cp)->train();
@@ -670,13 +665,13 @@ private:
 				continue;
 			}
 		}
-	}	
+	}
 	friend class SIDGP;
 
 
 };
 
-class SIDGP  {
+class SIDGP {
 private:
 	TMatrix update_f(const TMatrix& f, const TMatrix& nu, const double& params) {
 		TVector mean = TVector::Zero(f.rows());
@@ -718,7 +713,7 @@ private:
 					theta = rand_u(0.0, 2.0 * PI);
 					theta_min = theta - 2.0 * PI;
 					theta_max = theta;
-					
+
 					const Eigen::Index col = static_cast<Eigen::Index>((cn - cl->m_nodes.begin()));
 					while (true) {
 						TMatrix fp = update_f(cn->outputs, nu, theta);
@@ -738,7 +733,7 @@ private:
 		}
 	}
 	void initialize_layers() {
-		graph.lock();		
+		graph.lock();
 		graph.propagate(Task::Init);
 	}
 public:
@@ -751,7 +746,7 @@ public:
 		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
-		std::cout << "START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
+		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
 		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "[TRAIN]");
 		for (int i = 0; i < n_iter; ++i) {
 			//double progress = double(i) * 100.0 / double(n_iter);
@@ -764,12 +759,12 @@ public:
 		delete train_prog;
 		auto train_end = std::chrono::system_clock::now();
 		std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
-		std::cout << "END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
+		std::cout << "TRAIN END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 	}
 	void estimate(Eigen::Index n_burn = 0) {
-		if (n_burn == 0) n_burn = std::size_t(0.75 * train_iter);		
-		else if (n_burn > train_iter) throw std::runtime_error("n_burn > train_iter");	
+		if (n_burn == 0) n_burn = std::size_t(0.75 * train_iter);
+		else if (n_burn > train_iter) throw std::runtime_error("n_burn > train_iter");
 		for (std::vector<Layer>::iterator layer = graph.m_layers.begin(); layer != graph.m_layers.end(); ++layer) {
 			layer->estimate_parameters(n_burn);
 		}
@@ -782,7 +777,7 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
@@ -804,7 +799,7 @@ public:
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);
@@ -820,8 +815,8 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
-		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
+		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
@@ -844,7 +839,7 @@ public:
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);

@@ -30,7 +30,7 @@ namespace fdml::base_models {
 		public:
 			GP() : Model("GP") {
 				shared_ptr<LBFGSB> _solver = make_shared<LBFGSB>();
-				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0);
 				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
 			}
@@ -48,7 +48,7 @@ namespace fdml::base_models {
 			}		
 			GP(shared_ptr<Kernel> kernel, shared_ptr<Solver> solver) : Model("GP"), kernel(kernel), solver(solver) {}			
 			GP(shared_ptr<Solver> solver, const TMatrix& inputs, const TMatrix& outputs) : Model("GP", inputs, outputs), solver(solver) {
-				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
 				if (kernel->length_scale.size() != inputs.cols() && kernel->length_scale.size() == 1)
 				{   // Expand lengthscale dimensions
@@ -61,7 +61,7 @@ namespace fdml::base_models {
 			}									
 			GP(const TMatrix& inputs, const TMatrix& outputs) : Model("GP", inputs, outputs) {
 				shared_ptr<LBFGSB> _solver = make_shared<LBFGSB>();
-				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0);
 				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
 				if (kernel->length_scale.size() != inputs.cols() && kernel->length_scale.size() == 1)
@@ -78,7 +78,7 @@ namespace fdml::base_models {
 			}
 			GP(shared_ptr<Solver> solver, const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance) :
 				Model("GP", inputs, outputs), solver(solver) {
-				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
 				if (likelihood_variance < 0) { throw std::runtime_error("Noise Variance must be positive"); }
 				this->likelihood_variance = likelihood_variance;
@@ -132,19 +132,17 @@ namespace fdml::base_models {
 				if (likelihood_variance < 0) { throw std::runtime_error("Noise Variance must be positive"); }
 				this->likelihood_variance = likelihood_variance;
 				shared_ptr<LBFGSB> _solver = make_shared<LBFGSB>();
-				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0, 1.0);
+				shared_ptr<SquaredExponential> _kernel = make_shared<SquaredExponential>(1.0);
 				solver = std::dynamic_pointer_cast<LBFGSB> (_solver);
 				kernel = std::static_pointer_cast<Kernel>(_kernel);
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }				
 			}
 
-			
+
 			virtual void train() = 0;
 			virtual TVector gradients() { TVector tmp; return tmp; }
 			virtual double log_marginal_likelihood() { return 0.0; }
 			virtual void set_params(const TVector& new_params) = 0; 
-			virtual TVector get_params(bool inverse_transform = true) { TVector tmp; return tmp; }
+			virtual TVector get_params() { TVector tmp; return tmp; }
 		public:
 			Parameter<double> likelihood_variance = { "likelihood_variance ", 1e-10, "none" };
 			shared_ptr<Kernel> kernel;
@@ -182,79 +180,51 @@ namespace fdml::base_models {
 		public:
 
 			GPR(const TMatrix& inputs, const TMatrix& outputs) : GP(inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			GPR(const TMatrix& inputs, const TMatrix& outputs, shared_ptr<Solver> solver) : GP(solver, inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			//
-			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs) : GP(kernel, inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
-			};			
-			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs, shared_ptr<Solver> solver) :
-				GP(kernel, solver, inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
-			};			
-			
+			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs) : GP(kernel, inputs, outputs) {}					
+			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs, shared_ptr<Solver> solver) : GP(kernel, solver, inputs, outputs) {}			
 			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance_) : GP(kernel, inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
+
 				likelihood_variance = likelihood_variance_;
 			};			
 			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance, shared_ptr<Solver> solver) :
 				GP(kernel, solver, inputs, outputs, likelihood_variance) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
-			};									
+
+			}								
 			//
 			GPR(const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance_) : GP(inputs, outputs) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 				likelihood_variance = likelihood_variance_;
-			};			
+			}		
 			GPR(const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance_, shared_ptr<Solver> solver) : GP(solver, inputs, outputs){
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
+
 				likelihood_variance = likelihood_variance_;
-			};									
+			}							
 			GPR(const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance_, const double& scale_) :
 				GP(inputs, outputs) {
 				scale = scale_;
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 				likelihood_variance = likelihood_variance_;
-			};			
+			}		
 			GPR(const TMatrix& inputs, const TMatrix& outputs, const double& likelihood_variance_, const double& scale_, shared_ptr<Solver> solver) : GP(solver, inputs, outputs) {
 				scale = scale_;
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 				likelihood_variance = likelihood_variance_;
-			};
+			}
 			//
 			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs,
 				const double& likelihood_variance, const double& scale_) :
 				GP(kernel, inputs, outputs, likelihood_variance) {
 				scale = scale_;
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}		
 			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs,
 				const double& likelihood_variance, const double& scale_, shared_ptr<Solver> solver) :
 				GP(kernel, solver, inputs, outputs, likelihood_variance) {
 				scale = scale_;
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}			
 			// Pickle
 			GPR(shared_ptr<Kernel> kernel, const TMatrix& inputs, const TMatrix& outputs, const Parameter<double>& likelihood_variance, const Parameter<double>& scale, shared_ptr<Solver> solver) 
-				: GP(kernel, solver, inputs, outputs, likelihood_variance), scale(scale) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
-			}
+				: GP(kernel, solver, inputs, outputs, likelihood_variance), scale(scale) {}
 			//
 			double log_marginal_likelihood() {
 				// Compute Log Likelihood [Rasmussen, Eq 2.30]
@@ -305,7 +275,7 @@ namespace fdml::base_models {
 				update_cholesky();
 			}			
 			void get_bounds(TVector& lower, TVector& upper, bool transformed = false) {
-				kernel->get_bounds(lower, upper, transformed);
+				kernel->get_bounds(lower, upper);
 
 				if (!(*likelihood_variance.is_fixed)) {
 					if (transformed) { likelihood_variance.transform_bounds(); }
@@ -315,10 +285,10 @@ namespace fdml::base_models {
 					upper.tail(1)(0) = likelihood_variance.get_bounds().second;
 				}
 			}
-			TVector get_params(bool inverse_transform = true) override {
-				TVector params = kernel->get_params(inverse_transform);
+			TVector get_params() override {
+				TVector params = kernel->get_params();
 				if (!(*likelihood_variance.is_fixed)) {
-					likelihood_variance.transform_value(inverse_transform);
+					likelihood_variance.transform_value(true);
 					params.conservativeResize(params.rows() + 1);
 					params.tail(1)(0) = likelihood_variance.value();
 				}
@@ -329,23 +299,23 @@ namespace fdml::base_models {
 				return param.size();
 			}
 			TVector gradients() override {
-				// dNLL = alpha*alpha^T - K^-1 [Rasmussen, Eq 5.9]
-				if (alpha.size() == 0) { update_cholesky(); }
-				TMatrix aaT = alpha * alpha.transpose().eval();
-				TMatrix Kinv = chol.solve(TMatrix::Identity(inputs.rows(), inputs.rows()));
-				TMatrix dNLL = 0.5 * (aaT - Kinv); // dL_dK
+				//// dNLL = alpha*alpha^T - K^-1 [Rasmussen, Eq 5.9]
+				//if (alpha.size() == 0) { update_cholesky(); }
+				//TMatrix aaT = alpha * alpha.transpose().eval();
+				//TMatrix Kinv = chol.solve(TMatrix::Identity(inputs.rows(), inputs.rows()));
+				//TMatrix dNLL = 0.5 * (aaT - Kinv); // dL_dK
 
-				std::vector<double> grad;
-				// Get dK/dlengthscale and dK/dvariance -> {dK/dlengthscale, dK/dvariance}
-				kernel->gradients(inputs, dNLL, D, K, grad);
-				if (!(*likelihood_variance.is_fixed)) { grad.push_back(dNLL.diagonal().sum()); }
-				TVector _grad = Eigen::Map<TVector>(grad.data(), grad.size());
-				if (!(*scale.is_fixed)) { _grad.array() /= scale.value(); }
-				// gamma log_prior derivative
-				TVector lpg = log_prior_gradient();
-				if (kernel->ARD) { _grad -= lpg; }
-				else { _grad.array() -= lpg.coeff(0); }
-				return _grad;
+				//std::vector<double> grad;
+				//// Get dK/dlengthscale and dK/dvariance -> {dK/dlengthscale, dK/dvariance}
+				//kernel->gradients(inputs, dNLL, D, K, grad);
+				//if (!(*likelihood_variance.is_fixed)) { grad.push_back(dNLL.diagonal().sum()); }
+				//TVector _grad = Eigen::Map<TVector>(grad.data(), grad.size());
+				//if (!(*scale.is_fixed)) { _grad.array() /= scale.value(); }
+				//// gamma log_prior derivative
+				//TVector lpg = log_prior_gradient();
+				//if (kernel->ARD) { _grad -= lpg; }
+				//else { _grad.array() -= lpg.coeff(0); }
+				//return _grad;
 			}
 			const std::string model_type() const { return "GPR"; }
 			MatrixVariant predict(const TMatrix& X, bool return_var = false)
@@ -391,9 +361,7 @@ namespace fdml::base_models {
 			}
 		protected:
 			void update_cholesky() {
-				TMatrix noise = TMatrix::Identity(inputs.rows(), outputs.rows());
-				K = kernel->K(inputs, inputs, D);
-				K += (noise * likelihood_variance.value());
+				K = kernel->K(inputs, inputs, likelihood_variance.value());
 				chol = K.llt();
 				alpha = chol.solve(outputs);
 				// scale is not considered a variable in optimization, it is directly linked to chol
@@ -405,7 +373,6 @@ namespace fdml::base_models {
 			TVector  alpha;
 			TLLT	 chol;
 			TMatrix	 K;
-			TMatrix	 D;
 		public:			
 			Parameter<double> scale = { "scale", 1.0, "none" };
 			double objective_value = 0.0;

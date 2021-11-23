@@ -13,58 +13,49 @@ namespace fdml::kernels {
 
 	protected:
 		virtual void dK_dlengthscale(std::vector<TMatrix>& dK, std::vector<double>& grad, const TMatrix& tmp, const TMatrix& dK_dR, const TMatrix& dNLL, const TMatrix& R) = 0;
-		virtual void dK_dvariance(const TMatrix& K, const TMatrix& dNLL, std::vector<double>& grad) = 0;
 	public:
 
 		Kernel() {
-			Parameter<TVector> ls_("length_scale", TVector::Ones(1));
-			Parameter<double> variance_("variance", 1.0);
-			length_scale = std::move(ls_);
-			variance = std::move(variance_);
+			Parameter<TVector> ls("length_scale", TVector::Ones(1));
+			length_scale = std::move(ls);
 
 		}
 		Kernel(const Kernel& kernel) {
-			variance = kernel.variance;
 			length_scale = kernel.length_scale;
 		}
-		Kernel(const double& length_scale, const double& variance) : length_scale("length_scale", TVector::Constant(1, 1, length_scale)), variance("variance", variance) {}
-		Kernel(TVector& length_scale, const double& variance) : length_scale("lengthscale", length_scale), variance("variance", variance) {}
-		//
-		Kernel(const TVector& length_scale, const double& variance) : length_scale("lengthscale", length_scale), variance("variance", variance) {}
-		Kernel(const TVector& length_scale, double& variance) : length_scale("lengthscale", length_scale), variance("variance", variance) {}
-		//
-		Kernel(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : length_scale(length_scale), variance(variance) {}
+		Kernel(const double& length_scale) : length_scale("length_scale", TVector::Constant(1, length_scale)) {}
+		Kernel(TVector& length_scale) : length_scale("lengthscale", length_scale) {
+			if (this->length_scale.value().size() > 1) ARD = true;
+		}
+		Kernel(const Parameter<TVector>& length_scale) : length_scale(length_scale) {
+			if (this->length_scale.value().size() > 1) ARD = true;
+		}
 
 		virtual const TMatrix K(const TMatrix& X1, const TMatrix& X2) { TMatrix KK; return KK; };
 		virtual const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R) { TMatrix KK; return KK; };
 		virtual const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance) { TMatrix KK; return KK; };
 		virtual const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) { TMatrix KK; return KK; };
 		virtual TMatrix diag(const TMatrix& X1) { TMatrix KK; return KK; };
-		virtual void get_bounds(TVector& lower, TVector& upper, bool transformed = false) = 0;
-		virtual void fod(const TMatrix& X, std::vector<TMatrix>& grad) = 0;
+		virtual void get_bounds(TVector& lower, TVector& upper) = 0;
 		virtual void expectations(const TMatrix& mean, const TMatrix& variance) = 0;
 		virtual void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) = 0;
 
 		virtual void set_params(const TVector& params) = 0;
-		virtual TVector get_params(bool inverse_transform = true) { TVector tmp; return tmp; }
-		virtual void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) = 0;
+		virtual TVector get_params() { TVector tmp; return tmp; }
+		virtual void gradients(const TMatrix& X, std::vector<TMatrix>& grad) = 0;
 
 		// Python Pickling
-		virtual const Parameter<double> get_variance() const { return variance; }
 		virtual const Parameter<TVector> get_lengthscale() const { return length_scale; }
 
 	public:
-		Parameter<double> variance;
 		Parameter<TVector> length_scale;
 		bool ARD = false;
 
 	};
-
-
+	
 	class Stationary : public Kernel {
 
 	protected:
-
 		void dK_dlengthscale(std::vector<TMatrix>& dK, std::vector<double>& grad, const TMatrix& tmp, const TMatrix& dK_dR, const TMatrix& dNLL, const TMatrix& R) override {
 			if (ARD) {
 				for (std::vector<TMatrix>::size_type i = 0; i != dK.size(); i++) {
@@ -76,70 +67,43 @@ namespace fdml::kernels {
 			}
 
 		}
-
-		void dK_dvariance(const TMatrix& K, const TMatrix& dNLL, std::vector<double>& grad) override {
-			grad.push_back((K.cwiseProduct(dNLL)).array().sum() / variance.value());
-		}
-
 	public:
 		Stationary() {}
 		Stationary(const Stationary& kernel) : Kernel(kernel) {}
-		Stationary(const double& length_scale, const double& variance) : Kernel(length_scale, variance) {}
-		Stationary(TVector& length_scale, const double& variance) : Kernel(length_scale, variance) {}
-		Stationary(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : Kernel(length_scale, variance) {}
-		//
-		Stationary(const TVector& length_scale, const double& variance) : Kernel(length_scale, variance) {}
-		Stationary(const TVector& length_scale, double& variance) : Kernel(length_scale, variance) {}
-		//
+		Stationary(const double& length_scale) : Kernel(length_scale) {}
+		Stationary(TVector& length_scale) : Kernel(length_scale) {}
+		Stationary(const Parameter<TVector>& length_scale) : Kernel(length_scale) {}
 
 		TMatrix diag(const TMatrix& X1) override {
 			// Stationary Stationary
-			return variance.value() * TMatrix::Ones(X1.rows(), 1);
+			return TMatrix::Ones(X1.rows(), 1);
 		}
-		void get_bounds(TVector& lower, TVector& upper, bool transformed = false) override {
-			if (!(*length_scale.is_fixed)) {
-				if (transformed) { length_scale.transform_bounds(); }
-				lower.conservativeResize(length_scale.size());
-				upper.conservativeResize(length_scale.size());
-				lower.head(length_scale.size()) = length_scale.get_bounds().first;
-				upper.head(length_scale.size()) = length_scale.get_bounds().second;
-			}
-			// if (!(*variance.is_fixed)) {
-			// 	if (transformed) { variance.transform_bounds(); }
-			// 	lower.conservativeResize(lower.size() + 1);
-			// 	upper.conservativeResize(upper.size() + 1);
-			// 	lower.tail(1)(0) = variance.get_bounds().first;
-			// 	upper.tail(1)(0) = variance.get_bounds().second;
-			// }
-		};
+		void get_bounds(TVector& lower, TVector& upper) override {
+			if (*length_scale.is_fixed) return;
+			lower.conservativeResize(length_scale.size());
+			upper.conservativeResize(length_scale.size());
+			lower.head(length_scale.size()) = length_scale.get_bounds().first;
+			upper.head(length_scale.size()) = length_scale.get_bounds().second;
+		}
 		void set_params(const TVector& params) override
 		{
-			if (!(*length_scale.is_fixed)) {
-				length_scale.transform_value(params.head(length_scale.value().size()));
-			}
-			if (!(*variance.is_fixed)) {
-				variance.transform_value(params.coeff(length_scale.value().size()));
-			}
+			if (*length_scale.is_fixed) return;
+			length_scale.transform_value(params.head(length_scale.value().size()));
 		}
-		TVector get_params(bool inverse_transform = true) override {
+		TVector get_params() override {
 			std::vector<double> params;
 			if (!(*length_scale.is_fixed)) {
-				length_scale.transform_value(inverse_transform);
 				std::size_t n = length_scale.size();
 				params.resize(n);
+				length_scale.transform_value(true);
 				TVector::Map(&params[0], n) = length_scale.value();
 			}
-			// if (!(*variance.is_fixed)) {
-			// 	variance.transform_value(inverse_transform);
-			// 	params.push_back(variance.value());
-			// }
 			return Eigen::Map<TVector>(params.data(), params.size());
 		}
-		virtual void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) = 0;
+		virtual void gradients(const TMatrix& X, std::vector<TMatrix>& grad) = 0;
 		virtual void expectations(const TMatrix& mean, const TMatrix& variance) = 0;
 		virtual void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) = 0;
 	};
-
 
 	class SquaredExponential : public Stationary {
 
@@ -157,91 +121,48 @@ namespace fdml::kernels {
 
 		SquaredExponential() : Stationary() {};
 		SquaredExponential(const SquaredExponential& kernel) : Stationary(kernel) {}
-		SquaredExponential(const double& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		SquaredExponential(TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		SquaredExponential(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : Stationary(length_scale, variance) {}
-		//
-		SquaredExponential(const TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		SquaredExponential(const TVector& length_scale, double& variance) : Stationary(length_scale, variance) {}
-		//
+		SquaredExponential(const double& length_scale) : Stationary(length_scale) {}
+		SquaredExponential(TVector& length_scale) : Stationary(length_scale) {}
+		SquaredExponential(const Parameter<TVector>& length_scale) : Stationary(length_scale) {}
 
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2) override {
 			// Returns Stationary TMatrix
 			TMatrix R2(X1.rows(), X2.rows());
 			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
 			euclidean_distance(X1sc, X2sc, R2, true);
 			//return variance.value() * exp(-0.5 * R2.array());
-			return variance.value() * exp(-R2.array());
-		}
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R) override {
-			// sqrt euclidean distance R
-			TMatrix R2(X1.rows(), X2.rows());
-			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
-			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
-			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R2, true);
-			R = R2.array().sqrt();
-			//return variance.value() * exp(-0.5 * R2.array());
-			return variance.value() * exp(-R2.array());
+			return  exp(-R2.array());
 		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance) override {
 			TMatrix R2(X1.rows(), X2.rows());
 			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
 			euclidean_distance(X1sc, X2sc, R2, true);
 			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
-			//return (variance.value() * exp(-0.5 * R2.array())).matrix() + noise;
-			return (variance.value() * exp(-R2.array())).matrix() + noise;
+			//return ( exp(-0.5 * R2.array())).matrix() + noise;
+			return ( exp(-R2.array())).matrix() + noise;
 		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
 			TMatrix R2(X1.rows(), X2.rows());
-			const TMatrix X1sc = X1.array() / length_scale.value()[idx];
-			const TMatrix X2sc = X2.array() / length_scale.value()[idx];
+			TVector tmp;
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
+			const TMatrix X1sc = X1.array() / tmp[idx];
+			const TMatrix X2sc = X2.array() / tmp[idx];
 			euclidean_distance(X1sc, X2sc, R2, true);
 			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
-			//return (variance.value() * exp(-0.5 * R2.array())).matrix() + noise;
-			return (variance.value() * exp(-R2.array())).matrix() + noise;
+			//return ( exp(-0.5 * R2.array())).matrix() + noise;			
+			return ( exp(-R2.array())).matrix() + noise;
 		};
 
-		void fod(const TMatrix& X, std::vector<TMatrix>& grad) override {
-
-			/*
-				if self.name=='sexp':
-				dis2=np.sum(disi**2,axis=0,keepdims=True)
-				K=np.exp(-dis2)
-				if len(self.length)==1:
-					fod=2*dis2*K
-				else:
-					fod=2*(disi**2)*K
-			*/
-
+		void gradients(const TMatrix& X, std::vector<TMatrix>& grad) override {
 			if (!(*length_scale.is_fixed)) {
 				std::vector<TMatrix> disi;
 				TVector tmp;
@@ -270,21 +191,6 @@ namespace fdml::kernels {
 				}
 			}
 		}
-
-		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
-		{
-			if (!(*length_scale.is_fixed)) {
-				TMatrix dK_dR = -R.cwiseProduct(K);
-				std::vector<TMatrix> dK;
-				pdist(X, X, dK);
-				TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));
-				tmp.diagonal().array() = 0.0;
-				dK_dlengthscale(dK, grad, tmp, dK_dR, dNLL, R);
-			}
-			if (!(*variance.is_fixed)) { dK_dvariance(K, dNLL, grad); }
-		}
-
-
 		void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) override {
 			TMatrix Xz = ((X.transpose().array().colwise() - mean.array())).transpose();
 			// Compute I
@@ -312,246 +218,114 @@ namespace fdml::kernels {
 
 	};
 
-
-	class Matern32 : public Stationary {
-
-	public:
-		Matern32() : Stationary() {};
-		Matern32(const Matern32& kernel) : Stationary(kernel) {}
-		Matern32(const double& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern32(TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern32(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : Stationary(length_scale, variance) {}
-		//
-		Matern32(const TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern32(const TVector& length_scale, double& variance) : Stationary(length_scale, variance) {}
-		//
-
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2) override {
-			TMatrix R(X1.rows(), X2.rows());
-			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
-			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
-			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(3);
-			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix();
-		}
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R1) override {
-			// sqrt euclidean distance R1
-			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
-			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
-			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R1, false);
-			TMatrix R = R1.array() * sqrt(3);
-			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix();
-		}
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance) override {
-			TMatrix R(X1.rows(), X2.rows());
-			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
-			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
-			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
-			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(3);
-			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix() + noise;
-		}
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
-			TMatrix R(X1.rows(), X2.rows());
-			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
-			const TMatrix X1sc = X1.array() / length_scale.value()[idx];
-			const TMatrix X2sc = X2.array() / length_scale.value()[idx];
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(3);
-			return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix() + noise;
-		}
-
-		void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) override { return; }
-		void expectations(const TMatrix& mean, const TMatrix& variance) override { return; }
-
-		void fod(const TMatrix& X, std::vector<TMatrix>& grad) override {
-			return;
-		}
-
-		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
-		{
-			if (!(*length_scale.is_fixed)) {
-				TMatrix dK_dR = (variance.value() * (-3 * R.array()) * exp(-(R * sqrt(3)).array())).matrix();
-				std::vector<TMatrix> dK;
-				pdist(X, X, dK);
-				TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));
-				tmp.diagonal().array() = 0.0;
-				dK_dlengthscale(dK, grad, tmp, dK_dR, dNLL, R);
-			}
-			if (!(*variance.is_fixed)) { dK_dvariance(K, dNLL, grad); }
-
-		}
-	};
-
-
 	class Matern52 : public Stationary {
-	private:
-
 	public:
-		Matern52() : Stationary() {};
+		Matern52() {}
 		Matern52(const Matern52& kernel) : Stationary(kernel) {}
-		Matern52(const double& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern52(TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern52(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : Stationary(length_scale, variance) {}
-		//
-		Matern52(const TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
-		Matern52(const TVector& length_scale, double& variance) : Stationary(length_scale, variance) {}
-		//
-
+		Matern52(const double& length_scale) : Stationary(length_scale) {}
+		Matern52(TVector& length_scale) : Stationary(length_scale) {}
+		Matern52(const Parameter<TVector>& length_scale) : Stationary(length_scale) {}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2) override {
-			TMatrix R(X1.rows(), X2.rows());
+			TMatrix K1 = TMatrix::Ones(X1.rows(), X2.rows());
+			TMatrix K2 = TMatrix::Zero(X1.rows(), X2.rows());
 			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(5);
-			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix();
-		}
-		const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R1) override {
-			// sqrt euclidean distance R
-			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
+			std::vector<TMatrix> D;
+			abspdist(X1sc, X2sc, D);
+			for (unsigned int i = 0; i < D.size(); ++i) {
+				K1.array() *= (1 + sqrt(5.0) * D[i].array() + (5.0 / 3.0) * square(D[i].array())).array();
+				K2 += D[i];
 			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
-			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
-			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R1, false);
-			TMatrix R = R1.array() * sqrt(5);
-			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array())));
+			return K1.array() * exp(-sqrt(5.0) * K2.array());
 		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance) override {
-			TMatrix R(X1.rows(), X2.rows());
-			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
+			TMatrix K1 = TMatrix::Ones(X1.rows(), X2.rows());
+			TMatrix K2 = TMatrix::Zero(X1.rows(), X2.rows());
 			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
 			const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(5);
-			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix() + noise;
+			std::vector<TMatrix> D;
+			abspdist(X1sc, X2sc, D);
+			for (unsigned int i = 0; i < D.size(); ++i) {
+				K1.array() *= (1 + sqrt(5.0) * D[i].array() + (5.0 / 3.0) * square(D[i].array())).array();
+				K2 += D[i];
+			}
+			TMatrix res = K1.array() * exp(-sqrt(5.0) * K2.array());
+			res.diagonal().array() += likelihood_variance;
+			return res;
 		}
 		const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
+			TMatrix K1 = TMatrix::Ones(X1.rows(), X2.rows());
+			TMatrix K2 = TMatrix::Zero(X1.rows(), X2.rows());
 			TMatrix R(X1.rows(), X2.rows());
-			TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
 			TVector tmp;
-			if (length_scale.size() != X1.cols() && length_scale.size() == 1)
-			{   // Expand lengthscale dimensions
-				tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
-			}
-			else {
-				ARD = true;
-				tmp = length_scale.value();
-			}			
+			if (ARD) tmp = length_scale.value();
+			else tmp = TVector::Constant(X1.cols(), length_scale.value()(0));
 			const TMatrix X1sc = X1.array() / tmp[idx];
 			const TMatrix X2sc = X2.array() / tmp[idx];
-			euclidean_distance(X1sc, X2sc, R, false);
-			R *= sqrt(5);
-			return ((1 + R.array() + square(R.array()) / 3) * (exp(-R.array()))).matrix() + noise;
-		}
-
-		void fod(const TMatrix& X, std::vector<TMatrix>& grad) override {
-
-			if (!(*length_scale.is_fixed)) {
-				std::vector<TMatrix> disi;
-				TVector tmp;
-				if (length_scale.size() < X.cols())
-				{   // Expand lengthscale dimensions
-					tmp = TVector::Constant(X.cols(), length_scale.value()(0));
-				}
-				else {
-					tmp = length_scale.value();
-				}
-				TMatrix Xsc = X.array().rowwise() / tmp.transpose().array();
-
-				pdist(Xsc, Xsc, disi, false);
-				TMatrix K1 = TMatrix::Ones(X.rows(), X.rows());
-				TMatrix K2 = TMatrix::Zero(X.rows(), X.rows());
-				std::vector<TMatrix> coefi;
-
-				for (int i = 0; i < disi.size(); ++i) {
-					K1.array() *= (1 + sqrt(5.0) * abs(disi[i].array()) + (5.0 / 3.0) * disi[i].array().square());
-					K2.array() += abs(disi[i].array());
-					coefi.push_back(
-						(disi[i].array().square() * (1.0 + sqrt(5.0) * abs(disi[i].array()))).array() /
-						(1.0 + sqrt(5.0) * abs(disi[i].array()) + (5.0 / 3.0) * disi[i].array().square())
-					);
-				}
-				K2.array() = exp(-sqrt(5.0) * K2.array());
-				TMatrix K = K1.array() * K2.array();
-				if (ARD) {
-					for (int i = 0; i < coefi.size(); ++i) {
-						grad.push_back((5.0 / 3.0) * coefi[i].array() * K.array());
-					}
-				}
-				else {
-					TMatrix coeff_sum = TMatrix::Zero(X.rows(), X.rows());
-					for (int i = 0; i < coefi.size(); ++i) {
-						coeff_sum.array() += coefi[i].array();
-					}
-					grad.push_back((5.0 / 3.0) * coeff_sum.array() * K.array());
-				}
-
+			std::vector<TMatrix> D;
+			abspdist(X1sc, X2sc, D);
+			for (unsigned int i = 0; i < D.size(); ++i) {
+				K1.array() *= (1 + sqrt(5.0) * D[i].array() + (5.0 / 3.0) * square(D[i].array())).array();
+				K2 += D[i];
 			}
-
-
+			TMatrix res = K1.array() * exp(-sqrt(5.0) * K2.array());
+			res.diagonal().array() += likelihood_variance;
+			return res;
 		}
 
+		void gradients(const TMatrix& X, std::vector<TMatrix>& grad) override {
+			if (*length_scale.is_fixed) return;
+			std::vector<TMatrix> disi;
+			TVector tmp;
+			if (length_scale.size() < X.cols())
+			{   // Expand lengthscale dimensions
+				tmp = TVector::Constant(X.cols(), length_scale.value()(0));
+			}
+			else {
+				tmp = length_scale.value();
+			}
+			TMatrix Xsc = X.array().rowwise() / tmp.transpose().array();
+
+			pdist(Xsc, Xsc, disi, false);
+			TMatrix K1 = TMatrix::Ones(X.rows(), X.rows());
+			TMatrix K2 = TMatrix::Zero(X.rows(), X.rows());
+			std::vector<TMatrix> coefi;
+
+			for (int i = 0; i < disi.size(); ++i) {
+				K1.array() *= (1 + sqrt(5.0) * abs(disi[i].array()) + (5.0 / 3.0) * disi[i].array().square());
+				K2.array() += abs(disi[i].array());
+				coefi.push_back(
+					(disi[i].array().square() * (1.0 + sqrt(5.0) * abs(disi[i].array()))).array() /
+					(1.0 + sqrt(5.0) * abs(disi[i].array()) + (5.0 / 3.0) * disi[i].array().square())
+				);
+			}
+			K2.array() = exp(-sqrt(5.0) * K2.array());
+			TMatrix K = K1.array() * K2.array();
+			if (ARD) {
+				for (int i = 0; i < coefi.size(); ++i) {
+					grad.push_back((5.0 / 3.0) * coefi[i].array() * K.array());
+				}
+			}
+			else {
+				TMatrix coeff_sum = TMatrix::Zero(X.rows(), X.rows());
+				for (int i = 0; i < coefi.size(); ++i) {
+					coeff_sum.array() += coefi[i].array();
+				}
+				grad.push_back((5.0 / 3.0) * coeff_sum.array() * K.array());
+			}
+		}
 		void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance_, const TMatrix& X, const Eigen::Index& idx) override {
 			// To avoid repetitive transpose, create tmp (RowMajor) length_scale and variance_
 			TRVector ls;
-			if (ARD) {
-				ls = static_cast<TRVector>(length_scale.value());
-			}
-			else {
-				ls = TRVector::Constant(1, X.cols(), length_scale.value().coeff(0));
-			}
+			if (ARD) ls = static_cast<TRVector>(length_scale.value());
+			else ls = TRVector::Constant(1, X.cols(), length_scale.value().coeff(0));
+
 			TRVector mu = static_cast<TRVector>(mean);
 			TRVector var = static_cast<TRVector>(variance_);
 
@@ -740,23 +514,106 @@ namespace fdml::kernels {
 			if (non_zero_indices.size() > 0) { non_zero_variance(); }
 		}
 		void expectations(const TMatrix& mean, const TMatrix& variance_) override { return; }
-		void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
-		{
-			if (!(*length_scale.is_fixed)) {
-				//  self.variance*( 10./3*r - 5. * r  -  5.*np.sqrt(5.)/3*r**2) * np.exp(-np.sqrt(5.)*r)
-				TMatrix dK_dR = (variance.value() * ((10 / 3) * R.array() - 5 * R.array() - (5 * sqrt(5) / 3)
-					* square(R.array()))
-					* exp(sqrt(5) * R.array())).matrix();
-				std::vector<TMatrix> dK;
-				pdist(X, X, dK);
-				TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));
-				tmp.diagonal().array() = 0.0;
-				dK_dlengthscale(dK, grad, tmp, dK_dR, dNLL, R);
-			}
-			if (!(*variance.is_fixed)) { dK_dvariance(K, dNLL, grad); }
-
-		}
 	};
 
 }
 #endif
+
+
+//class Matern32 : public Stationary {
+//
+//public:
+//	Matern32() : Stationary() {};
+//	Matern32(const Matern32& kernel) : Stationary(kernel) {}
+//	Matern32(const double& length_scale, const double& variance) : Stationary(length_scale, variance) {}
+//	Matern32(TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
+//	Matern32(const Parameter<TVector>& length_scale, const Parameter<double>& variance) : Stationary(length_scale, variance) {}
+//	//
+//	Matern32(const TVector& length_scale, const double& variance) : Stationary(length_scale, variance) {}
+//	Matern32(const TVector& length_scale, double& variance) : Stationary(length_scale, variance) {}
+//	//
+//
+//	const TMatrix K(const TMatrix& X1, const TMatrix& X2) override {
+//		TMatrix R(X1.rows(), X2.rows());
+//		TVector tmp;
+//		if (length_scale.size() != X1.cols() && length_scale.size() == 1)
+//		{   // Expand lengthscale dimensions
+//			tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+//		}
+//		else {
+//			ARD = true;
+//			tmp = length_scale.value();
+//		}
+//		const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
+//		const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
+//		euclidean_distance(X1sc, X2sc, R, false);
+//		R *= sqrt(3);
+//		return ( (1 + R.array()) * exp(-R.array())).matrix();
+//	}
+//	const TMatrix K(const TMatrix& X1, const TMatrix& X2, TMatrix& R1) override {
+//		// sqrt euclidean distance R1
+//		TVector tmp;
+//		if (length_scale.size() != X1.cols() && length_scale.size() == 1)
+//		{   // Expand lengthscale dimensions
+//			tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+//		}
+//		else {
+//			ARD = true;
+//			tmp = length_scale.value();
+//		}
+//		const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
+//		const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
+//		euclidean_distance(X1sc, X2sc, R1, false);
+//		TMatrix R = R1.array() * sqrt(3);
+//		return ( (1 + R.array()) * exp(-R.array())).matrix();
+//	}
+//	const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance) override {
+//		TMatrix R(X1.rows(), X2.rows());
+//		TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
+//		TVector tmp;
+//		if (length_scale.size() != X1.cols() && length_scale.size() == 1)
+//		{   // Expand lengthscale dimensions
+//			tmp = TVector::Constant(X1.cols(), 1, length_scale.value()(0));
+//		}
+//		else {
+//			ARD = true;
+//			tmp = length_scale.value();
+//		}
+//		const TMatrix X1sc = X1.array().rowwise() / tmp.transpose().array();
+//		const TMatrix X2sc = X2.array().rowwise() / tmp.transpose().array();
+//		euclidean_distance(X1sc, X2sc, R, false);
+//		R *= sqrt(3);
+//		return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix() + noise;
+//	}
+//	const TMatrix K(const TMatrix& X1, const TMatrix& X2, const double& likelihood_variance, const Eigen::Index idx) {
+//		TMatrix R(X1.rows(), X2.rows());
+//		TMatrix noise = TMatrix::Identity(X1.rows(), X2.rows()).array() * likelihood_variance;
+//		const TMatrix X1sc = X1.array() / length_scale.value()[idx];
+//		const TMatrix X2sc = X2.array() / length_scale.value()[idx];
+//		euclidean_distance(X1sc, X2sc, R, false);
+//		R *= sqrt(3);
+//		return (variance.value() * (1 + R.array()) * exp(-R.array())).matrix() + noise;
+//	}
+//
+//	void IJ(TMatrix& I, TMatrix& J, const TVector& mean, const TVector& variance, const TMatrix& X, const Eigen::Index& idx) override { return; }
+//	void expectations(const TMatrix& mean, const TMatrix& variance) override { return; }
+//
+//	void fod(const TMatrix& X, std::vector<TMatrix>& grad) override {
+//		return;
+//	}
+//
+//	void gradients(const TMatrix& X, const TMatrix& dNLL, const TMatrix& R, const TMatrix& K, std::vector<double>& grad) override
+//	{
+//		if (!(*length_scale.is_fixed)) {
+//			TMatrix dK_dR = (variance.value() * (-3 * R.array()) * exp(-(R * sqrt(3)).array())).matrix();
+//			std::vector<TMatrix> dK;
+//			pdist(X, X, dK);
+//			TMatrix tmp = R.cwiseInverse().cwiseProduct(dK_dR.cwiseProduct(dNLL));
+//			tmp.diagonal().array() = 0.0;
+//			dK_dlengthscale(dK, grad, tmp, dK_dR, dNLL, R);
+//		}
+//		if (!(*variance.is_fixed)) { dK_dvariance(K, dNLL, grad); }
+//
+//	}
+//};
+

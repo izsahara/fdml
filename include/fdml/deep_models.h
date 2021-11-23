@@ -1,6 +1,6 @@
 #ifndef DEEPMODELS_H
 #define DEEPMODELS_H
-// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <fdml/utilities.h>
 
 #include <fdml/kernels.h>
@@ -18,33 +18,21 @@ namespace fdml::deep_models {
 		class Node : public GP {
 		public:
 			Node(shared_ptr<Kernel> kernel) : GP(kernel) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			Node(shared_ptr<Kernel> kernel, shared_ptr<Solver> solver) : GP(kernel, solver) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			Node(shared_ptr<Kernel> kernel, const double& likelihood_variance, const double& scale_) :
 				GP(kernel, likelihood_variance), scale("scale", scale_) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			Node(shared_ptr<Kernel> kernel, const double& likelihood_variance, const double& scale_, shared_ptr<Solver> solver) :
 				GP(kernel, solver, likelihood_variance), scale("scale", scale_) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			Node(shared_ptr<Kernel> kernel, const Parameter<double>& likelihood_variance, const Parameter<double>& scale) :
 				GP(kernel, likelihood_variance), scale(scale) {
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 			Node(shared_ptr<Kernel> kernel, const Parameter<double>& likelihood_variance, const Parameter<double>& scale_, shared_ptr<Solver> solver) :
 				GP(kernel, solver, likelihood_variance) {
 				scale = scale_;
-				if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-				if (!kernel->variance.fixed()) { kernel->variance.fix(); }
 			}
 
 			double log_marginal_likelihood() override {
@@ -129,9 +117,8 @@ namespace fdml::deep_models {
 				std::vector<TMatrix> grad_;
 				if (alpha.size() == 0) { update_cholesky(); }
 				// Kernel Derivatives
-				kernel->fod(inputs, grad_);
-				// TVector grad(grad_.size());
-				TVector grad = TVector::Zero(grad_.size());
+				kernel->gradients(inputs, grad_);
+				TVector grad(grad_.size());
 				for (int i = 0; i < grad_.size(); ++i) {
 					TMatrix KKT = chol.solve(grad_[i]);
 					double trace = KKT.trace();
@@ -241,9 +228,7 @@ namespace fdml::deep_models {
 			const TMatrix get_outputs() { return outputs; }
 
 			void update_cholesky() {
-				TMatrix noise = TMatrix::Identity(inputs.rows(), outputs.rows());
-				K = kernel->K(inputs, inputs, D);
-				K += (noise * likelihood_variance.value());
+				K = kernel->K(inputs, inputs, likelihood_variance.value());
 				chol = K.llt();
 				alpha = chol.solve(outputs);
 				// scale is not considered a variable in optimization, it is directly linked to chol
@@ -271,8 +256,8 @@ namespace fdml::deep_models {
 					upper.tail(1)(0) = likelihood_variance.get_bounds().second;
 				}
 			}
-			TVector get_params(bool inverse_transform = true) override {
-				TVector params = kernel->get_params(inverse_transform);
+			TVector get_params() override {
+				TVector params = kernel->get_params();
 				if (!(*likelihood_variance.is_fixed)) {
 					likelihood_variance.transform_value(inverse_transform);
 					params.conservativeResize(params.rows() + 1);
@@ -293,7 +278,6 @@ namespace fdml::deep_models {
 			TVector  alpha;
 			TLLT	 chol;
 			TMatrix	 K;
-			TMatrix	 D;
 		};
 
 		class Layer {
@@ -507,10 +491,10 @@ namespace fdml::deep_models {
 				operations::visit_lambda(alpha, [&tmp, &W2](double v, int i, int j) { tmp(i, j) = W2(i) * v; });
 				mu.resize(alpha.rows(), 1);
 				mu = tmp.colwise().sum().transpose();
-				var = (node.kernel->variance.value() * (c - beta)).cwiseAbs();
+				var = ((c - beta)).cwiseAbs();
 			}
 		public:
-			void ess_update(Node& target, Layer& linked, const std::size_t& node_idx, bool& nanflag) {
+			void ess_update(Node& target, Layer& linked, const std::size_t& node_idx) {
 				/* Elliptical Slice Sampling Update (Algorithm 1)
 				* Nishihara, R., Murray, I. & Adams, R. P. (2014), �Parallel MCMC with generalized elliptical slice sampling�,
 				* The Journal of Machine Learning Research 15(1), 2087�2112.
@@ -530,7 +514,7 @@ namespace fdml::deep_models {
 				K *= target.scale.value();
 				TMatrix nu = sample_mvn(K);
 				double log_y = 0.0;
-				if (!std::isfinite(log_y)) { std::cout << "log_y = " << log_y << "\r" << std::flush; nanflag = true; return; }
+				if (!std::isfinite(log_y)) { throw std::runtime_error("log_y is not finite"); }
 
 				for (std::vector<Node>::iterator node = linked.nodes.begin(); node != linked.nodes.end(); ++node) {
 					const TMatrix W = node->inputs;
@@ -545,7 +529,7 @@ namespace fdml::deep_models {
 				double theta_max = theta;
 
 				TVector mean = TVector::Zero(target.inputs.rows());
-					while (true) {
+				while (true) {
 					TMatrix fp = update_f(target.outputs, nu, mean, theta);
 					double log_yp = 0.0;
 
@@ -557,7 +541,7 @@ namespace fdml::deep_models {
 						Kw2 *= linked.nodes[n].scale.value();
 						log_yp += log_likelihood(Kw2, Y2);
 					}
-					if (!std::isfinite(log_y)) { std::cout << "log_y = " << log_y << "\r" << std::flush; nanflag = true; return; }
+					if (!std::isfinite(log_yp)) { throw std::runtime_error("log_y is not finite"); }
 					// DEBUG
 					//std::cout << "log_yp = " << log_yp << " " << "log_y" << log_y << std::endl;
 					//
@@ -591,27 +575,27 @@ namespace fdml::deep_models {
 					(*layer)(*std::next(layer));
 				}
 			}
-			void sample(bool& nanflag, const int& n_burn) {
-				int i = 0;
-				while (!nanflag && i < n_burn){
+			void sample(int n_burn = 10) {
+				for (int i = 0; i < n_burn; ++i) {
+					// DEBUG
+					//std::cout << "iter = " << i << std::endl;
+					//
 					for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end() - 1; ++layer) {
-						for (std::size_t n = 0; n < layer->nodes.size(); ++n) {							
-							ess_update(layer->nodes[n], *std::next(layer), n, nanflag);
+						for (std::size_t n = 0; n < layer->nodes.size(); ++n) {
+							ess_update(layer->nodes[n], *std::next(layer), n);
 						}
 					}
-					i++;				
 				}
-			}		
+			}
 		public:
 			SIDGP(const std::vector<Layer>& layers, bool initialize = true) : layers(layers) {
 				if (initialize) {
 					initialize_layers();
-					bool nanflag = false;
-					sample(nanflag, 10);
+					sample(10);
 				}
 			}
 
-			void train(bool& nanflag, int n_iter = 50, int ess_burn = 10) {
+			void train(int n_iter = 50, int ess_burn = 10) {
 				auto train_start = std::chrono::system_clock::now();
 				std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
 				auto verbose = [this, &train_start_t, &n_iter](const int& n, const int& i, const double& p) {
@@ -635,28 +619,17 @@ namespace fdml::deep_models {
 					}
 				};
 				n_iter_ = n_iter;
-				int i = 0;
-				while(!nanflag || i < n_iter){
+				for (int i = 0; i < n_iter; ++i) {
 					double progress = double(i + 1) * 100.0 / double(n_iter);
 					// I-step
-					sample(nanflag, ess_burn);
+					sample(ess_burn);
 					// M-step
 					for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end(); ++layer) {
 						layer->train();
 						verbose(i, layer->index, progress);
 					}
-					i++;
 				}
-				// for (int i = 0; i < n_iter; ++i) {
-				// 	double progress = double(i + 1) * 100.0 / double(n_iter);
-				// 	// I-step
-				// 	sample(nanflag, ess_burn);
-				// 	// M-step
-				// 	for (std::vector<Layer>::iterator layer = layers.begin(); layer != layers.end(); ++layer) {
-				// 		layer->train();
-				// 		verbose(i, layer->index, progress);
-				// 	}
-				// }
+				//std::system("cls");
 				std::cout << std::endl;
 			}
 			void estimate(Eigen::Index n_burn = 0) {
@@ -673,8 +646,7 @@ namespace fdml::deep_models {
 				}
 			}
 			MatrixPair predict(const TMatrix& X, int n_impute = 50, int n_thread = 1) {
-				bool nanflag = false;
-				sample(nanflag, 50);
+				sample(50);
 				const std::size_t n_layers = layers.size();
 				TMatrix mean = TMatrix::Zero(X.rows(), 1);
 				TMatrix variance = TMatrix::Zero(X.rows(), 1);
@@ -702,7 +674,7 @@ namespace fdml::deep_models {
 				};
 				for (int i = 0; i < n_impute; ++i) {
 					double progress = double(i) * 100.0 / double(n_impute);
-					sample(nanflag, 10);
+					sample();
 					layers.front().predict(X);
 					std::size_t j = 1;
 					for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
@@ -730,8 +702,7 @@ namespace fdml::deep_models {
 			}
 
 			MatrixPair predict(const TMatrix& X, TMatrix& Yref, int n_impute = 50, int n_thread = 1) {
-				bool nanflag = false;
-				sample(nanflag, 50);
+				sample(50);
 				const std::size_t n_layers = layers.size();
 				TMatrix mean = TMatrix::Zero(X.rows(), 1);
 				TMatrix variance = TMatrix::Zero(X.rows(), 1);
@@ -762,7 +733,7 @@ namespace fdml::deep_models {
 				};
 				for (int i = 0; i < n_impute; ++i) {
 					double progress = double(i) * 100.0 / double(n_impute);
-					sample(nanflag, 10);
+					sample();
 					layers.front().predict(X);
 					std::size_t j = 1;
 					for (std::vector<Layer>::iterator layer = layers.begin() + 1; layer != layers.end(); ++layer) {
@@ -781,7 +752,6 @@ namespace fdml::deep_models {
 					}
 					TVector tmp_mu = mean.array() / double(i);
 					verbose(i, progress, tmp_mu);
-					if ((tmp_mu.array().isNaN()).any()) return std::make_pair(mean, variance);
 				}
 				std::cout << std::endl;
 				mean.array() /= double(n_impute);
@@ -812,13 +782,16 @@ namespace fdml::deep_models {
 		private:
 			int n_iter_ = 0;
 			std::vector<Layer> layers;
+			// DEBUG
+			void save_data(const std::string& fpath, const TMatrix& XX) {
+				operations::write_data(fpath, XX);
+			}
+			// DEBUG
 		public:
 			int verbosity = 1;
 		};
 
 	}
-
-
 
 }
 #endif
@@ -1436,3 +1409,5 @@ namespace fdml::deep_models {
 //public:
 //	int verbosity = 1;
 //};
+
+
