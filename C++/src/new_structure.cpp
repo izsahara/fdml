@@ -4,6 +4,7 @@
 #include <fdml/optimizers.h>
 #include <chrono>
 #include <rapidcsv.h>
+#include <pcg/pcg_random.hpp>
 
 using namespace fdml::kernels;
 using namespace fdml::utilities;
@@ -49,7 +50,9 @@ using fdml::optimizers::PSO;
 using fdml::optimizers::ConjugateGradient;
 using fdml::optimizers::Rprop;
 
-static std::mt19937_64 rng(std::random_device{}());
+pcg_extras::seed_seq_from<std::random_device> seed_source;
+static pcg64 rng(seed_source);
+// static std::mt19937_64 rng(std::random_device{}());
 
 class ProgressBar
 {
@@ -123,9 +126,9 @@ public:
 //
 class Node : public GP {
 private:
-	Node& evalK() {
+	Node& evalK(bool with_scale = true) {
 		K = kernel->K(inputs, inputs, likelihood_variance.value());
-		K.array() *= scale.value();
+		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
 	Node& evalK(const TMatrix& X) {
@@ -263,7 +266,11 @@ private:
 	}
 	MatrixPair predict(const TMatrix& X)
 	{
-		update_cholesky();
+		// update_cholesky();
+		evalK(false);
+		chol = K.llt();
+		alpha = chol.solve(outputs);
+		//
 		TMatrix Ks(inputs.rows(), X.rows());
 		Ks.noalias() = kernel->K(inputs, X);
 		TMatrix mu = Ks.transpose() * alpha;
@@ -274,7 +281,13 @@ private:
 	}
 	void linked_predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 
-		update_cholesky();
+		// evalK(false);
+		// chol = K.llt();
+		// alpha = chol.solve(outputs);
+		const TMatrix R = kernel->K(inputs, inputs, likelihood_variance.value());
+		TLLT mchol = R.llt();
+		const TVector malpha = mchol.solve(outputs);
+		//
 		const Eigen::Index nrows = linked.first.rows();
 		kernel->expectations(linked.first, linked.second);
 		if (n_thread == 1) {
@@ -282,10 +295,10 @@ private:
 				TMatrix I = TMatrix::Ones(inputs.rows(), 1);
 				TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
 				kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
-				double trace = (K.llt().solve(J)).trace();
-				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+				double trace = (R.llt().solve(J)).trace();
+				double Ialpha = (I.cwiseProduct(malpha)).array().sum();
 				latent_mu[i] = (Ialpha);
-				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+				latent_var[i] = (abs((((malpha.transpose() * J).cwiseProduct(malpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
 
 			}
 		}
@@ -300,10 +313,10 @@ private:
 					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
 					TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
 					kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
-					double trace = (K.llt().solve(J)).trace();
-					double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+					double trace = (R.llt().solve(J)).trace();
+					double Ialpha = (I.cwiseProduct(malpha)).array().sum();
 					latent_mu[i] = (Ialpha);
-					latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+					latent_var[i] = (abs((((malpha.transpose() * J).cwiseProduct(malpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
 				}
 			};
 			for (int s = 0; s < n_thread; ++s) {
@@ -746,7 +759,7 @@ public:
 		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
-		std::cout << "TRAIN START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
+		std::cout << "START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
 		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "[TRAIN]");
 		for (int i = 0; i < n_iter; ++i) {
 			//double progress = double(i) * 100.0 / double(n_iter);
@@ -759,7 +772,7 @@ public:
 		delete train_prog;
 		auto train_end = std::chrono::system_clock::now();
 		std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
-		std::cout << "TRAIN END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 	}
 	void estimate(Eigen::Index n_burn = 0) {
@@ -777,7 +790,7 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
@@ -785,21 +798,15 @@ public:
 			graph.layer(0)->predict(X);
 			graph.propagate(Task::LinkedPredict);
 			MatrixPair output = graph.layer(-1)->latent_output;
-			if (i == 0) {
-				mean = output.first;
-				variance = square(output.first.array()).matrix() + output.second;
-			}
-			else {
-				mean.noalias() += output.first;
-				variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			}
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			pred_prog->write((double(i) / double(n_impute)));
 		}
 		delete pred_prog;
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);
@@ -815,7 +822,7 @@ public:
 
 		auto pred_start = std::chrono::system_clock::now();
 		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "PREDICTION START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
 		graph.n_thread = n_thread;
 		for (int i = 0; i < n_impute; ++i) {
@@ -823,14 +830,8 @@ public:
 			graph.layer(0)->predict(X);
 			graph.propagate(Task::LinkedPredict);
 			MatrixPair output = graph.layer(-1)->latent_output;
-			if (i == 0) {
-				mean = output.first;
-				variance = square(output.first.array()).matrix() + output.second;
-			}
-			else {
-				mean.noalias() += output.first;
-				variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			}
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
 			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
 			pred_prog->write((double(i) / double(n_impute)), nrmse);
@@ -839,7 +840,7 @@ public:
 
 		auto pred_end = std::chrono::system_clock::now();
 		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "PREDICTION END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
 		mean.array() /= double(n_impute);
 		variance.array() /= double(n_impute);
@@ -867,7 +868,7 @@ void engine() {
 	SIDGP model(graph);
 	model.train(100, 10);
 	model.estimate();
-	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;	
 }

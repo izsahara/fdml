@@ -162,9 +162,12 @@ namespace fdml::optimizers {
 				}
 			}
 
-			TVector grad(XX);
-			double fobj = problem.objective_value(XX);
-			problem.approx_gradient(XX, grad);
+			// TVector grad(XX);
+			// double fobj = problem.objective_value(XX);
+			// problem.approx_gradient(XX, grad);
+			//
+			TVector grad;
+			double fobj = problem(XX, grad);
 			if (gscale != 1.0) {
 				scale_gradient(grad, NN);
 			}	
@@ -184,9 +187,10 @@ namespace fdml::optimizers {
 				assert(itask <= 12 && itask >= 0);
 
 				if (itask == 2 || itask == 3) {
-					fobj = problem.objective_value(XX);
-					//problem.gradient(grad); 
-					problem.approx_gradient(XX, grad);
+					// fobj = problem.objective_value(XX);
+					// problem.approx_gradient(XX, grad);
+					//
+					fobj = problem(XX, grad);
 					if (gscale != 1.0) {
 						scale_gradient(grad, NN);
 					}

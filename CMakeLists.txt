@@ -13,6 +13,7 @@ include_directories(${HEADERS}/external/Eigen)
 include_directories(${HEADERS}/external/ThreadPool)
 include_directories(${HEADERS}/external/optim/include)
 include_directories(${HEADERS}/external/rapidcsv/src)
+include_directories(${HEADERS}/external/PCG)
 include_directories(${HEADERS}/external/LBFGSB-F/include)
 
 enable_language(Fortran)
