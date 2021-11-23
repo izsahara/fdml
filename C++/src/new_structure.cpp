@@ -200,7 +200,11 @@ private:
 			theta = objective.Xopt;
 		}
 		set_params(theta);
-		if (store_parameters) history.push_back(theta);
+		if (store_parameters) {
+			TVector params(theta.size() + 1);
+			params << theta, scale.value();
+			history.push_back(params);
+		}
 	}
 	TVector gradients() override {
 		auto log_prior_gradient = [=]() {
@@ -558,7 +562,9 @@ private:
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			TMatrix history = node->get_parameter_history();
 			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
-			node->set_params(theta);
+			node->scale = theta.tail(1)(0);
+			TVector tmp = theta.head(theta.size() - 1);
+			node->set_params(tmp);
 		}
 	}
 public:
