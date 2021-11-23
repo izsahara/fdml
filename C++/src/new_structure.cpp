@@ -140,7 +140,7 @@ private:
 		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
-	}	
+	}
 	double log_likelihood() {
 		chol = K.llt();
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
@@ -219,6 +219,7 @@ private:
 			return lpg;
 		};
 		std::vector<TMatrix> grad_;
+		if (alpha.size() == 0) { update_cholesky(); }
 		// Kernel Derivatives
 		kernel->fod(inputs, grad_);
 		// TVector grad(grad_.size());
@@ -244,14 +245,7 @@ private:
 	{
 		kernel->set_params(new_params);
 		if (!(*likelihood_variance.is_fixed)) likelihood_variance.transform_value(new_params.tail(1)(0));
-		// Update Cholesky
-		K = kernel->K(inputs, inputs, D);
-		K.diagonal().array() += likelihood_variance.value();
-		chol = K.llt();
-		alpha = chol.solve(outputs);
-		if (!(*scale.is_fixed)) {
-			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
-		}
+		update_cholesky();
 	}
 	TVector get_params(bool inverse_transform = true) override {
 		TVector params = kernel->get_params(inverse_transform);
@@ -264,33 +258,18 @@ private:
 	}
 	MatrixPair predict(const TMatrix& X)
 	{
-		// Update Cholesky
-		K = kernel->K(inputs, inputs, D);
-		K.diagonal().array() += likelihood_variance.value();
-		chol = K.llt();
-		alpha = chol.solve(outputs);
-		if (!(*scale.is_fixed)) {
-			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
-		}		
-		//
+		update_cholesky();
 		TMatrix Ks(inputs.rows(), X.rows());
 		Ks.noalias() = kernel->K(inputs, X);
 		TMatrix mu = Ks.transpose() * alpha;
 		TMatrix Kss = kernel->diag(X);
 		TMatrix V = chol.solve(Ks);
 		TMatrix var = abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array()));
-		return std::make_pair(mu, var);		
+		return std::make_pair(mu, var);
 	}
 	void linked_predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
-		// Update Cholesky
-		K = kernel->K(inputs, inputs, D);
-		K.diagonal().array() += likelihood_variance.value();
-		chol = K.llt();
-		alpha = chol.solve(outputs);
-		if (!(*scale.is_fixed)) {
-			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
-		}		
-		//
+
+		update_cholesky();
 		const Eigen::Index nrows = linked.first.rows();
 		kernel->expectations(linked.first, linked.second);
 		if (n_thread == 1) {
@@ -334,11 +313,8 @@ private:
 	}
 
 public:
-	Node(double likelihood_variance = 1E-9) : GP(likelihood_variance) {
-        if (kernel->variance.value() != 1.0) { kernel->variance = 1.0; }
-		if (!kernel->variance.fixed()) {kernel->variance.fix();}
-    }
-	void set_kernel(const KernelPtr& rkernel){
+	Node(double likelihood_variance = 1E-9) : GP(likelihood_variance) {}
+	void set_kernel(const KernelPtr& rkernel) {
 		kernel = std::move(rkernel);
 	}
 	void set_solver(const SolverPtr& rsolver) {
@@ -362,6 +338,23 @@ private:
 		}
 		return h;
 	}
+	void update_cholesky() {
+		//K = kernel->K(inputs, inputs, D);
+		//K.diagonal().array() += likelihood_variance.value();
+		//chol = K.llt();
+		//alpha = chol.solve(outputs);
+		//if (!(*scale.is_fixed)) {
+		//	scale = (outputs.transpose() * alpha)(0) / outputs.rows();
+		//}
+		TMatrix noise = TMatrix::Identity(inputs.rows(), outputs.rows());
+		K = kernel->K(inputs, inputs, D);
+		K += (noise * likelihood_variance.value());
+		chol = K.llt();
+		alpha = chol.solve(outputs);
+		if (!(*scale.is_fixed)) {
+			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
+		}
+	}
 public:
 	Parameter<double> scale = { "scale", 1.0, "none" };
 	bool store_parameters = true;
@@ -372,7 +365,7 @@ protected:
 	TLLT	 chol;
 	TMatrix	 K;
 	TMatrix	 D;
-	
+
 };
 
 class Layer {
