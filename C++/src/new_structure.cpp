@@ -199,7 +199,7 @@ private:
 			solver->solve(theta, objective);
 			theta = objective.Xopt;
 		}
-		set_params(theta);
+		set_params(log(theta.array)));
 		if (store_parameters) {
 			TVector params(theta.size() + 1);
 			params << theta, scale.value();
