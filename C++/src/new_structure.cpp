@@ -830,7 +830,8 @@ public:
 				mean.noalias() += output.first;
 				variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			}
-			double nrmse = metrics::rmse(Yref, mean) / (Yref.maxCoeff() - Yref.minCoeff());
+			TVector tmp_mu = mean.array() / double(i);
+			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
 			pred_prog->write((double(i) / double(n_impute)), nrmse);
 		}
 		delete pred_prog;
