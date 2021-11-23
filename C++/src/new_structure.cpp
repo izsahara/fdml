@@ -335,7 +335,7 @@ private:
 	}
 	TMatrix get_parameter_history() {
 		if (history.size() == 0) throw std::runtime_error("No Parameters Saved, set store_parameters = true");
-		Eigen::Index param_size = get_params().size();
+		Eigen::Index param_size = get_params().size() + 1;
 		TMatrix h(history.size(), param_size);
 		for (std::vector<TVector>::size_type i = 0; i != history.size(); ++i) {
 			h.row(i) = history[i];
