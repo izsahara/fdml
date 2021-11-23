@@ -131,18 +131,19 @@ private:
 		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
-	Node& evalK(const TMatrix& X) {
+	Node& evalK(const TMatrix& X, bool with_scale = true) {
 		TMatrix tmp(inputs.rows(), inputs.cols() + X.cols());
 		tmp << inputs, X;
 		K.noalias() = kernel->K(tmp, tmp, likelihood_variance.value());
-		K.array() *= scale.value();
+		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
 	TMatrix sample_mvn() {
 		TVector mean = TVector::Zero(K.rows());
 		Eigen::setNbThreads(1);
 		Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(K);
-		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
+		// TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
+		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
 	}
@@ -154,11 +155,12 @@ private:
 		return lml;
 	}
 	double log_marginal_likelihood() override {
-		// Compute Log Likelihood [Rasmussen, Eq 2.30]
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
 		double YKinvY = (outputs.transpose() * alpha)(0);
 		double NLL = 0.0;
-		if (*scale.is_fixed) { NLL = 0.5 * (logdet + YKinvY); }
+		if (*scale.is_fixed) { 
+			NLL = 0.5 * (logdet + (YKinvY/scale.value()));
+		}
 		else { NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value()))); }
 		NLL -= log_prior();
 		return NLL;
@@ -238,12 +240,15 @@ private:
 			double YKKT = (outputs.transpose() * KKT * alpha).coeff(0);
 			double P1 = -0.5 * trace;
 			double P2 = 0.5 * YKKT;
-			if (!(*scale.is_fixed)) {
-				grad[i] = -P1 - (P2 / scale.value());
-			}
-			else {
-				grad[i] = -P1 - P2;
-			}
+			//if (*scale.is_fixed) grad[i] = -P1 - P2;
+			//else grad[i] = -P1 - (P2 / scale.value());
+			grad[i] = -P1 - (P2 / scale.value());
+			//if (!(*scale.is_fixed)) {
+			//	grad[i] = -P1 - (P2 / scale.value());
+			//}
+			//else {
+			//	grad[i] = -P1 - P2;
+			//}
 		}
 		// Add likelihood_variance/nugget gradient
 		grad -= log_prior_gradient();
@@ -266,11 +271,7 @@ private:
 	}
 	MatrixPair predict(const TMatrix& X)
 	{
-		// update_cholesky();
-		evalK(false);
-		chol = K.llt();
-		alpha = chol.solve(outputs);
-		//
+		update_cholesky();
 		TMatrix Ks(inputs.rows(), X.rows());
 		Ks.noalias() = kernel->K(inputs, X);
 		TMatrix mu = Ks.transpose() * alpha;
@@ -281,13 +282,7 @@ private:
 	}
 	void linked_predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 
-		// evalK(false);
-		// chol = K.llt();
-		// alpha = chol.solve(outputs);
-		const TMatrix R = kernel->K(inputs, inputs, likelihood_variance.value());
-		TLLT mchol = R.llt();
-		const TVector malpha = mchol.solve(outputs);
-		//
+		update_cholesky();
 		const Eigen::Index nrows = linked.first.rows();
 		kernel->expectations(linked.first, linked.second);
 		if (n_thread == 1) {
@@ -295,10 +290,10 @@ private:
 				TMatrix I = TMatrix::Ones(inputs.rows(), 1);
 				TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
 				kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
-				double trace = (R.llt().solve(J)).trace();
-				double Ialpha = (I.cwiseProduct(malpha)).array().sum();
+				double trace = (K.llt().solve(J)).trace();
+				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
 				latent_mu[i] = (Ialpha);
-				latent_var[i] = (abs((((malpha.transpose() * J).cwiseProduct(malpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
 
 			}
 		}
@@ -313,10 +308,10 @@ private:
 					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
 					TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
 					kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
-					double trace = (R.llt().solve(J)).trace();
-					double Ialpha = (I.cwiseProduct(malpha)).array().sum();
+					double trace = (K.llt().solve(J)).trace();
+					double Ialpha = (I.cwiseProduct(alpha)).array().sum();
 					latent_mu[i] = (Ialpha);
-					latent_var[i] = (abs((((malpha.transpose() * J).cwiseProduct(malpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+					latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
 				}
 			};
 			for (int s = 0; s < n_thread; ++s) {
@@ -371,7 +366,8 @@ public:
 	bool store_parameters = true;
 	std::vector<TVector> history;
 
-protected:
+private:
+	TLayer   cstate;
 	TVector  alpha;
 	TLLT	 chol;
 	TMatrix	 K;
@@ -394,6 +390,7 @@ public:
 		}
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->inputs = input;
+			nn->cstate = cstate;
 		}
 	}
 	void set_input(const TMatrix& input, const Eigen::Index& col) {
@@ -405,16 +402,17 @@ public:
 	void set_output(const TMatrix& output) {
 
 		if (!locked) {
-			if (cstate == TLayer::THidden)
+			if (cstate == TLayer::THidden) 
 			{
-				cstate = TLayer::TObserved;
-				ostate = TLayer::THidden;
+				ostate = TLayer::TObserved;
+				std::swap(cstate, ostate);
 			}
 		}
 
 		if (cstate == TLayer::TObserved) observed_output.noalias() = output;
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->outputs = output.col(nn - m_nodes.begin());
+			nn->cstate = cstate;
 		}
 	}
 
@@ -472,9 +470,9 @@ public:
 			case TPSO:
 				nn->set_solver(SolverPtr(new PSO));
 				continue;
-			//case TCG:
-			//	nn->set_solver(SolverPtr(new ConjugateGradient));
-			//	continue;
+				//case TCG:
+				//	nn->set_solver(SolverPtr(new ConjugateGradient));
+				//	continue;
 			case TRprop:
 				nn->set_solver(SolverPtr(new Rprop));
 				continue;
@@ -541,12 +539,15 @@ private:
 			ostate = TLayer::TInputConnected;
 			std::swap(cstate, ostate);
 		}
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			nn->cstate = cstate;
+		}
 		observed_input = Ginput;
 	}
-	Layer& evalK() {
+	Layer& evalK(bool with_scale = true) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
-			if (cstate == TLayer::TInputConnected) nn->evalK(observed_input);
-			else nn->evalK();
+			if (cstate == TLayer::TInputConnected) nn->evalK(observed_input, with_scale);
+			else nn->evalK(with_scale);
 		}
 		return *this;
 	}
@@ -571,6 +572,7 @@ private:
 			TMatrix history = node->get_parameter_history();
 			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
 			node->scale = theta.tail(1)(0);
+			node->scale.fix();
 			TVector tmp = theta.head(theta.size() - 1);
 			node->set_params(tmp);
 		}
@@ -633,6 +635,7 @@ struct Graph {
 		return nit;
 	}
 	void connect_inputs(const std::size_t& layer_idx) {
+		if (layer(layer_idx)->cstate == TLayer::TInput) throw std::runtime_error("Invalid Connection: InputLayer");
 		m_layers[layer_idx].connect(m_layers[0].observed_input);
 	}
 
@@ -718,7 +721,9 @@ private:
 				if (cl->cstate == TLayer::TObserved) continue; // missingness
 				auto linked_layer = std::next(cl);
 				for (std::vector<Node>::iterator cn = cl->m_nodes.begin(); cn != cl->m_nodes.end(); ++cn) {
-					TMatrix nu = cn->evalK().sample_mvn();
+					TMatrix nu(cn->inputs.rows(), 1);
+					if (cl->cstate == TLayer::TInputConnected) nu = cn->evalK(cl->observed_input).sample_mvn();
+					else nu = cn->evalK().sample_mvn();
 					log_y = linked_layer->evalK().log_likelihood() + log(rand_u(0.0, 1.0));
 					//
 					if (!std::isfinite(log_y)) { throw std::runtime_error("log_y is not finite"); }
@@ -730,7 +735,8 @@ private:
 					const Eigen::Index col = static_cast<Eigen::Index>((cn - cl->m_nodes.begin()));
 					while (true) {
 						TMatrix fp = update_f(cn->outputs, nu, theta);
-						double log_yp = linked_layer->log_likelihood(fp, col);
+						linked_layer->set_input(fp, col);
+						double log_yp = linked_layer->evalK().log_likelihood();
 						//
 						if (!std::isfinite(log_yp)) { throw std::runtime_error("log_yp is not finite"); }
 						//
