@@ -916,7 +916,7 @@ void analytic2(std::string exp) {
 }
 
 int main() {
-	for (unsigned int i = 11; i < 21; ++i) {
+	for (unsigned int i = 12; i < 21; ++i) {
 		std::cout << "================= EXP " << i << " " << "================" << std::endl;
 		analytic2(std::to_string(i));
 	}
