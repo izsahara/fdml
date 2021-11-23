@@ -77,6 +77,19 @@ namespace fdml::utilities {
 
             }
         }
+        void abspdist(const TMatrix& X1, const TMatrix& X2, std::vector<TMatrix>& D) {
+            // Pairwise distance between two each column/dimension of 2 Matrices
+            for (int i = 0; i < X1.cols(); i++) {
+                TMatrix tmp(X1.rows(), X2.rows());
+                for (int j = 0; j < X1.rows(); j++) {
+                    for (int k = 0; k < X2.rows(); k++) {
+                        tmp(j, k) = abs(X1.col(i)(j) - X2.col(i)(k));
+                    }
+                }
+                D.push_back(tmp);
+
+            }
+        }
         TMatrix pnorm(const TMatrix& X) {
             // 0.5*(1+erf(x/sqrt(2)))
             TMatrix P = Eigen::erf(X.array() / sqrt(2.0));
@@ -85,7 +98,15 @@ namespace fdml::utilities {
     }
 
     namespace operations {
-                
+        
+        const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
+        template <typename Derived>
+        void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
+        {
+            std::ofstream file(name.c_str());
+            file << matrix.format(CSVFormat);
+        }
+        
         // Print
         void cursor_position(int x,int y)    
         {
@@ -358,15 +379,25 @@ namespace fdml::utilities {
         // Random Utilities
         double random_uniform(double a, double b) {
             auto seed = std::random_device{}();
-            std::mt19937_64 gen_primitive(seed);
+            std::mt19937 gen_primitive(seed);
             std::uniform_real_distribution<> uniform_dist(a, b);
             return uniform_dist(gen_primitive);
         }
         double random_uniform() {
             auto seed = std::random_device{}();
-            std::mt19937_64 gen_primitive(seed);
+            std::mt19937 gen_primitive(seed);
             std::uniform_real_distribution<> uniform_dist;
             return uniform_dist(gen_primitive);
+        }
+        TMatrix gen_normal_matrix(Eigen::Index n_rows, Eigen::Index n_samples) {
+            std::normal_distribution<double> normal_sampler{ 0,1 };
+            TMatrix norm_matrix = TMatrix::Zero(n_rows, n_samples);
+            auto seed = std::random_device{}();
+            std::mt19937 gen_primitive(seed);
+            operations::visit_lambda(norm_matrix, 
+                [&norm_matrix, &normal_sampler, &gen_primitive](double v, int i, int j)                
+                {norm_matrix(i, j) = normal_sampler(gen_primitive); });
+            return norm_matrix;
         }
         // Taken from: https://stackoverflow.com/a/40245513
         struct MVN
@@ -381,7 +412,7 @@ namespace fdml::utilities {
             {
                 // auto seed = std::random_device{}();
                 // std::default_random_engine gen_primitive(seed);
-                thread_local std::mt19937_64 gen_primitive(std::random_device{}());
+                thread_local std::mt19937 gen_primitive(std::random_device{}());
                 std::normal_distribution<> dist;
                 // NumpyNormal generator;
                 return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {
@@ -392,7 +423,6 @@ namespace fdml::utilities {
             TVector mean;
             TMatrix transform;
         };
-
     }
 
     namespace kernelpca {
