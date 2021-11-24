@@ -1,3 +1,5 @@
+// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
 #include <fdml/base_models.h>
@@ -40,7 +42,7 @@ enum TKernel { TSquaredExponential, TMatern52 };
 // Move to optimizers.h
 enum TSolver { TLBFGSB, TPSO, TCG, TRprop };
 
-enum TLayer { TInput, TInputConnected, THidden, TObserved, TUnchanged };
+enum State { Input, InputConnected, Hidden, Observed, Unchanged };
 enum Task { Init, Train, LinkedPredict };
 using KernelPtr = std::shared_ptr<Kernel>;
 using SolverPtr = std::shared_ptr<Solver>;
@@ -126,12 +128,12 @@ public:
 //
 class Node : public GP {
 private:
-	Node& evalK(bool with_scale = true) {
+	Node&   evalK(bool with_scale = true) {
 		K = kernel->K(inputs, inputs, likelihood_variance.value());
 		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
-	Node& evalK(const TMatrix& X, bool with_scale = true) {
+	Node&   evalK(const TMatrix& X, bool with_scale = true) {
 		TMatrix tmp(inputs.rows(), inputs.cols() + X.cols());
 		tmp << inputs, X;
 		K.noalias() = kernel->K(tmp, tmp, likelihood_variance.value());
@@ -147,25 +149,63 @@ private:
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
 	}
-	double log_likelihood() {
+	TVector gradients() override {
+		auto log_prior_gradient = [=]() {
+			// Gamma Distribution
+			// self.gfod = lambda x : (self.prior_coef[0] - 1) - self.prior_coef[1] * x
+			const double shape = 1.6;
+			const double rate = 0.3;
+			TVector lpg;
+			if (!(*kernel->length_scale.is_fixed)) {
+				lpg = (shape - 1.0) - (rate * kernel->length_scale.value().array()).array();
+			}
+			if (!(*likelihood_variance.is_fixed)) {
+				lpg.conservativeResize(lpg.size() + 1);
+				lpg.tail(1)(0) = (shape - 1.0) - (rate * likelihood_variance.value());
+			}
+			return lpg;
+		};
+		std::vector<TMatrix> grad_;
+		kernel->gradients(inputs, grad_);
+		TVector grad = TVector::Zero(grad_.size());
+		for (int i = 0; i < grad_.size(); ++i) {
+			TMatrix KKT = chol.solve(grad_[i]);
+			double trace = KKT.trace();
+			double YKKT = (outputs.transpose() * KKT * alpha).coeff(0);
+			double P1 = -0.5 * trace;
+			double P2 = 0.5 * YKKT;
+			grad[i] = -P1 - (P2 / scale.value());
+		}
+		// TODO: Add likelihood_variance/nugget gradient
+		grad -= log_prior_gradient();
+		return grad;
+	}
+	TVector get_params() override {
+		TVector params = kernel->get_params();
+		if (!(*likelihood_variance.is_fixed)) {
+			likelihood_variance.transform_value();
+			params.conservativeResize(params.rows() + 1);
+			params.tail(1)(0) = likelihood_variance.value();
+		}
+		return params;
+	}
+	double  log_likelihood() {
 		chol = K.llt();
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
 		double quad = (outputs.array() * (chol.solve(outputs)).array()).sum();
 		double lml = -0.5 * (logdet + quad);
 		return lml;
 	}
-	double log_marginal_likelihood() override {
+	double  log_marginal_likelihood() override {
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
 		double YKinvY = (outputs.transpose() * alpha)(0);
 		double NLL = 0.0;
-		if (*scale.is_fixed) { 
-			NLL = 0.5 * (logdet + (YKinvY/scale.value()));
-		}
-		else { NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value()))); }
+		if (*scale.is_fixed) NLL = 0.5 * (logdet + (YKinvY/scale.value()));
+		else NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value())));		
 		NLL -= log_prior();
 		return NLL;
 	}
-	double log_prior() {
+	double  log_prior() {
 		// Gamma Distribution
 		// self.g = lambda x : (self.prior_coef[0] - 1) * np.log(x) - self.prior_coef[1] * x			
 		const double shape = 1.6;
@@ -179,7 +219,13 @@ private:
 		}
 		return lp;
 	}
-	void get_bounds(TVector& lower, TVector& upper) {
+	void    set_params(const TVector& new_params) override
+	{
+		kernel->set_params(new_params);
+		if (!(*likelihood_variance.is_fixed)) likelihood_variance.transform_value(new_params.tail(1)(0));
+		update_cholesky();
+	}
+	void    get_bounds(TVector& lower, TVector& upper) {
 		kernel->get_bounds(lower, upper);
 
 		if (!(*likelihood_variance.is_fixed)) {
@@ -189,7 +235,7 @@ private:
 			upper.tail(1)(0) = likelihood_variance.get_bounds().second;
 		}
 	}
-	void train() override {
+	void    train() override {
 		TVector lower_bound, upper_bound;
 		get_bounds(lower_bound, upper_bound);
 		TVector theta = get_params();
@@ -213,74 +259,23 @@ private:
 			history.push_back(params);
 		}
 	}
-	TVector gradients() override {
-		auto log_prior_gradient = [=]() {
-			// Gamma Distribution
-			// self.gfod = lambda x : (self.prior_coef[0] - 1) - self.prior_coef[1] * x
-			const double shape = 1.6;
-			const double rate = 0.3;
-			TVector lpg;
-			if (!(*kernel->length_scale.is_fixed)) {
-				lpg = (shape - 1.0) - (rate * kernel->length_scale.value().array()).array();
-			}
-			if (!(*likelihood_variance.is_fixed)) {
-				lpg.conservativeResize(lpg.size() + 1);
-				lpg.tail(1)(0) = (shape - 1.0) - (rate * likelihood_variance.value());
-			}
-			return lpg;
-		};
-		std::vector<TMatrix> grad_;
-		if (alpha.size() == 0) { update_cholesky(); }
-		// Kernel Derivatives
-		kernel->gradients(inputs, grad_);
-		TVector grad = TVector::Zero(grad_.size());
-		for (int i = 0; i < grad_.size(); ++i) {
-			TMatrix KKT = chol.solve(grad_[i]);
-			double trace = KKT.trace();
-			double YKKT = (outputs.transpose() * KKT * alpha).coeff(0);
-			double P1 = -0.5 * trace;
-			double P2 = 0.5 * YKKT;
-			//if (*scale.is_fixed) grad[i] = -P1 - P2;
-			//else grad[i] = -P1 - (P2 / scale.value());
-			grad[i] = -P1 - (P2 / scale.value());
-			//if (!(*scale.is_fixed)) {
-			//	grad[i] = -P1 - (P2 / scale.value());
-			//}
-			//else {
-			//	grad[i] = -P1 - P2;
-			//}
-		}
-		// Add likelihood_variance/nugget gradient
-		grad -= log_prior_gradient();
-		return grad;
-	}
-	void set_params(const TVector& new_params) override
-	{
-		kernel->set_params(new_params);
-		if (!(*likelihood_variance.is_fixed)) likelihood_variance.transform_value(new_params.tail(1)(0));
+	void    predict(const TMatrix& X, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
+		//MatrixPair predict(const TMatrix& X)
+		//{
+		//	update_cholesky();
+		//	TMatrix Ks = kernel->K(inputs, X);
+		//	TMatrix Kss = kernel->diag(X);
+		//	TMatrix V = chol.solve(Ks);
+		//	return std::make_pair(Ks.transpose() * alpha, abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array())));
+		//}
 		update_cholesky();
-	}
-	TVector get_params() override {
-		TVector params = kernel->get_params();
-		if (!(*likelihood_variance.is_fixed)) {
-			likelihood_variance.transform_value();
-			params.conservativeResize(params.rows() + 1);
-			params.tail(1)(0) = likelihood_variance.value();
-		}
-		return params;
-	}
-	MatrixPair predict(const TMatrix& X)
-	{
-		update_cholesky();
-		TMatrix Ks(inputs.rows(), X.rows());
-		Ks.noalias() = kernel->K(inputs, X);
-		TMatrix mu = Ks.transpose() * alpha;
+		TMatrix Ks = kernel->K(inputs, X);
 		TMatrix Kss = kernel->diag(X);
 		TMatrix V = chol.solve(Ks);
-		TMatrix var = abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array()));
-		return std::make_pair(mu, var);
+		latent_mu = Ks.transpose() * alpha;
+		latent_var = abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array()));
 	}
-	void linked_predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
+	void    predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 
 		update_cholesky();
 		const Eigen::Index nrows = linked.first.rows();
@@ -294,7 +289,6 @@ private:
 				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
 				latent_mu[i] = (Ialpha);
 				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
-
 			}
 		}
 		else {
@@ -327,7 +321,7 @@ private:
 	}
 
 public:
-	Node(double likelihood_variance = 1E-9) : GP(likelihood_variance) {}
+	Node(double likelihood_variance = 1E-8) : GP(likelihood_variance) {}
 	void set_kernel(const KernelPtr& rkernel) {
 		kernel = std::move(rkernel);
 	}
@@ -352,31 +346,31 @@ private:
 		}
 		return h;
 	}
-	void update_cholesky() {
+	void    update_cholesky() {
 		K = kernel->K(inputs, inputs, likelihood_variance.value());
 		chol = K.llt();
 		alpha = chol.solve(outputs);
-		// scale is not considered a variable in optimization, it is directly linked to chol
-		if (!(*scale.is_fixed)) {
-			scale = (outputs.transpose() * alpha)(0) / outputs.rows();
-		}
+		 //scale is not considered a variable in optimization, it is directly linked to chol
+		if (*scale.is_fixed) return;
+		else scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 	}
 public:
-	Parameter<double> scale = { "scale", 1.0, "none" };
 	bool store_parameters = true;
 	std::vector<TVector> history;
+	Parameter<double> scale = { "scale", 1.0, "none" };
 
 private:
-	TLayer   cstate;
+	State    cstate;
 	TVector  alpha;
 	TLLT	 chol;
 	TMatrix	 K;
+	TMatrix	 Ktmp;
 };
 
 class Layer {
 public:
 	Layer() = default;
-	Layer(const TLayer& layer_state, const unsigned int& n_nodes) : cstate(layer_state), n_nodes(n_nodes) {
+	Layer(const State& layer_state, const unsigned int& n_nodes) : cstate(layer_state), n_nodes(n_nodes) {
 		m_nodes.resize(n_nodes);
 		for (unsigned int nn = 0; nn < n_nodes; ++nn) {
 			m_nodes[nn] = Node();
@@ -384,7 +378,7 @@ public:
 	}
 
 	void set_input(const TMatrix& input) {
-		if (cstate == TLayer::TInput) {
+		if (cstate == State::Input) {
 			observed_input.noalias() = input;
 			set_output(input);
 		}
@@ -402,14 +396,14 @@ public:
 	void set_output(const TMatrix& output) {
 
 		if (!locked) {
-			if (cstate == TLayer::THidden) 
+			if (cstate == State::Hidden) 
 			{
-				ostate = TLayer::TObserved;
+				ostate = State::Observed;
 				std::swap(cstate, ostate);
 			}
 		}
 
-		if (cstate == TLayer::TObserved) observed_output.noalias() = output;
+		if (cstate == State::Observed) observed_output.noalias() = output;
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->outputs = output.col(nn - m_nodes.begin());
 			nn->cstate = cstate;
@@ -417,11 +411,11 @@ public:
 	}
 
 	TMatrix get_input() {
-		if (cstate == TLayer::TInput) return observed_input;
+		if (cstate == State::Input) return observed_input;
 		else return m_nodes[0].inputs;
 	}
 	TMatrix get_output() {
-		if (cstate == TLayer::TObserved) return observed_output;
+		if (cstate == State::Observed) return observed_output;
 		else {
 			TMatrix output(m_nodes[0].outputs.rows(), static_cast<Eigen::Index>(n_nodes));
 			for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
@@ -502,8 +496,6 @@ public:
 		n_nodes -= xnodes;
 	}
 	//
-
-
 private:
 	void train() {
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
@@ -512,15 +504,23 @@ private:
 		}
 	}
 	void predict(const TMatrix& X) {
-		TMatrix node_mu(X.rows(), static_cast<Eigen::Index>(n_nodes));
-		TMatrix node_var(X.rows(), static_cast<Eigen::Index>(n_nodes));
-		for (Eigen::Index i = 0; i < n_nodes; ++i)
-		{
-			MatrixPair pred = m_nodes[i].predict(X);
-			node_mu.block(0, i, X.rows(), 1) = pred.first;
-			node_var.block(0, i, X.rows(), 1) = pred.second;
+		latent_output = std::make_pair(
+			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)),
+			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)));
+		
+		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
+			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
+			node->predict(X, latent_output.first.col(cc), latent_output.second.col(cc));
 		}
-		latent_output = std::make_pair(node_mu, node_var);
+		//TMatrix node_mu(X.rows(), static_cast<Eigen::Index>(n_nodes));
+		//TMatrix node_var(X.rows(), static_cast<Eigen::Index>(n_nodes));
+		//for (Eigen::Index i = 0; i < n_nodes; ++i)
+		//{
+		//	MatrixPair pred = m_nodes[i].predict(X);
+		//	node_mu.block(0, i, X.rows(), 1) = pred.first;
+		//	node_var.block(0, i, X.rows(), 1) = pred.second;
+		//}
+		//latent_output = std::make_pair(node_mu, node_var);
 	}
 	void predict(const MatrixPair& linked) {
 		latent_output = std::make_pair(
@@ -529,24 +529,25 @@ private:
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->n_thread = n_thread;
-			node->linked_predict(linked, latent_output.first.col(cc), latent_output.second.col(cc));
+			node->predict(linked, latent_output.first.col(cc), latent_output.second.col(cc));
 		}
 	}
 	void connect(const TMatrix& Ginput) {
 		if (locked) throw std::runtime_error("Layer Locked");
-		if (cstate != TLayer::TInputConnected)
+		if (cstate != State::InputConnected)
 		{
-			ostate = TLayer::TInputConnected;
+			ostate = State::InputConnected;
 			std::swap(cstate, ostate);
 		}
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			if (nn->kernel->length_scale.value().size() > 1) throw std::runtime_error("Input Connections Only Available with Non ARD");
 			nn->cstate = cstate;
 		}
 		observed_input = Ginput;
 	}
 	Layer& evalK(bool with_scale = true) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
-			if (cstate == TLayer::TInputConnected) nn->evalK(observed_input, with_scale);
+			if (cstate == State::InputConnected) nn->evalK(observed_input, with_scale);
 			else nn->evalK(with_scale);
 		}
 		return *this;
@@ -578,11 +579,11 @@ private:
 		}
 	}
 public:
-	TLayer cstate; // Current Layer State
+	State cstate; // Current Layer State
 	unsigned int n_nodes;
 private:
 	std::vector<Node> m_nodes;
-	TLayer ostate = TLayer::TUnchanged; // Old Layer State;
+	State ostate = State::Unchanged; // Old Layer State;
 	bool locked = false;
 	unsigned int n_thread = 1;
 	TMatrix observed_input;
@@ -604,15 +605,15 @@ struct Graph {
 		m_layers.resize(n_layers);
 		for (unsigned int ll = 0; ll < n_layers; ++ll) {
 			if (ll == 0) {
-				m_layers[ll] = Layer(TLayer::TInput, n_nodes);
+				m_layers[ll] = Layer(State::Input, n_nodes);
 				m_layers[ll].set_input(data.first);
 			}
 			else if (ll == n_layers - 1) {
-				m_layers[ll] = Layer(TLayer::TObserved, static_cast<int>(data.second.cols()));
+				m_layers[ll] = Layer(State::Observed, static_cast<int>(data.second.cols()));
 				m_layers[ll].set_output(data.second);
 			}
 			else {
-				m_layers[ll] = Layer(TLayer::THidden, n_nodes);
+				m_layers[ll] = Layer(State::Hidden, n_nodes);
 			}
 		}
 	}
@@ -635,7 +636,7 @@ struct Graph {
 		return nit;
 	}
 	void connect_inputs(const std::size_t& layer_idx) {
-		if (layer(layer_idx)->cstate == TLayer::TInput) throw std::runtime_error("Invalid Connection: InputLayer");
+		if (layer(layer_idx)->cstate == State::Input) throw std::runtime_error("Invalid Connection: InputLayer");
 		m_layers[layer_idx].connect(m_layers[0].observed_input);
 	}
 
@@ -718,11 +719,11 @@ private:
 		double log_y, theta, theta_min, theta_max;
 		for (unsigned int nb = 0; nb < n_burn; ++nb) {
 			for (std::vector<Layer>::iterator cl = graph.m_layers.begin(); cl != graph.m_layers.end() - 1; ++cl) {
-				if (cl->cstate == TLayer::TObserved) continue; // missingness
+				if (cl->cstate == State::Observed) continue; // TODO: missingness
 				auto linked_layer = std::next(cl);
 				for (std::vector<Node>::iterator cn = cl->m_nodes.begin(); cn != cl->m_nodes.end(); ++cn) {
 					TMatrix nu(cn->inputs.rows(), 1);
-					if (cl->cstate == TLayer::TInputConnected) nu = cn->evalK(cl->observed_input).sample_mvn();
+					if (cl->cstate == State::InputConnected) nu = cn->evalK(cl->observed_input).sample_mvn();
 					else nu = cn->evalK().sample_mvn();
 					log_y = linked_layer->evalK().log_likelihood() + log(rand_u(0.0, 1.0));
 					//
@@ -761,7 +762,7 @@ public:
 		sample(10);
 	}
 
-	void train(int n_iter = 50, int ess_burn = 10) {
+	void train(int n_iter = 50, int ess_burn = 10, Eigen::Index n_burn = 0) {
 		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
 		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
@@ -780,8 +781,7 @@ public:
 		std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
 		std::cout << "END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
 		std::cout << std::endl;
-	}
-	void estimate(Eigen::Index n_burn = 0) {
+		// Estimate Parameters
 		if (n_burn == 0) n_burn = std::size_t(0.75 * train_iter);
 		else if (n_burn > train_iter) throw std::runtime_error("n_burn > train_iter");
 		for (std::vector<Layer>::iterator layer = graph.m_layers.begin(); layer != graph.m_layers.end(); ++layer) {
@@ -861,6 +861,8 @@ public:
 	unsigned int verbosity = 1;
 };
 
+
+
 void engine() {
 	TMatrix X_train = read_data("../datasets/engine/X_train.txt");
 	TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
@@ -873,7 +875,6 @@ void engine() {
 	}
 	SIDGP model(graph);
 	model.train(100, 10);
-	model.estimate();
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;	
@@ -907,7 +908,6 @@ void analytic2(std::string exp) {
 
 	SIDGP model(graph);
 	model.train(100, 10);
-    model.estimate();
     plot(X_plot, exp, model);
     std::cout << "================= MCS ================" << std::endl;
     MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
@@ -923,10 +923,10 @@ void analytic2(std::string exp) {
 }
 
 int main() {
-	for (unsigned int i = 12; i < 21; ++i) {
+	for (unsigned int i = 13; i < 21; ++i) {
 		std::cout << "================= EXP " << i << " " << "================" << std::endl;
 		analytic2(std::to_string(i));
 	}
-	// engine();
+	engine();
 	return 0;
 }
