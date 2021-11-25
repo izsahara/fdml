@@ -969,7 +969,7 @@ void analytic2(std::string exp) {
 
 	SIDGP model(graph);
 	model.train(100, 10);
-    plot(X_plot, exp, model);
+    // plot(X_plot, exp, model);
     std::cout << "================= MCS ================" << std::endl;
     MatrixPair Z = model.predict(X_test, Y_test, 75, 300);
     TMatrix Zmcs = Z.first;
@@ -1014,7 +1014,7 @@ int main() {
 	// 	analytic2(std::to_string(i));
 	// }
 	// engine();
-	nrel("Anch1Ten");
+	// nrel("Anch1Ten");
 	analytic2("1");
 	return 0;
 }
