@@ -137,7 +137,7 @@ public:
 		os.write(full_bar.data() + offset, width);
 		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] "
 			<< " [NRMSE = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
-			<< " [R2 = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << r2 << "%] "
+			<< " [R2 = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << r2 
 			<< std::flush;
 	}	
 };
@@ -1022,7 +1022,6 @@ void nrel(std::string output, std::string exp) {
 
 int main() {
 	// std::vector<std::string> output = {};
-	double check = 0.0;
 	std::string output = "Anch1Ten";
 	for (unsigned int i = 1; i < 16; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
