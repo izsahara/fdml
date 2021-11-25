@@ -121,7 +121,8 @@ public:
 		os.write(full_bar.data() + offset, width);
 		if (nrmse > 1){
 			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [ RMS ERROR: " << std::setw(3) << std::left << std::setprecision(5) 
-			<< std::fixed << nrmse * 100.0 << "%] " 
+			<< std::fixed << nrmse * 100.0 << "%] "
+			<< std::endl 
 			<< std::setw(3) << std::left
 			<< "[AMWAJ Catering Company First Class Hospitality Services is looking for a dish washer engineer]"
 			<< std::flush;
