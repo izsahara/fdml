@@ -884,6 +884,10 @@ public:
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
 		graph.n_thread = n_thread;
 		graph.check_connected(X);
+		//
+		std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + exp + "-M.dat";
+		std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + exp + "-V.dat";
+		//
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
 			graph.layer(0)->predict(X);
@@ -891,6 +895,10 @@ public:
 			MatrixPair output = graph.layer(-1)->latent_output;
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			//
+			write_data(Zmcs_path, mean);
+			write_data(Zvcs_path, var);					
+			//
 			TVector tmp_mu = mean.array() / double(i);
 			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
 			pred_prog->write((double(i) / double(n_impute)), nrmse);
@@ -976,11 +984,11 @@ void analytic2(std::string exp) {
 }
 
 void nrel(std::string exp) {
-	TMatrix X_train = read_data("../datasets/nrel/250/X_train.dat");
-	TMatrix X_test = read_data("../datasets/nrel/250/X_test.dat");
+	TMatrix X_train = read_data("../datasets/nrel/75/X_train.dat");
+	TMatrix X_test = read_data("../datasets/nrel/75/X_test.dat");
 
-	TMatrix Y_train = read_data("../datasets/nrel/250/TR-Anch1Ten.dat");
-	TMatrix Y_test = read_data("../datasets/nrel/250/TS-Anch1Ten.dat");
+	TMatrix Y_train = read_data("../datasets/nrel/75/TR-Anch1Ten.dat");
+	TMatrix Y_test = read_data("../datasets/nrel/75/TS-Anch1Ten.dat");
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
@@ -992,10 +1000,10 @@ void nrel(std::string exp) {
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
-	std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-M.dat";
-    std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-V.dat";
-    write_data(Zmcs_path, mean);
-    write_data(Zvcs_path, var);
+	// std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-M.dat";
+    // std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-V.dat";
+    // write_data(Zmcs_path, mean);
+    // write_data(Zvcs_path, var);
 	double nrmse = rmse(Y_test, mean) / (Y_test.maxCoeff() - Y_test.minCoeff());
 	std::cout << "NRMSE = " << nrmse << std::endl;
 }
