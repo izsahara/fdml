@@ -1010,8 +1010,8 @@ void nrel(std::string output, std::string exp) {
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
-	std::string m_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + output + "/" + exp + "-M.dat";
-    std::string v_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + output + "/" + exp + "-V.dat";
+	std::string m_path = "../results/nrel/75/" + output + "/" + exp + "-M.dat";
+    std::string v_path = "../results/nrel/75/" + output + "/" + exp + "-V.dat";
     write_data(m_path, mean);
     write_data(v_path, var);
 	double nrmse = metrics::rmse(Y_test, mean, true);
