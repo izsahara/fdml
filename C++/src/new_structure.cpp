@@ -897,7 +897,7 @@ public:
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			//
 			write_data(Zmcs_path, mean);
-			write_data(Zvcs_path, var);					
+			write_data(Zvcs_path, variance);					
 			//
 			TVector tmp_mu = mean.array() / double(i);
 			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
