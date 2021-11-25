@@ -34,8 +34,13 @@ namespace fdml::utilities {
             X = (Xmean).array().rowwise() / (((Xmean).array().square().colwise().sum()) / ((Xmean).rows())).sqrt();
         }
         // Error
-        double rmse(TMatrix& Ypred, const TMatrix& Ytrue) {
-            return sqrt((Ypred - Ytrue).array().square().sum() / Ytrue.rows());
+        double rmse(TMatrix& Ypred, const TMatrix& Ytrue, bool normalized = false) {
+            double res = sqrt((Ypred - Ytrue).array().square().sum() / Ytrue.rows());
+            if (normalized) return res / (Ytrue.maxCoeff() - Ytrue.minCoeff());
+            else return res;
+        }
+        double r2_score(Eigen::Ref<TVector> ytrue, Eigen::Ref<TVector> ypred) {
+            return 1.0 - (((ytrue - ypred).array().square().sum()) / ((ytrue.array() - ytrue.array().mean()).square().sum()));
         }
         // Distance
         void euclidean_distance(const TMatrix& X1, const TMatrix& X2, TMatrix& D, bool squared = false) {

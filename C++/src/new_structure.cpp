@@ -123,6 +123,23 @@ public:
 		
 
 	}
+	void write(double fraction, double nrmse, double r2) {
+		// clamp fraction to valid range [0,1]
+		if (fraction < 0)
+			fraction = 0;
+		else if (fraction > 1)
+			fraction = 1;
+
+		auto width = bar_width - message.size();
+		auto offset = bar_width - static_cast<unsigned>(width * fraction);
+
+		os << '\r' << message;
+		os.write(full_bar.data() + offset, width);
+		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] "
+			<< " [NRMSE = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
+			<< " [R2 = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << r2 << "%] "
+			<< std::flush;
+	}	
 };
 
 //
@@ -892,8 +909,9 @@ public:
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
-			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
-			pred_prog->write((double(i) / double(n_impute)), nrmse);
+			double nrmse = metrics::rmse(Yref, tmp_mu, true);
+			double r2 = metrics::r2_score(Yref, tmp_mu);
+			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
 
@@ -907,49 +925,6 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
-	MatrixPair predict(const TMatrix& X, TMatrix& Yref, std::string exp, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		sample(50);
-		TMatrix mean = TMatrix::Zero(X.rows(), 1);
-		TMatrix variance = TMatrix::Zero(X.rows(), 1);
-		std::vector<MatrixPair> predictions;
-
-		auto pred_start = std::chrono::system_clock::now();
-		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
-		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
-		graph.n_thread = n_thread;
-		graph.check_connected(X);
-		//
-		std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + exp + "-M.dat";
-		std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + exp + "-V.dat";
-		//
-		for (int i = 0; i < n_impute; ++i) {
-			sample();
-			graph.layer(0)->predict(X);
-			graph.propagate(Task::LinkedPredict);
-			MatrixPair output = graph.layer(-1)->latent_output;
-			mean.noalias() += output.first;
-			variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			//
-			write_data(Zmcs_path, mean);
-			write_data(Zvcs_path, variance);					
-			//
-			TVector tmp_mu = mean.array() / double(i);
-			double nrmse = metrics::rmse(Yref, tmp_mu) / (Yref.maxCoeff() - Yref.minCoeff());
-			pred_prog->write((double(i) / double(n_impute)), nrmse);
-		}
-		delete pred_prog;
-
-		auto pred_end = std::chrono::system_clock::now();
-		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
-		std::cout << std::endl;
-		mean.array() /= double(n_impute);
-		variance.array() /= double(n_impute);
-		variance.array() -= square(mean.array());
-
-		return std::make_pair(mean, variance);
-	}	
 
 public:
 	Graph graph;
@@ -975,7 +950,6 @@ void engine() {
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;	
 }
-
 void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     std::cout << "================ PLOT ================" << std::endl;
     MatrixPair Zplot = model.predict(X_plot, 100, 300);
@@ -986,7 +960,6 @@ void plot(const TMatrix& X_plot, std::string& exp, SIDGP& model) {
     write_data(Zpm_path, Zpm);
     write_data(Zpv_path, Zpv);
 }
-
 void analytic2(std::string exp) {
 	TMatrix X_train = read_data("../datasets/analytic2/X_train.dat");
 	TMatrix Y_train = read_data("../datasets/analytic2/Y_train.dat");
@@ -1018,12 +991,14 @@ void analytic2(std::string exp) {
     std::cout << "NRMSE = " << nrmse << std::endl;    
 }
 
-void nrel(std::string exp) {
+void nrel(std::string output, std::string exp) {
 	TMatrix X_train = read_data("../datasets/nrel/75/X_train.dat");
 	TMatrix X_test = read_data("../datasets/nrel/75/X_test.dat");
 
-	TMatrix Y_train = read_data("../datasets/nrel/75/TR-Anch1Ten.dat");
-	TMatrix Y_test = read_data("../datasets/nrel/75/TS-Anch1Ten.dat");
+	std::string train_path = "../datasets/nrel/75/" + output + "/TR-" + output + ".dat";
+	std::string test_path = "../datasets/nrel/75/" + output + "/TS-" + output + ".dat";	
+	TMatrix Y_train = read_data(train_path);
+	TMatrix Y_test = read_data(test_path);
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
@@ -1032,23 +1007,25 @@ void nrel(std::string exp) {
 	}
 	SIDGP model(graph);
 	model.train(100, 10);
-	MatrixPair Z = model.predict(X_test, Y_test, exp, 100, 300);
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
-	// std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-M.dat";
-    // std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-V.dat";
-    // write_data(Zmcs_path, mean);
-    // write_data(Zvcs_path, var);
-	double nrmse = rmse(Y_test, mean) / (Y_test.maxCoeff() - Y_test.minCoeff());
+	std::string m_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + output + "/" + exp + "-M.dat";
+    std::string v_path = "/home/alfaisal/FAIZ/fdml/results/nrel/75/" + output + "/" + exp + "-V.dat";
+    write_data(m_path, mean);
+    write_data(v_path, var);
+	double nrmse = metrics::rmse(Y_test, mean, true);
+	double r2 = metrics::r2_score(Y_test, mean);	
 	std::cout << "NRMSE = " << nrmse << std::endl;
+	std::cout << "R2 = " << r2 << std::endl;
 }
 
 int main() {
-	// for (unsigned int i = 13; i < 21; ++i) {
-	// 	std::cout << "================= EXP " << i << " " << "================" << std::endl;
-	// 	analytic2(std::to_string(i));
-	// }
-	// engine();
-	nrel("Anch1Ten");
+	// std::vector<std::string> output = {};
+	std::string output = "Anch1Ten";
+	for (unsigned int i = 1; i < 16; ++i) {
+		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
+		nrel(output, std::to_string(i));
+	}
 	return 0;
 }
