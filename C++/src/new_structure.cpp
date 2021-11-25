@@ -1022,6 +1022,7 @@ void nrel(std::string output, std::string exp) {
 
 int main() {
 	// std::vector<std::string> output = {};
+	double check = 0.0;
 	std::string output = "Anch1Ten";
 	for (unsigned int i = 1; i < 16; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
