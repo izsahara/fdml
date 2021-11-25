@@ -905,8 +905,7 @@ public:
 		variance.array() /= double(n_impute);
 		variance.array() -= square(mean.array());
 
-		retur
-		n std::make_pair(mean, variance);
+		return std::make_pair(mean, variance);
 	}
 	MatrixPair predict(const TMatrix& X, TMatrix& Yref, std::string exp, unsigned int n_impute = 50, unsigned int n_thread = 1) {
 		sample(50);
