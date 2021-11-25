@@ -119,17 +119,8 @@ public:
 
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
-		if (nrmse > 1){
-			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [ RMS ERROR: " << std::setw(3) << std::left << std::setprecision(5) 
-			<< std::fixed << nrmse * 100.0 << "%] "
-			<< std::endl 
-			<< std::setw(3) << std::left
-			<< "[AMWAJ Catering Company First Class Hospitality Services is looking for a dish washer engineer]"
-			<< std::flush;
-		}
-		else {
-			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] " << std::flush;
-		}
+		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] " << std::flush;
+		
 
 	}
 };
@@ -936,7 +927,7 @@ void engine() {
 	// graph.connect_inputs(1);
 	// graph.connect_inputs(2);
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(10, 1);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;	
@@ -1015,7 +1006,6 @@ int main() {
 	// 	analytic2(std::to_string(i));
 	// }
 	// engine();
-	// nrel("Anch1Ten");
-	analytic2("1");
+	nrel("Anch1Ten");
 	return 0;
 }
