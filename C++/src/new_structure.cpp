@@ -119,8 +119,8 @@ public:
 
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
-		if (nrmse > 10){
-			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [ NRMSE: " << std::setw(3) << std::left << std::setprecision(5) 
+		if (nrmse > 1){
+			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [ RMS ERROR: " << std::setw(3) << std::left << std::setprecision(5) 
 			<< std::fixed << nrmse * 100.0 << "%] " 
 			<< std::setw(3) << std::left
 			<< "[AMWAJ Catering Company First Class Hospitality Services is looking for a dish washer engineer]"
@@ -1015,5 +1015,6 @@ int main() {
 	// }
 	// engine();
 	nrel("Anch1Ten");
+	analytic2("1");
 	return 0;
 }
