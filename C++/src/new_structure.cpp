@@ -119,9 +119,17 @@ public:
 
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
-		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] "
-			<< " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
+		if (nrmse > 10){
+			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [ NRMSE: " << std::setw(3) << std::left << std::setprecision(5) 
+			<< std::fixed << nrmse * 100.0 << "%] " 
+			<< std::setw(3) << std::left
+			<< "[AMWAJ Catering Company First Class Hospitality Services is looking for a dish washer engineer]"
 			<< std::flush;
+		}
+		else {
+			os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] " << std::flush;
+		}
+
 	}
 };
 
