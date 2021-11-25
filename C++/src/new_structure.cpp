@@ -133,9 +133,9 @@ private:
 		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
-	Node&   evalK(const TMatrix& X, bool with_scale = true) {
-		TMatrix tmp(inputs.rows(), inputs.cols() + X.cols());
-		tmp << inputs, X;
+	Node&   evalK(const TMatrix& Xpad, bool with_scale = true) {
+		TMatrix tmp(inputs.rows(), inputs.cols() + Xpad.cols());
+		tmp << inputs, Xpad;
 		K.noalias() = kernel->K(tmp, tmp, likelihood_variance.value());
 		if (with_scale) K.array() *= scale.value();
 		return *this;
@@ -259,15 +259,8 @@ private:
 			history.push_back(params);
 		}
 	}
+	// GP Predict
 	void    predict(const TMatrix& X, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
-		//MatrixPair predict(const TMatrix& X)
-		//{
-		//	update_cholesky();
-		//	TMatrix Ks = kernel->K(inputs, X);
-		//	TMatrix Kss = kernel->diag(X);
-		//	TMatrix V = chol.solve(Ks);
-		//	return std::make_pair(Ks.transpose() * alpha, abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array())));
-		//}
 		update_cholesky();
 		TMatrix Ks = kernel->K(inputs, X);
 		TMatrix Kss = kernel->diag(X);
@@ -275,6 +268,7 @@ private:
 		latent_mu = Ks.transpose() * alpha;
 		latent_var = abs((scale.value() * (Kss - (Ks.transpose() * V).diagonal()).array()));
 	}
+	// Linked Predict (Default)
 	void    predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 
 		update_cholesky();
@@ -319,7 +313,60 @@ private:
 		}
 
 	}
+	// Linked Predict (InputConnected)
+	void    predict(const MatrixPair& XX, const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
+		TMatrix X_train = XX.first;
+		TMatrix X_test  = XX.second;   
+		evalK(X_train, false);
+		chol = K.llt();
+		alpha = chol.solve(outputs);
+		const Eigen::Index nrows = linked.first.rows();
+		kernel->expectations(linked.first, linked.second);
+		if (n_thread == 1) {
+			for (Eigen::Index i = 0; i < nrows; ++i) {
+				TMatrix I = TMatrix::Ones(inputs.rows(), 1);
+				TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
+				kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
+				TMatrix Iz = kernel->K(X_train, X_test.row(i));
+				TMatrix Jz = Iz * Iz.transpose();
+				I.array() *= Iz.array(); J.array() *= Jz.array();
+				double trace = (K.llt().solve(J)).trace();
+				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+				latent_mu[i] = (Ialpha);
+				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+			}
+		}
+		else {
+			Eigen::initParallel(); // /openmp (MSVC) or -fopenmp (GCC) flag
+			thread_pool pool;
+			int split = int(nrows / n_thread);
+			const int remainder = int(nrows) % n_thread;
+			auto task = [=, &X_train, &X_test, &latent_mu, &latent_var](int begin, int end)
+			{
+				for (Eigen::Index i = begin; i < end; ++i) {
+					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
+					TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
+					kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
+					TMatrix Iz = kernel->K(X_train, X_test.row(i));
+					TMatrix Jz = Iz * Iz.transpose();
+					I.array() *= Iz.array(); J.array() *= Jz.array();
+					double trace = (K.llt().solve(J)).trace();
+					double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+					latent_mu[i] = (Ialpha);
+					latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+				}
+			};
+			for (int s = 0; s < n_thread; ++s) {
+				pool.push_task(task, int(s * split), int(s * split) + split);
+			}
+			pool.wait_for_tasks();
+			if (remainder > 0) {
+				task(nrows - remainder, nrows);
+			}
+			pool.reset();
+		}
 
+	}
 public:
 	Node(double likelihood_variance = 1E-8) : GP(likelihood_variance) {}
 	void set_kernel(const KernelPtr& rkernel) {
@@ -364,7 +411,6 @@ private:
 	TVector  alpha;
 	TLLT	 chol;
 	TMatrix	 K;
-	TMatrix	 Ktmp;
 };
 
 class Layer {
@@ -403,7 +449,8 @@ public:
 			}
 		}
 
-		if (cstate == State::Observed) observed_output.noalias() = output;
+		if (cstate == State::Observed) 
+			observed_output.noalias() = output;
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->outputs = output.col(nn - m_nodes.begin());
 			nn->cstate = cstate;
@@ -503,7 +550,8 @@ private:
 			node->train();
 		}
 	}
-	void predict(const TMatrix& X) {
+	void predict(const TMatrix& X, bool store = false) {
+		if (store) Xtmp.noalias() = X;
 		latent_output = std::make_pair(
 			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)),
 			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)));
@@ -512,15 +560,6 @@ private:
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->predict(X, latent_output.first.col(cc), latent_output.second.col(cc));
 		}
-		//TMatrix node_mu(X.rows(), static_cast<Eigen::Index>(n_nodes));
-		//TMatrix node_var(X.rows(), static_cast<Eigen::Index>(n_nodes));
-		//for (Eigen::Index i = 0; i < n_nodes; ++i)
-		//{
-		//	MatrixPair pred = m_nodes[i].predict(X);
-		//	node_mu.block(0, i, X.rows(), 1) = pred.first;
-		//	node_var.block(0, i, X.rows(), 1) = pred.second;
-		//}
-		//latent_output = std::make_pair(node_mu, node_var);
 	}
 	void predict(const MatrixPair& linked) {
 		latent_output = std::make_pair(
@@ -529,7 +568,14 @@ private:
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->n_thread = n_thread;
-			node->predict(linked, latent_output.first.col(cc), latent_output.second.col(cc));
+			if (cstate == State::InputConnected)  
+				node->predict(std::make_pair(observed_input, Xtmp), 
+							  linked, latent_output.first.col(cc), 
+							  latent_output.second.col(cc));
+			else 
+				node->predict(linked, 
+							  latent_output.first.col(cc), 
+							  latent_output.second.col(cc));
 		}
 	}
 	void connect(const TMatrix& Ginput) {
@@ -586,6 +632,7 @@ private:
 	State ostate = State::Unchanged; // Old Layer State;
 	bool locked = false;
 	unsigned int n_thread = 1;
+	TMatrix Xtmp;
 	TMatrix observed_input;
 	TMatrix observed_output;
 	MatrixPair latent_output;
@@ -642,6 +689,11 @@ struct Graph {
 
 private:
 	std::vector<Layer> m_layers;
+	void check_connected(const TMatrix& X) {
+		for (std::vector<Layer>::iterator cp = m_layers.begin() + 1; cp != m_layers.end(); ++cp) {
+			if (cp->cstate == State::InputConnected) cp->Xtmp = X;
+		}
+	}
 
 	void lock() {
 		for (std::vector<Layer>::iterator ll = m_layers.begin(); ll != m_layers.end(); ++ll) {
@@ -831,6 +883,7 @@ public:
 		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
 		graph.n_thread = n_thread;
+		graph.check_connected(X);
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
 			graph.layer(0)->predict(X);
@@ -861,8 +914,6 @@ public:
 	unsigned int verbosity = 1;
 };
 
-
-
 void engine() {
 	TMatrix X_train = read_data("../datasets/engine/X_train.txt");
 	TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
@@ -873,6 +924,8 @@ void engine() {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
+	// graph.connect_inputs(1);
+	// graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
@@ -922,13 +975,37 @@ void analytic2(std::string exp) {
     std::cout << "NRMSE = " << nrmse << std::endl;    
 }
 
+void nrel(std::string exp) {
+	TMatrix X_train = read_data("../datasets/nrel/250/X_train.dat");
+	TMatrix X_test = read_data("../datasets/nrel/250/X_test.dat");
+
+	TMatrix Y_train = read_data("../datasets/nrel/250/TR-Anch1Ten.dat");
+	TMatrix Y_test = read_data("../datasets/nrel/250/TS-Anch1Ten.dat");
+
+	Graph graph(std::make_pair(X_train, Y_train), 1);
+	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+	}
+	SIDGP model(graph);
+	model.train(100, 10);
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+	TMatrix mean = Z.first;
+	TMatrix var = Z.second;
+	std::string Zmcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-M.dat";
+    std::string Zvcs_path = "/home/alfaisal/FAIZ/fdml/results/nrel/" + exp + "-V.dat";
+    write_data(Zmcs_path, mean);
+    write_data(Zvcs_path, var);
+	double nrmse = rmse(Y_test, mean) / (Y_test.maxCoeff() - Y_test.minCoeff());
+	std::cout << "NRMSE = " << nrmse << std::endl;
+}
+
 int main() {
-	analytic2(std::to_string(11));
-	analytic2(std::to_string(19));
 	// for (unsigned int i = 13; i < 21; ++i) {
 	// 	std::cout << "================= EXP " << i << " " << "================" << std::endl;
 	// 	analytic2(std::to_string(i));
 	// }
 	// engine();
+	nrel("Anch1Ten");
 	return 0;
 }
