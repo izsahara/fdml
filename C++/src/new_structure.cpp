@@ -991,13 +991,13 @@ void nrel(std::string output, std::string exp) {
 	TMatrix Y_train = read_data(train_path);
 	TMatrix Y_test = read_data(test_path);
 
-	Graph graph(std::make_pair(X_train, Y_train), 1);
+	Graph graph(std::make_pair(X_train, Y_train), 2);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		// graph.layer(static_cast<int>(i))->ARD = true;
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
-	graph.layer(1)->remove_nodes(2);
+	graph.layer(2)->remove_nodes(2);
 	SIDGP model(graph);
 	model.train(100, 10);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
