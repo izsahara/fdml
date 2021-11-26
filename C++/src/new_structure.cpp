@@ -509,7 +509,7 @@ public:
 				continue;
 			}
 		}
-	}
+	}	
 	void set_kernels(const TKernel& kernel, TVector& length_scale) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			switch (kernel) {
@@ -993,7 +993,8 @@ void nrel(std::string output, std::string exp) {
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	// graph.layer(1)->remove_nodes(2);
