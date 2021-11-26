@@ -40,7 +40,9 @@ namespace fdml::utilities {
             else return res;
         }
         double r2_score(Eigen::Ref<TVector> ytrue, Eigen::Ref<TVector> ypred) {
-            return 1.0 - (((ytrue - ypred).array().square().sum()) / ((ytrue.array() - ytrue.array().mean()).square().sum()));
+            double res = (ytrue - ypred).array().square().sum();
+            double tss = (ytrue.array() - ytrue.array().mean()).square().sum();
+            return 1.0 - (res / tss);
         }
         // Distance
         void euclidean_distance(const TMatrix& X1, const TMatrix& X2, TMatrix& D, bool squared = false) {
