@@ -931,7 +931,6 @@ void engine() {
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (Eigen::Index i = 0; i < X_train.cols(); ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
-		graph.layer(static_cast<int>(i))->ARD();
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	// graph.connect_inputs(1);
