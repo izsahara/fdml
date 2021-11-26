@@ -1008,7 +1008,7 @@ void nrel(std::string output, std::string exp) {
 	// graph.layer(1)->remove_nodes(3);
 	SIDGP model(graph);
 	model.train(100, 10);
-	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	std::string m_path = "../results/nrel/75/" + output + "/" + exp + "-M.dat";
@@ -1024,7 +1024,7 @@ void nrel(std::string output, std::string exp) {
 int main() {
 	// std::vector<std::string> output = {};
 	std::string output = "Anch1Ten";
-	for (unsigned int i = 1; i < 16; ++i) {
+	for (unsigned int i = 3; i < 16; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 		nrel(output, std::to_string(i));
 	}
