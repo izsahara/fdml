@@ -548,6 +548,11 @@ public:
 			nn->likelihood_variance.fix();
 		}
 	}
+	void fix_scale() {
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			nn->scale.fix();
+		}
+	}	
 	//
 	void add_node(const Node& node) {
 		if (locked) throw std::runtime_error("Layer Locked");
@@ -641,6 +646,7 @@ private:
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			TMatrix history = node->get_parameter_history();
 			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
+			if (*(node->scale.is_fixed)) node->scale.unfix();
 			node->scale = theta.tail(1)(0);
 			node->scale.fix();
 			TVector tmp = theta.head(theta.size() - 1);
@@ -993,13 +999,11 @@ void nrel(std::string output, std::string exp) {
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 	}
-	TVector ls = TVector::Constant(X_train.cols(), 1.0);
-	graph.layer(2)->set_kernels(TKernel::TMatern52, ls);
-	graph.layer(2)->fix_likelihood_variance();	
-	// graph.layer(1)->remove_nodes(2);
+	graph.layer(2)->fix_scale();
 	SIDGP model(graph);
 	model.train(100, 100);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
