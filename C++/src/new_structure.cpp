@@ -608,6 +608,14 @@ private:
 		}
 		observed_input = Ginput;
 	}
+	void ARD() {
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			Eigen::Index ndim = nn->inputs.cols();
+			double val = nn->kernel->length_scale.value();
+			TVector new_ls = TVector::Constant(ndim, val);
+			nn->kernel->length_scale = new_ls;
+		}
+	}	
 	Layer& evalK(bool with_scale = true) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			if (cstate == State::InputConnected) nn->evalK(observed_input, with_scale);
@@ -762,22 +770,6 @@ private:
 	TMatrix update_f(const TMatrix& f, const TMatrix& nu, const double& params) {
 		TVector mean = TVector::Zero(f.rows());
 		return ((f - mean).array() * (cos(params))).matrix() + ((nu - mean).array() * (sin(params))).matrix() + mean;
-	}
-	void conditional_mvn(Node& node, TMatrix& mu, TMatrix& var) {
-		//TMatrix X1 = operations::mask_matrix(node.inputs, node.missing, false, 0);
-		//TMatrix W1 = operations::mask_matrix(node.inputs, node.missing, true, 0);
-		//TMatrix W2 = operations::mask_matrix(node.outputs, node.missing, true, 0);
-		//TMatrix R = node.kernel->K(W1, W1);
-		//TMatrix c = node.kernel->K(X1, X1, node.likelihood_variance.value());
-		//TMatrix r = node.kernel->K(W1, X1);
-		//TLLT chol = R.llt();
-		//TMatrix alpha = chol.solve(r); // Rinv_r = np.linalg.solve(R, r)
-		//TMatrix beta = (r.transpose() * alpha); // r_Rinv_r = r.T @ Rinv_r
-		//TMatrix tmp(alpha.rows(), alpha.cols());
-		//operations::visit_lambda(alpha, [&tmp, &W2](double v, int i, int j) { tmp(i, j) = W2(i) * v; });
-		//mu.resize(alpha.rows(), 1);
-		//mu = tmp.colwise().sum().transpose();
-		//var = (node.kernel->variance.value() * (c - beta)).cwiseAbs();
 	}
 	void sample(unsigned int n_burn = 1) {
 		auto rand_u = [](const double& a, const double& b) {
@@ -940,6 +932,7 @@ void engine() {
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (Eigen::Index i = 0; i < X_train.cols(); ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->ARD();
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	// graph.connect_inputs(1);
@@ -1003,6 +996,7 @@ void nrel(std::string output, std::string exp) {
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->ARD();
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	graph.layer(1)->remove_nodes(2);
