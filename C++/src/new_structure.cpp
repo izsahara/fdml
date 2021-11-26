@@ -997,7 +997,7 @@ void nrel(std::string output, std::string exp) {
 		// graph.layer(static_cast<int>(i))->ARD = true;
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
-	graph.layer(1)->remove_nodes(2);
+	// graph.layer(1)->remove_nodes(2);
 	SIDGP model(graph);
 	model.train(100, 100);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
