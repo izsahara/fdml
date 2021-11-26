@@ -733,8 +733,8 @@ private:
 					}
 					else {
 						kernelpca::KernelPCA pca(cp->n_nodes, "sigmoid");
-						cp->set_input(pca.transform(std::prev(cp)->get_output()));
-						cp->set_output(cp->get_input());
+						cp->set_input(std::prev(cp)->get_output());
+						cp->set_output(pca.transform(std::prev(cp)->get_output()));
 					}
 				}
 				else {
@@ -1024,7 +1024,7 @@ void nrel(std::string output, std::string exp) {
 int main() {
 	// std::vector<std::string> output = {};
 	std::string output = "Anch1Ten";
-	for (unsigned int i = 1; i < 16; ++i) {
+	for (unsigned int i = 1; i < 2; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 		nrel(output, std::to_string(i));
 	}
