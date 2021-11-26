@@ -1001,9 +1001,8 @@ void nrel(std::string output, std::string exp) {
 	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 	}
-	graph.layer(2)->fix_scale();
 	SIDGP model(graph);
 	model.train(100, 100);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
