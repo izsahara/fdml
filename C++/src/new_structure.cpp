@@ -53,7 +53,7 @@ using fdml::optimizers::ConjugateGradient;
 using fdml::optimizers::Rprop;
 
 pcg_extras::seed_seq_from<std::random_device> seed_source;
-static pcg64 rng(1234);
+static pcg64 rng(seed_source);
 // static std::mt19937_64 rng(std::random_device{}());
 
 class ProgressBar
@@ -1010,7 +1010,7 @@ void nrel(std::string output, std::string exp) {
 	graph.layer(2)->set_kernels(TKernel::TMatern52, ols);
 	//
 	SIDGP model(graph);
-	model.train(100, 200);
+	model.train(100, 400);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
@@ -1027,7 +1027,7 @@ void nrel(std::string output, std::string exp) {
 int main() {
 	// std::vector<std::string> output = {};
 	std::string output = "Anch1Ten";
-	for (unsigned int i = 1; i < 2; ++i) {
+	for (unsigned int i = 1; i < 11; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 		nrel(output, std::to_string(i));
 	}
