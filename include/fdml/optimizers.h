@@ -127,8 +127,8 @@ namespace fdml::optimizers {
 		double factr{1e7}; // Machine Precision Factor
 		double gscale = 1.0; // <= 1 used to scale the gradient for explosive functions
 
-		LBFGSB() : Solver(), MM(10) {}
-		LBFGSB(const int& verbosity) : Solver(verbosity), MM(10) {}	
+		LBFGSB() : Solver(), MM(16) {}
+		LBFGSB(const int& verbosity) : Solver(verbosity), MM(16) {}	
 		void solve(TVector& theta, OptimFxn objective, OptimData optdata) override {}
 		void solve(TVector& XX, Problem& problem)  override
 		{
