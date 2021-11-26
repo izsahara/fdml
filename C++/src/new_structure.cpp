@@ -1005,6 +1005,7 @@ void nrel(std::string output, std::string exp) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
+	graph.layer(1)->remove_nodes(3);
 	SIDGP model(graph);
 	model.train(100, 10);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 300);
