@@ -1003,6 +1003,11 @@ void nrel(std::string output, std::string exp) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 	}
+	// Last Layer
+	TVector ols = TVector::Constant(X_train.cols(), 1.0);
+	graph.layer(2)->fix_likelihood_variance();
+	graph.layer(2)->set_kernels(TKernel::TMatern52, ols);
+	//
 	SIDGP model(graph);
 	model.train(100, 100);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
