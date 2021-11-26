@@ -994,7 +994,6 @@ void nrel(std::string output, std::string exp) {
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
-		// graph.layer(static_cast<int>(i))->ARD = true;
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	// graph.layer(1)->remove_nodes(2);
