@@ -542,6 +542,14 @@ public:
 			nn->likelihood_variance.fix();
 		}
 	}
+	void ARD() {
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			Eigen::Index ndim = nn->inputs.cols();
+			double val = nn->kernel->length_scale.value();
+			TVector new_ls = TVector::Constant(ndim, val);
+			nn->kernel->length_scale = new_ls;
+		}
+	}		
 	//
 	void add_node(const Node& node) {
 		if (locked) throw std::runtime_error("Layer Locked");
@@ -608,14 +616,6 @@ private:
 		}
 		observed_input = Ginput;
 	}
-	void ARD() {
-		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
-			Eigen::Index ndim = nn->inputs.cols();
-			double val = nn->kernel->length_scale.value();
-			TVector new_ls = TVector::Constant(ndim, val);
-			nn->kernel->length_scale = new_ls;
-		}
-	}	
 	Layer& evalK(bool with_scale = true) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			if (cstate == State::InputConnected) nn->evalK(observed_input, with_scale);
