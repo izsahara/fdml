@@ -1005,7 +1005,7 @@ void nrel(std::string output, std::string exp) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
-	// graph.layer(1)->remove_nodes(3);
+	graph.layer(1)->remove_nodes(2);
 	SIDGP model(graph);
 	model.train(100, 10);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
@@ -1024,7 +1024,7 @@ void nrel(std::string output, std::string exp) {
 int main() {
 	// std::vector<std::string> output = {};
 	std::string output = "Anch1Ten";
-	for (unsigned int i = 3; i < 16; ++i) {
+	for (unsigned int i = 1; i < 2; ++i) {
 		std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 		nrel(output, std::to_string(i));
 	}
