@@ -545,7 +545,7 @@ public:
 	void ARD() {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			Eigen::Index ndim = nn->inputs.cols();
-			double val = nn->kernel->length_scale.value();
+			double val = nn->kernel->length_scale.value()(0);
 			TVector new_ls = TVector::Constant(ndim, val);
 			nn->kernel->length_scale = new_ls;
 		}
