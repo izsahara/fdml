@@ -125,7 +125,7 @@ namespace fdml::optimizers {
 		unsigned int max_iter{15000};
 		unsigned int max_fun{15000};
 		double factr{1e7}; // Machine Precision Factor
-		double gscale = 1.0; // <= 1 used to scale the gradient for explosive functions
+		double gscale = 0.5; // <= 1 used to scale the gradient for explosive functions
 
 		LBFGSB() : Solver(), MM(10) {}
 		LBFGSB(const int& verbosity) : Solver(verbosity), MM(10) {}	
