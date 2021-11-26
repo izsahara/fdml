@@ -1010,7 +1010,7 @@ void nrel(std::string output, std::string exp) {
 	graph.layer(2)->set_kernels(TKernel::TMatern52, ols);
 	//
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(100, 200);
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
