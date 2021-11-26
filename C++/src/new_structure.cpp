@@ -448,6 +448,12 @@ public:
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->inputs = input;
 			nn->cstate = cstate;
+			if (ARD) {
+				Eigen::Index ndim = input.cols();
+				double val = nn->kernel->length_scale.value()(0);
+				TVector new_ls = TVector::Constant(ndim, val);
+				nn->kernel->length_scale = new_ls;
+			}
 		}
 	}
 	void set_input(const TMatrix& input, const Eigen::Index& col) {
@@ -542,14 +548,6 @@ public:
 			nn->likelihood_variance.fix();
 		}
 	}
-	void ARD() {
-		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
-			Eigen::Index ndim = nn->inputs.cols();
-			double val = nn->kernel->length_scale.value()(0);
-			TVector new_ls = TVector::Constant(ndim, val);
-			nn->kernel->length_scale = new_ls;
-		}
-	}		
 	//
 	void add_node(const Node& node) {
 		if (locked) throw std::runtime_error("Layer Locked");
@@ -652,6 +650,7 @@ private:
 public:
 	State cstate; // Current Layer State
 	unsigned int n_nodes;
+	bool ARD = false;
 private:
 	std::vector<Node> m_nodes;
 	State ostate = State::Unchanged; // Old Layer State;
@@ -996,7 +995,7 @@ void nrel(std::string output, std::string exp) {
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
-		graph.layer(static_cast<int>(i))->ARD();
+		graph.layer(static_cast<int>(i))->ARD = true;
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	graph.layer(1)->remove_nodes(2);
