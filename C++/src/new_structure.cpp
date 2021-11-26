@@ -53,7 +53,7 @@ using fdml::optimizers::ConjugateGradient;
 using fdml::optimizers::Rprop;
 
 pcg_extras::seed_seq_from<std::random_device> seed_source;
-static pcg64 rng(seed_source);
+static pcg64 rng(1234);
 // static std::mt19937_64 rng(std::random_device{}());
 
 class ProgressBar
@@ -998,15 +998,16 @@ void nrel(std::string output, std::string exp) {
 	TMatrix Y_test = read_data(test_path);
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
+	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+		// TVector ls = TVector::Constant(X_train.cols(), 1.0);
+		// graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 	}
 	// Last Layer
 	TVector ols = TVector::Constant(X_train.cols(), 1.0);
 	graph.layer(2)->fix_likelihood_variance();
-	graph.layer(2)->set_kernels(TKernel::TMatern52, ols);
+	graph.layer(2)->set_kernels(TKernel::TMatern52);
 	//
 	SIDGP model(graph);
 	model.train(100, 100);
