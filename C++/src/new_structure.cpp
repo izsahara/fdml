@@ -1081,6 +1081,7 @@ void airfoil(std::string exp) {
 	TMatrix X_train = read_data("../datasets/airfoil/96/Xsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/96/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/96/Xsc_test.dat");
+	TMatrix X_plot = read_data("../datasets/airfoil/96/Xscplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/96/Y_test.dat");
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
@@ -1091,6 +1092,12 @@ void airfoil(std::string exp) {
 	}
 	SIDGP model(graph);
 	model.train(100, 10);
+
+	std::cout << "Plot" << std::endl;
+	MatrixPair Zplot = model.predict(X_plot 100, 192);
+	std::string p_path = "../results/airfoil/96/" + exp + "-P.dat";
+	write_data(p_path, Zplot);
+
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
@@ -1109,7 +1116,7 @@ int main() {
 	//	nrel(output, std::to_string(i));
 	//}
 
-	for (unsigned int i = 1; i < 21; ++i) {
+	for (unsigned int i = 3; i < 7; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i));
 	}

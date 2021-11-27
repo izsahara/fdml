@@ -100,7 +100,7 @@ namespace fdml::optimizers {
 	using Problem = utilities::Problem;	
 
 	struct Solver {
-		int verbosity = 1;	
+		int verbosity = -1;	
 		bool from_optim = false;
 		Solver() = default;
 		Solver(const Solver& solver) {
