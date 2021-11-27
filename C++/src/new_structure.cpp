@@ -906,8 +906,10 @@ public:
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
-			double nrmse = metrics::rmse(scaler.rescale(Yref), scaler.rescale(tmp_mu), true);
-			double r2 = metrics::r2_score(scaler.rescale(Yref), scaler.rescale(tmp_mu));
+			TMatrix reYref = scaler.rescale(Yref);
+			TMatrix reMean = scaler.rescale(tmp_mu);
+			double nrmse = metrics::rmse(reYref, reMean, true);
+			double r2 = metrics::r2_score(reYref, reMean);
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
