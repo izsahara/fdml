@@ -906,10 +906,10 @@ public:
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
-			TMatrix reYref = scaler.rescale(Yref);
-			TMatrix reMean = scaler.rescale(tmp_mu);
-			double nrmse = metrics::rmse(reYref, reMean, true);
-			double r2 = metrics::r2_score(reYref, reMean);
+			// TMatrix reYref = scaler.rescale(Yref);
+			// TMatrix reMean = scaler.rescale(tmp_mu);
+			double nrmse = metrics::rmse(Yref, tmp_mu, true);
+			double r2 = metrics::r2_score(Yref, tmp_mu);
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
@@ -1032,6 +1032,8 @@ void nrel(std::string output, std::string exp) {
 
 	TMatrix resc_mean = scaler4.rescale(mean);
 	TMatrix resc_true = scaler4.rescale(Y_test);
+	std::cout << "(Rescaled) NRMSE = " << metrics::rmse(resc_true, resc_mean, true) << std::endl;
+	std::cout << "(Recaled) R2 = " << metrics::r2_score(resc_true, resc_mean) << std::endl;	
 	std::string rem_path = "../results/nrel/75/" + output + "/" + exp + "-MRE.dat";
 	std::string ret_path = "../results/nrel/75/" + output + "/" + exp + "-TRE.dat";
     write_data(rem_path, resc_mean);
