@@ -989,10 +989,10 @@ void analytic2(std::string exp) {
 }
 
 void nrel(std::string output, std::string exp) {
-	TMatrix Xtrain = read_data("../datasets/nrel/75/X_train.dat");
-	TMatrix Xtest = read_data("../datasets/nrel/75/X_test.dat");
-	TMatrix X_train = metrics::standardize(Xtrain);
-	TMatrix X_test = metrics::standardize(Xtest);
+	TMatrix X_train = read_data("../datasets/nrel/75/X_train.dat");
+	TMatrix X_test = read_data("../datasets/nrel/75/X_test.dat");
+	metrics::standardize(X_train);
+	metrics::standardize(X_test);
 	std::string train_path = "../datasets/nrel/75/" + output + "/TR-" + output + ".dat";
 	std::string test_path = "../datasets/nrel/75/" + output + "/TS-" + output + ".dat";	
 	TMatrix Y_train = read_data(train_path);
