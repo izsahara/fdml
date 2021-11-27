@@ -54,12 +54,12 @@ namespace fdml::utilities {
             X = (Xmean).array().rowwise() / (((Xmean).array().square().colwise().sum()) / ((Xmean).rows())).sqrt();
         }
         // Error
-        double rmse(TMatrix& Ypred, const TMatrix& Ytrue, bool normalized = false) {
+        double rmse(const TMatrix& Ypred, const TMatrix& Ytrue, bool normalized = false) {
             double res = sqrt((Ypred - Ytrue).array().square().sum() / Ytrue.rows());
             if (normalized) return res / (Ytrue.maxCoeff() - Ytrue.minCoeff());
             else return res;
         }
-        double r2_score(Eigen::Ref<TVector> ytrue, Eigen::Ref<TVector> ypred) {
+        double r2_score(const Eigen::Ref<TVector> ytrue, const Eigen::Ref<TVector> ypred) {
             double res = (ytrue - ypred).array().square().sum();
             double tss = (ytrue.array() - ytrue.array().mean()).square().sum();
             return 1.0 - (res / tss);
