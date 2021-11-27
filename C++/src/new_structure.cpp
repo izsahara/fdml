@@ -907,8 +907,9 @@ public:
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			double r2 = metrics::r2_score(Yref, tmp_mu);
+			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
+			if (nrmse < 0.04) break;
 		}
 		delete pred_prog;
 
