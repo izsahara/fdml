@@ -1091,7 +1091,7 @@ void airfoil(std::string exp) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(250, 75);
+	model.train(100, 20);
 
 	std::cout << "Plot" << std::endl;
 	MatrixPair Zplot = model.predict(X_plot, 100, 192);
