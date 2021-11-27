@@ -1096,7 +1096,8 @@ void airfoil(std::string exp) {
 	std::cout << "Plot" << std::endl;
 	MatrixPair Zplot = model.predict(X_plot 100, 192);
 	std::string p_path = "../results/airfoil/96/" + exp + "-P.dat";
-	write_data(p_path, Zplot);
+	TMatrix Zp = Zplot.first;
+	write_data(p_path, Zp);
 
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
