@@ -886,7 +886,7 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
-	MatrixPair predict(const TMatrix& X, TMatrix& Yref, const metrics::StandardScaler& scaler, unsigned int n_impute = 50, unsigned int n_thread = 1) {
+	MatrixPair predict(const TMatrix& X, TMatrix& Yref, metrics::StandardScaler& scaler, unsigned int n_impute = 50, unsigned int n_thread = 1) {
 		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
