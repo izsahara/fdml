@@ -997,6 +997,8 @@ void nrel(std::string output, std::string exp) {
 	std::string test_path = "../datasets/nrel/75/" + output + "/TS-" + output + ".dat";	
 	TMatrix Y_train = read_data(train_path);
 	TMatrix Y_test = read_data(test_path);
+	metrics::standardize(Y_train);
+	metrics::standardize(Y_test);	
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
