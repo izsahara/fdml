@@ -1117,7 +1117,7 @@ int main() {
 	//	nrel(output, std::to_string(i));
 	//}
 
-	for (unsigned int i = 15; i < 21; ++i) {
+	for (unsigned int i = 21; i < 41; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i));
 	}
