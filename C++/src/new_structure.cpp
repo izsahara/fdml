@@ -886,6 +886,42 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
+	MatrixPair predict(const TMatrix& X, TMatrix& Yref, unsigned int n_impute = 50, unsigned int n_thread = 1) {
+		sample(50);
+		TMatrix mean = TMatrix::Zero(X.rows(), 1);
+		TMatrix variance = TMatrix::Zero(X.rows(), 1);
+		std::vector<MatrixPair> predictions;
+
+		auto pred_start = std::chrono::system_clock::now();
+		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		graph.n_thread = n_thread;
+		graph.check_connected(X);
+		for (int i = 0; i < n_impute; ++i) {
+			sample();
+			graph.layer(0)->predict(X);
+			graph.propagate(Task::LinkedPredict);
+			MatrixPair output = graph.layer(-1)->latent_output;
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			TVector tmp_mu = mean.array() / double(i);
+			double nrmse = metrics::rmse(Yref, tmp_mu, true);
+			double r2 = metrics::r2_score(Yref, tmp_mu);
+			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
+		}
+		delete pred_prog;
+
+		auto pred_end = std::chrono::system_clock::now();
+		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+		mean.array() /= double(n_impute);
+		variance.array() /= double(n_impute);
+		variance.array() -= square(mean.array());
+
+		return std::make_pair(mean, variance);
+	}	
 	MatrixPair predict(const TMatrix& X, TMatrix& Yref, metrics::StandardScaler& scaler, unsigned int n_impute = 50, unsigned int n_thread = 1) {
 		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
