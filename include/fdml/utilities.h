@@ -16,6 +16,26 @@ namespace fdml::utilities {
 
     namespace metrics {
         // Scaler
+        struct StandardScaler {
+            StandardScaler() = default;
+            void scale(TMatrix& X) {
+                nrows = X.rows(); ncols = X.cols();
+                mean = X.colwise().mean();
+                TMatrix Xmean = X.rowwise() - X.colwise().mean();
+                std_dev = (((Xmean).array().square().colwise().sum()) / ((Xmean).rows())).sqrt();
+                X = (Xmean).array().rowwise() / (((Xmean).array().square().colwise().sum()) / ((Xmean).rows())).sqrt();
+            }
+            TMatrix rescale(const TMatrix& X) {
+                TMatrix Z(nrows, ncols);
+                Z = X.array().rowwise() * std_dev.transpose().array();
+                Z.array().rowwise() += mean.transpose().array();
+                return Z;
+            }
+            Eigen::Index nrows;
+            Eigen::Index ncols;
+            TVector mean;
+            TVector std_dev;
+        };        
         void minmax(TMatrix& X) {
             TMatrix num = X.rowwise() - X.colwise().minCoeff();
             TVector den = X.colwise().maxCoeff() - X.colwise().minCoeff();

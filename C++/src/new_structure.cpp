@@ -886,7 +886,7 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
-	MatrixPair predict(const TMatrix& X, TMatrix& Yref, unsigned int n_impute = 50, unsigned int n_thread = 1) {
+	MatrixPair predict(const TMatrix& X, TMatrix& Yref, const metrics::StandardScaler& scaler, unsigned int n_impute = 50, unsigned int n_thread = 1) {
 		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
@@ -906,8 +906,8 @@ public:
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
 			TVector tmp_mu = mean.array() / double(i);
-			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			double r2 = metrics::r2_score(Yref, tmp_mu);
+			double nrmse = metrics::rmse(scaler.rescale(Yref), scaler.rescale(tmp_mu), true);
+			double r2 = metrics::r2_score(scaler.rescale(Yref), scaler.rescale(tmp_mu));
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
@@ -989,22 +989,23 @@ void analytic2(std::string exp) {
 }
 
 void nrel(std::string output, std::string exp) {
+	metrics::StandardScaler scaler1, scaler2, scaler3, scaler4;
 	TMatrix X_train = read_data("../datasets/nrel/75/X_train.dat");
+	scaler1.scale(X_train);
 	TMatrix X_test = read_data("../datasets/nrel/75/X_test.dat");
-	metrics::standardize(X_train);
-	metrics::standardize(X_test);
+	scaler2.scale(X_test);
+
 	std::string train_path = "../datasets/nrel/75/" + output + "/TR-" + output + ".dat";
 	std::string test_path = "../datasets/nrel/75/" + output + "/TS-" + output + ".dat";	
 	TMatrix Y_train = read_data(train_path);
+	scaler3.scale(Y_train);
 	TMatrix Y_test = read_data(test_path);
-	metrics::standardize(Y_train);
-	metrics::standardize(Y_test);	
+	scaler4.scale(Y_test);
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		// graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 	}
 	// Last Layer
@@ -1014,17 +1015,25 @@ void nrel(std::string output, std::string exp) {
 	//
 	SIDGP model(graph);
 	model.train(100, 200);
-	MatrixPair Z = model.predict(X_test, Y_test, 100, 190);
+	MatrixPair Z = model.predict(X_test, Y_test, scaler4, 100, 190);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	std::string m_path = "../results/nrel/75/" + output + "/" + exp + "-M.dat";
     std::string v_path = "../results/nrel/75/" + output + "/" + exp + "-V.dat";
     write_data(m_path, mean);
     write_data(v_path, var);
+
 	double nrmse = metrics::rmse(Y_test, mean, true);
 	double r2 = metrics::r2_score(Y_test, mean);	
-	std::cout << "NRMSE = " << nrmse << std::endl;
-	std::cout << "R2 = " << r2 << std::endl;
+	std::cout << "(Scaled) NRMSE = " << nrmse << std::endl;
+	std::cout << "(Scaled) R2 = " << r2 << std::endl;
+
+	TMatrix resc_mean = scaler4.rescale(mean);
+	TMatrix resc_true = scaler4.rescale(Y_test);
+	std::string rem_path = "../results/nrel/75/" + output + "/" + exp + "-MRE.dat";
+	std::string ret_path = "../results/nrel/75/" + output + "/" + exp + "-TRE.dat";
+    write_data(rem_path, resc_mean);
+    write_data(ret_path, resc_true);	
 }
 
 int main() {
