@@ -1103,7 +1103,7 @@ void airfoil(std::string exp, bool& restart) {
 	// graph.layer(2)->fix_likelihood_variance();	
 	// graph.connect_inputs(2);
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(100, 100);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
@@ -1141,7 +1141,7 @@ void airfoil(std::string exp, bool& restart) {
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 3;
+	unsigned int finish = 6;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
