@@ -1099,7 +1099,7 @@ void airfoil(std::string exp) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(100, 50);
+	model.train(100, 10);
 
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
@@ -1135,7 +1135,7 @@ int main() {
 	//	std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 	//	nrel(output, std::to_string(i));
 	//}
-	for (unsigned int i = 1; i < 6; ++i) {
+	for (unsigned int i = 1; i < 21; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i));
 	}
