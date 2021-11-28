@@ -1141,7 +1141,7 @@ void airfoil(std::string exp, bool& restart) {
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 20;
+	unsigned int finish = 3;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
