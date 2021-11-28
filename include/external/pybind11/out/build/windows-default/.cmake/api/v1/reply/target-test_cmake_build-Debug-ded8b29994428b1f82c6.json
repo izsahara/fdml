@@ -1,0 +1,136 @@
+{
+	"backtrace" : 1,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_custom_target",
+			"add_dependencies",
+			"pybind11_add_build_test"
+		],
+		"files" : 
+		[
+			"tests/test_cmake_build/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 4,
+				"parent" : 0
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 74,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 2
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 60,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 4
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 73,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 6
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 61,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 8
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 77,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 10
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 65,
+				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 55,
+				"parent" : 12
+			}
+		]
+	},
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "test_build_installed_target::@8d5b024c8825db19c1a5"
+		},
+		{
+			"backtrace" : 5,
+			"id" : "test_build_subdirectory_function::@8d5b024c8825db19c1a5"
+		},
+		{
+			"backtrace" : 7,
+			"id" : "test_build_installed_function::@8d5b024c8825db19c1a5"
+		},
+		{
+			"backtrace" : 9,
+			"id" : "test_build_subdirectory_target::@8d5b024c8825db19c1a5"
+		},
+		{
+			"backtrace" : 11,
+			"id" : "test_build_installed_embed::@8d5b024c8825db19c1a5"
+		},
+		{
+			"backtrace" : 13,
+			"id" : "test_build_subdirectory_embed::@8d5b024c8825db19c1a5"
+		}
+	],
+	"id" : "test_cmake_build::@8d5b024c8825db19c1a5",
+	"name" : "test_cmake_build",
+	"paths" : 
+	{
+		"build" : "tests/test_cmake_build",
+		"source" : "tests/test_cmake_build"
+	},
+	"sources" : [],
+	"type" : "UTILITY"
+}
