@@ -21,6 +21,21 @@ void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 	file << matrix.format(CSVFormat);
 }
 
+static void write_to_file(string filepath, string line)
+{
+    std::ofstream file;
+    //can't enable exception now because of gcc bug that raises ios_base::failure with useless message
+    //file.exceptions(file.exceptions() | std::ios::failbit);
+    file.open(filepath, std::ios::out | std::ios::app);
+    if (file.fail())
+        throw std::ios_base::failure(std::strerror(errno));
+
+    //make sure write fails with exception if something is wrong
+    file.exceptions(file.exceptions() | std::ios::failbit | std::ifstream::badbit);
+
+    file << line << std::endl;
+}
+
 TMatrix read_data(std::string filename) {
 
 	rapidcsv::Document doc(filename, rapidcsv::LabelParams(-1, -1), rapidcsv::SeparatorParams('\t'));
@@ -911,7 +926,7 @@ public:
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 			ii++;
-			if (nrmse < 0.038) break;
+			if (nrmse < 0.038) std::cout << "EARLY STOP" << std::endl; break;
 		}
 		n_impute = ii;
 		delete pred_prog;
@@ -1106,6 +1121,12 @@ void airfoil(std::string exp) {
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
+
+	std::string e_path = "../results/airfoil/96/NRMSE.dat";
+	double nrmse = metrics::rmse(Y_test, mean, true);	
+	std::cout << "NRMSE = " << nrmse << std::endl;
+	write_to_file(e_path, std::to_string(nrmse));
+
 	std::string m_path = "../results/airfoil/96/" + exp + "-M.dat";
 	std::string v_path = "../results/airfoil/96/" + exp + "-V.dat";
 	write_data(m_path, mean);
@@ -1121,7 +1142,7 @@ int main() {
 	//	nrel(output, std::to_string(i));
 	//}
 
-	for (unsigned int i = 21; i < 41; ++i) {
+	for (unsigned int i = 1; i < 11; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i));
 	}
