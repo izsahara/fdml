@@ -916,6 +916,7 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
+			if (i > 25 && nrmse > 0.07) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
@@ -1103,18 +1104,18 @@ void airfoil(std::string exp, bool& restart) {
 	// graph.layer(2)->fix_likelihood_variance();	
 	// graph.connect_inputs(2);
 	SIDGP model(graph);
-	model.train(100, 100);
+	model.train(100, 20);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
+	double nrmse = metrics::rmse(Y_test, mean, true);	
 
 	if (nanflag){
 		restart = true;
 	}
 	else {
-		std::string e_path = "../results/airfoil/40/NRMSE.dat";
-		double nrmse = metrics::rmse(Y_test, mean, true);	
+		std::string e_path = "../results/airfoil/40/NRMSE.dat";		
 		std::cout << "NRMSE = " << nrmse << std::endl;
 		
 		std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
