@@ -916,7 +916,7 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 25 && nrmse > 0.07) {nanflag = true;  break;}
+			if (i > 2 && nrmse > 0.07) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
@@ -1142,7 +1142,7 @@ void airfoil(std::string exp, bool& restart) {
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 6;
+	unsigned int finish = 21;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
