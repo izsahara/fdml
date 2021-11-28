@@ -894,7 +894,7 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
-	MatrixPair predict(const TMatrix& X, TMatrix& Yref, unsigned int n_impute = 50, unsigned int n_thread = 1) {
+	MatrixPair predict(const TMatrix& X, TMatrix& Yref, bool& nanflag, unsigned int n_impute = 50, unsigned int n_thread = 1) {
 		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
@@ -913,6 +913,7 @@ public:
 			MatrixPair output = graph.layer(-1)->latent_output;
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			if ((mean.array().isNaN()).any()) nanflag = true;  break;			
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
@@ -1085,7 +1086,7 @@ void nrel(std::string output, std::string exp) {
     // write_data(ret_path, resc_true);	
 }
 
-void airfoil(std::string exp) {
+void airfoil(std::string exp, bool& restart) {
 	TMatrix X_train = read_data("../datasets/airfoil/40/Xsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
@@ -1103,33 +1104,39 @@ void airfoil(std::string exp) {
 	graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
-
-	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
+	bool nanflag = false
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 
-	std::string e_path = "../results/airfoil/40/NRMSE.dat";
-	double nrmse = metrics::rmse(Y_test, mean, true);	
-	std::cout << "NRMSE = " << nrmse << std::endl;
-	
-
-	std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
-	std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
-	write_data(m_path, mean);
-	write_data(v_path, var);
-
-	if (exp != "1"){
-		TVector error_ = read_data(e_path);
-		double min = error_.minCoeff();
-		if (nrmse < min){
-			std::cout << "Plot" << std::endl;
-			MatrixPair Zplot = model.predict(X_plot, 100, 192);
-			std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
-			TMatrix Zp = Zplot.first;
-			write_data(p_path, Zp);
-		}
+	if (nanflag){
+		restart = true; return;
 	}
-	if (!std::isnan(nrmse)) write_to_file(e_path, std::to_string(nrmse));	
+	else {
+		std::string e_path = "../results/airfoil/40/NRMSE.dat";
+		double nrmse = metrics::rmse(Y_test, mean, true);	
+		std::cout << "NRMSE = " << nrmse << std::endl;
+		
+		std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
+		std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
+		write_data(m_path, mean);
+		write_data(v_path, var);
+
+		if (exp != "1"){
+			TVector error_ = read_data(e_path);
+			double min = error_.minCoeff();
+			if (nrmse < min){
+				std::cout << "Plot" << std::endl;
+				MatrixPair Zplot = model.predict(X_plot, 100, 192);
+				std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
+				TMatrix Zp = Zplot.first;
+				write_data(p_path, Zp);
+			}
+		}
+		write_to_file(e_path, std::to_string(nrmse));
+	}
+
+	
 }
 
 
@@ -1139,9 +1146,12 @@ int main() {
 	//	std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 	//	nrel(output, std::to_string(i));
 	//}
+	bool restart = false;
 	for (unsigned int i = 21; i < 41; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		airfoil(std::to_string(i));
+		if (restart) i--; restart = false;
+		airfoil(std::to_string(i), restart);
+		
 	}
 
 	//engine();
