@@ -54,7 +54,7 @@ namespace fdml::utilities {
             X = (Xmean).array().rowwise() / (((Xmean).array().square().colwise().sum()) / ((Xmean).rows())).sqrt();
         }
         // Error
-        double rmse(const TMatrix& Ypred, const TMatrix& Ytrue, bool normalized = false) {
+        double rmse(const TMatrix& Ytrue, const TMatrix& Ypred, bool normalized = false) {
             double res = sqrt((Ypred - Ytrue).array().square().sum() / Ytrue.rows());
             if (normalized) return res / (Ytrue.maxCoeff() - Ytrue.minCoeff());
             else return res;
