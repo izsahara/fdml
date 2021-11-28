@@ -1121,7 +1121,6 @@ void airfoil(std::string exp, bool& restart) {
 		std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
 		write_data(m_path, mean);
 		write_data(v_path, var);
-
 		if (exp != "1"){
 			TVector error_ = read_data(e_path);
 			double min = error_.minCoeff();
@@ -1136,28 +1135,20 @@ void airfoil(std::string exp, bool& restart) {
 		write_to_file(e_path, std::to_string(nrmse));		
 
 	}
-
-
-	
-
-	
 }
 
 
 int main() {
-	//std::string output = "Anch1Ten";
-	//for (unsigned int i = 1; i < 2; ++i) {
-	//	std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
-	//	nrel(output, std::to_string(i));
-	//}
 	bool restart = false;
-	for (unsigned int i = 1; i < 21; ++i) {
+	unsigned int i = 1;
+	unsigned int finish = 20;
+	while(true){
+		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		if (restart) i--; restart = false;
 		airfoil(std::to_string(i), restart);
-		
+		if (restart) continue;
+		else i++;
+		if (i == finish) break;
 	}
-
-	//engine();
 	return 0;
 }
