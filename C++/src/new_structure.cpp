@@ -1085,7 +1085,7 @@ void nrel(std::string output, std::string exp) {
     // write_data(ret_path, resc_true);	
 }
 
-void airfoil(std::string exp) {
+void airfoil(std::string exp, std::vector<double>& error) {
 	TMatrix X_train = read_data("../datasets/airfoil/100/Xsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/100/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/100/Xsc_test.dat");
@@ -1094,12 +1094,12 @@ void airfoil(std::string exp) {
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		// TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(100, 100);
 
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
@@ -1114,13 +1114,18 @@ void airfoil(std::string exp) {
 	std::string v_path = "../results/airfoil/100/" + exp + "-V.dat";
 	write_data(m_path, mean);
 	write_data(v_path, var);
-	
-	std::cout << "Plot" << std::endl;
-	MatrixPair Zplot = model.predict(X_plot, 100, 192);
-	std::string p_path = "../results/airfoil/100/" + exp + "-P.dat";
-	TMatrix Zp = Zplot.first;
-	write_data(p_path, Zp);	
 
+	if (exp != "1"){
+		double min = *std::min_element(error.begin(), error.end());
+		if (min == nrmse){
+			std::cout << "Plot" << std::endl;
+			MatrixPair Zplot = model.predict(X_plot, 100, 192);
+			std::string p_path = "../results/airfoil/100/" + exp + "-P.dat";
+			TMatrix Zp = Zplot.first;
+			write_data(p_path, Zp);
+		}
+	}
+	error.push_back(nrmse);
 }
 
 
@@ -1131,9 +1136,10 @@ int main() {
 	//	nrel(output, std::to_string(i));
 	//}
 
-	for (unsigned int i = 1; i < 11; ++i) {
+	std::vector<double> error;
+	for (unsigned int i = 1; i < 3; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		airfoil(std::to_string(i));
+		airfoil(std::to_string(i), error);
 	}
 
 	//engine();
