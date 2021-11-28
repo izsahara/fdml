@@ -23,17 +23,19 @@ void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 
 static void write_to_file(std::string filepath, std::string line)
 {
-    std::ofstream file;
-    //can't enable exception now because of gcc bug that raises ios_base::failure with useless message
-    //file.exceptions(file.exceptions() | std::ios::failbit);
-    file.open(filepath, std::ios::out | std::ios::app);
-    if (file.fail())
-        throw std::ios_base::failure(std::strerror(errno));
-
-    //make sure write fails with exception if something is wrong
-    file.exceptions(file.exceptions() | std::ios::failbit | std::ifstream::badbit);
-
-    file << line << std::endl;
+	appendFileToWorkWith.open(filepath, std::fstream::in | std::fstream::out | std::fstream::app);
+	// If file does not exist, Create new file
+	if (!appendFileToWorkWith ) 
+	{
+		appendFileToWorkWith.open(filepath,  fstream::in | fstream::out | fstream::trunc);
+		appendFileToWorkWith << "\n";
+		appendFileToWorkWith.close();
+	} 
+	else   
+	{   
+		appendFileToWorkWith << "\n---\n";
+		appendFileToWorkWith.close();
+	}	
 }
 
 TMatrix read_data(std::string filename) {
