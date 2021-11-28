@@ -1093,9 +1093,7 @@ void airfoil(std::string exp, bool& restart) {
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
 	TMatrix X_plot = read_data("../datasets/airfoil/40/Xscplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
-	// Exp 1 - Normal 0.07
-	// Exp 2 - 2 Layers 0.07
-	// Exp 3 = Exp 1 0.067
+	
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
