@@ -916,7 +916,7 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 2 && nrmse > 0.06) {nanflag = true;  break;}
+			// if (i > 2 && nrmse > 0.06) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
@@ -1091,10 +1091,10 @@ void airfoil(std::string exp, bool& restart) {
 	TMatrix X_train = read_data("../datasets/airfoil/40/Xmsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xmsc_test.dat");
-	TMatrix X_plot = read_data("../datasets/airfoil/40/Xscplot.dat");
+	TMatrix X_plot = read_data("../datasets/airfoil/40/Xplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
 
-	Graph graph(std::make_pair(X_train, Y_train), 1);
+	Graph graph(std::make_pair(X_train, Y_train), 3);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
@@ -1127,6 +1127,7 @@ void airfoil(std::string exp, bool& restart) {
 			double min = error_.minCoeff();
 			if (nrmse < min){
 				std::cout << "Plot" << std::endl;
+				metrics::minmax(X_plot);
 				MatrixPair Zplot = model.predict(X_plot, 100, 192);
 				std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
@@ -1142,7 +1143,7 @@ void airfoil(std::string exp, bool& restart) {
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 21;
+	unsigned int finish = 41;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
