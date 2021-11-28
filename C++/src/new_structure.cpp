@@ -1101,12 +1101,6 @@ void airfoil(std::string exp) {
 	SIDGP model(graph);
 	model.train(100, 10);
 
-	std::cout << "Plot" << std::endl;
-	MatrixPair Zplot = model.predict(X_plot, 100, 192);
-	std::string p_path = "../results/airfoil/100/" + exp + "-P.dat";
-	TMatrix Zp = Zplot.first;
-	write_data(p_path, Zp);
-
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
@@ -1120,6 +1114,12 @@ void airfoil(std::string exp) {
 	std::string v_path = "../results/airfoil/100/" + exp + "-V.dat";
 	write_data(m_path, mean);
 	write_data(v_path, var);
+	
+	std::cout << "Plot" << std::endl;
+	MatrixPair Zplot = model.predict(X_plot, 100, 192);
+	std::string p_path = "../results/airfoil/100/" + exp + "-P.dat";
+	TMatrix Zp = Zplot.first;
+	write_data(p_path, Zp);	
 
 }
 
