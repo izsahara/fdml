@@ -1137,7 +1137,7 @@ int main() {
 	//}
 
 	std::vector<double> error;
-	for (unsigned int i = 1; i < 3; ++i) {
+	for (unsigned int i = 3; i < 6; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i), error);
 	}
