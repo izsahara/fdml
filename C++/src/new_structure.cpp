@@ -1098,6 +1098,7 @@ void airfoil(std::string exp) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
+	graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
 
@@ -1126,7 +1127,7 @@ void airfoil(std::string exp) {
 			write_data(p_path, Zp);
 		}
 	}
-	write_to_file(e_path, std::to_string(nrmse));
+	if (!std::isnan(nrmse)) write_to_file(e_path, std::to_string(nrmse));	
 }
 
 
