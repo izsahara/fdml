@@ -1108,7 +1108,7 @@ void airfoil(std::string exp) {
 	std::string e_path = "../results/airfoil/40/NRMSE.dat";
 	double nrmse = metrics::rmse(Y_test, mean, true);	
 	std::cout << "NRMSE = " << nrmse << std::endl;
-	write_to_file(e_path, std::to_string(nrmse));
+	
 
 	std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
 	std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
@@ -1118,7 +1118,7 @@ void airfoil(std::string exp) {
 	if (exp != "1"){
 		TVector error_ = read_data(e_path);
 		double min = error_.minCoeff();
-		if (min == nrmse){
+		if (nrmse < min){
 			std::cout << "Plot" << std::endl;
 			MatrixPair Zplot = model.predict(X_plot, 100, 192);
 			std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
@@ -1126,6 +1126,7 @@ void airfoil(std::string exp) {
 			write_data(p_path, Zp);
 		}
 	}
+	write_to_file(e_path, std::to_string(nrmse));
 }
 
 
