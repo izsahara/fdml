@@ -1094,7 +1094,7 @@ void airfoil(std::string exp, bool& restart) {
 	TMatrix X_plot = read_data("../datasets/airfoil/40/Xscplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
 
-	Graph graph(std::make_pair(X_train, Y_train), 1);
+	Graph graph(std::make_pair(X_train, Y_train), 2);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
@@ -1104,7 +1104,7 @@ void airfoil(std::string exp, bool& restart) {
 	// graph.layer(2)->fix_likelihood_variance();	
 	// graph.connect_inputs(2);
 	SIDGP model(graph);
-	model.train(100, 20);
+	model.train(100, 10);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
