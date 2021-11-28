@@ -24,7 +24,7 @@ void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 static void write_to_file(std::string filepath, std::string line)
 {
 	std::ofstream myfile;
-	myfile.open (filepath, std::fstream::app);
+	myfile.open(filepath, std::fstream::app);
 	myfile << line;
 	myfile.close();
 }
@@ -906,7 +906,6 @@ public:
 		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
 		graph.n_thread = n_thread;
 		graph.check_connected(X);
-		int ii = 0;
 		for (int i = 0; i < n_impute; ++i) {
 			sample();
 			graph.layer(0)->predict(X);
@@ -918,10 +917,7 @@ public:
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
-			ii++;
-			if (nrmse < 0.038) std::cout << "EARLY STOP" << std::endl; break;
 		}
-		n_impute = ii;
 		delete pred_prog;
 
 		auto pred_end = std::chrono::system_clock::now();
