@@ -1085,7 +1085,7 @@ void nrel(std::string output, std::string exp) {
     // write_data(ret_path, resc_true);	
 }
 
-void airfoil(std::string exp, std::vector<double>& error) {
+void airfoil(std::string exp, std::vector<double>& error, bool begin = false) {
 	TMatrix X_train = read_data("../datasets/airfoil/40/Xsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
@@ -1115,7 +1115,7 @@ void airfoil(std::string exp, std::vector<double>& error) {
 	write_data(m_path, mean);
 	write_data(v_path, var);
 
-	if (exp != "1"){
+	if (exp != "1" || !begin ){
 		double min = *std::min_element(error.begin(), error.end());
 		if (min == nrmse){
 			std::cout << "Plot" << std::endl;
@@ -1139,7 +1139,8 @@ int main() {
 	std::vector<double> error;
 	for (unsigned int i = 3; i < 6; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		airfoil(std::to_string(i), error);
+		if (i == 3) airfoil(std::to_string(i), error, true);
+		else airfoil(std::to_string(i), error);
 	}
 
 	//engine();
