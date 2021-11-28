@@ -25,7 +25,7 @@ static void write_to_file(std::string filepath, std::string line)
 {
 	std::ofstream myfile;
 	myfile.open(filepath, std::fstream::app);
-	myfile << line;
+	myfile << line << "\n";
 	myfile.close();
 }
 
@@ -1115,7 +1115,7 @@ void airfoil(std::string exp) {
 	write_data(m_path, mean);
 	write_data(v_path, var);
 
-	if (exp != "1"{
+	if (exp != "1"){
 		TVector error_ = read_data(e_path);
 		double min = error_.minCoeff();
 		if (min == nrmse){
@@ -1135,7 +1135,7 @@ int main() {
 	//	std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 	//	nrel(output, std::to_string(i));
 	//}
-	for (unsigned int i = 3; i < 6; ++i) {
+	for (unsigned int i = 1; i < 6; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i));
 	}
