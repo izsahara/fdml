@@ -12,6 +12,7 @@ import numpy as np
 import h5py as hdf
 from pickle import dump, load
 import plotly.graph_objects as go
+from sklearn.preprocessing import StandardScaler
 sys.path.insert(0, "../../")
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
@@ -66,7 +67,7 @@ class Config1(Config):
         node31 = GPNode(kernel=Matern52(length_scale=np.ones(2), variance=1.0), solver=LBFGSB(verbosity=0))
         node31.likelihood_variance.value = 1e-10
         node31.likelihood_variance.fix()
-        node31.kernel.length_scale.bounds = (1e-6 * np.ones(n_ftr), 10.0 * np.ones(n_ftr))
+        node31.kernel.length_scale.bounds = (1e-6 * np.ones(n_ftr), 3.0 * np.ones(n_ftr))
         # ====================== Model ======================= #
 
         layer1 = GPLayer(nodes=[node11, node12])
@@ -110,10 +111,13 @@ def run_experiment(config: Config, n_thread : int):
         # Plot
         print("Plot")
         Xo = np.loadtxt("X_train.dat", delimiter="\t")
-        Yo = np.loadtxt("Y_train.dat", delimiter="\t")        
+        Yo = np.loadtxt("Y_train.dat", delimiter="\t")
+        scaler = StandardScaler()
+        scaler.fit(Xo)        
 
-        XX, YY = np.meshgrid(np.linspace(0.7, 0.75, 100), np.linspace(1.6, 3.0, 100))
+        XX, YY = np.meshgrid(np.linspace(0.7, 0.75, 100), np.linspace(1.6, 3.0, 100))        
         X_plot = np.c_[XX.ravel(), YY.ravel()]
+        X_plot = scaler.transform(X_plot)
         pmean, pvar = model.predict(X_plot, n_impute=100, n_thread=n_thread)
         fig_surf = go.Figure()
         fig_surf.add_trace(go.Surface(x=XX, y=YY, z=pmean.reshape(XX.shape), opacity=0.9, colorscale='magma'))
