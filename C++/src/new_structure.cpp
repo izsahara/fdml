@@ -1085,7 +1085,7 @@ void nrel(std::string output, std::string exp) {
     // write_data(ret_path, resc_true);	
 }
 
-void airfoil(std::string exp, std::vector<double>& error, bool begin = false) {
+void airfoil(std::string exp) {
 	TMatrix X_train = read_data("../datasets/airfoil/40/Xsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
@@ -1099,7 +1099,7 @@ void airfoil(std::string exp, std::vector<double>& error, bool begin = false) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(100, 10);
+	model.train(100, 50);
 
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
@@ -1115,8 +1115,9 @@ void airfoil(std::string exp, std::vector<double>& error, bool begin = false) {
 	write_data(m_path, mean);
 	write_data(v_path, var);
 
-	if (exp != "1" || !begin ){
-		double min = *std::min_element(error.begin(), error.end());
+	if (exp != "1"{
+		TVector error_ = read_data(e_path);
+		double min = error_.minCoeff();
 		if (min == nrmse){
 			std::cout << "Plot" << std::endl;
 			MatrixPair Zplot = model.predict(X_plot, 100, 192);
@@ -1125,7 +1126,6 @@ void airfoil(std::string exp, std::vector<double>& error, bool begin = false) {
 			write_data(p_path, Zp);
 		}
 	}
-	error.push_back(nrmse);
 }
 
 
@@ -1135,12 +1135,9 @@ int main() {
 	//	std::cout << "================= " << output << " | EXP " << i << " ================" << std::endl;
 	//	nrel(output, std::to_string(i));
 	//}
-
-	std::vector<double> error;
 	for (unsigned int i = 3; i < 6; ++i) {
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		if (i == 3) airfoil(std::to_string(i), error, true);
-		else airfoil(std::to_string(i), error);
+		airfoil(std::to_string(i));
 	}
 
 	//engine();
