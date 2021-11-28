@@ -1099,7 +1099,7 @@ void airfoil(std::string exp, std::vector<double>& error) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(100, 100);
+	model.train(100, 10);
 
 	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
 	TMatrix mean = Z.first;
