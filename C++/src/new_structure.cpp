@@ -1103,10 +1103,11 @@ void airfoil(std::string exp, bool& restart) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	// graph.layer(2)->set_kernels(TKernel::TMatern52);
-	// graph.layer(2)->fix_likelihood_variance();	
+	graph.layer(0)->fix_scale();
+	graph.layer(1)->fix_scale();
 	// graph.connect_inputs(2);
 	SIDGP model(graph);
-	model.train(500, 10);
+	model.train(100, 10);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
