@@ -913,7 +913,7 @@ public:
 			MatrixPair output = graph.layer(-1)->latent_output;
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			TVector tmp_mu = mean.array() / double(i);
+			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
@@ -949,7 +949,7 @@ public:
 			MatrixPair output = graph.layer(-1)->latent_output;
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			TVector tmp_mu = mean.array() / double(i);
+			TVector tmp_mu = mean.array() / double(i+1);
 			// TMatrix reYref = scaler.rescale(Yref);
 			// TMatrix reMean = scaler.rescale(tmp_mu);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
@@ -1086,11 +1086,11 @@ void nrel(std::string output, std::string exp) {
 }
 
 void airfoil(std::string exp) {
-	TMatrix X_train = read_data("../datasets/airfoil/96/Xsc_train.dat");
-	TMatrix Y_train = read_data("../datasets/airfoil/96/Y_train.dat");
-	TMatrix X_test = read_data("../datasets/airfoil/96/Xsc_test.dat");
-	TMatrix X_plot = read_data("../datasets/airfoil/96/Xscplot.dat");
-	TMatrix Y_test = read_data("../datasets/airfoil/96/Y_test.dat");
+	TMatrix X_train = read_data("../datasets/airfoil/100/Xsc_train.dat");
+	TMatrix Y_train = read_data("../datasets/airfoil/100/Y_train.dat");
+	TMatrix X_test = read_data("../datasets/airfoil/100/Xsc_test.dat");
+	TMatrix X_plot = read_data("../datasets/airfoil/100/Xscplot.dat");
+	TMatrix Y_test = read_data("../datasets/airfoil/100/Y_test.dat");
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
@@ -1103,7 +1103,7 @@ void airfoil(std::string exp) {
 
 	std::cout << "Plot" << std::endl;
 	MatrixPair Zplot = model.predict(X_plot, 100, 192);
-	std::string p_path = "../results/airfoil/96/" + exp + "-P.dat";
+	std::string p_path = "../results/airfoil/100/" + exp + "-P.dat";
 	TMatrix Zp = Zplot.first;
 	write_data(p_path, Zp);
 
@@ -1111,13 +1111,13 @@ void airfoil(std::string exp) {
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 
-	std::string e_path = "../results/airfoil/96/NRMSE.dat";
+	std::string e_path = "../results/airfoil/100/NRMSE.dat";
 	double nrmse = metrics::rmse(Y_test, mean, true);	
 	std::cout << "NRMSE = " << nrmse << std::endl;
 	write_to_file(e_path, std::to_string(nrmse));
 
-	std::string m_path = "../results/airfoil/96/" + exp + "-M.dat";
-	std::string v_path = "../results/airfoil/96/" + exp + "-V.dat";
+	std::string m_path = "../results/airfoil/100/" + exp + "-M.dat";
+	std::string v_path = "../results/airfoil/100/" + exp + "-V.dat";
 	write_data(m_path, mean);
 	write_data(v_path, var);
 
