@@ -1093,11 +1093,13 @@ void airfoil(std::string exp) {
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
 
 	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+	for (unsigned int i = 0; i < graph.n_layers-1; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
+	graph.layer(2)->set_kernels(TKernel::TMatern52);
+	graph.layer(2)->fix_likelihood_variance();	
 	graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
