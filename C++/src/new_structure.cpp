@@ -23,17 +23,18 @@ void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 
 static void write_to_file(std::string filepath, std::string line)
 {
+	std::fstream appendFileToWorkWith;
 	appendFileToWorkWith.open(filepath, std::fstream::in | std::fstream::out | std::fstream::app);
 	// If file does not exist, Create new file
 	if (!appendFileToWorkWith ) 
 	{
 		appendFileToWorkWith.open(filepath,  fstream::in | fstream::out | fstream::trunc);
-		appendFileToWorkWith << "\n";
+		appendFileToWorkWith << line << "\n";
 		appendFileToWorkWith.close();
 	} 
 	else   
 	{   
-		appendFileToWorkWith << "\n---\n";
+		appendFileToWorkWith << line << "\n---\n";
 		appendFileToWorkWith.close();
 	}	
 }
