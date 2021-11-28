@@ -916,7 +916,7 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 2 && nrmse > 0.07) {nanflag = true;  break;}
+			if (i > 2 && nrmse > 0.067) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
@@ -1093,8 +1093,10 @@ void airfoil(std::string exp, bool& restart) {
 	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
 	TMatrix X_plot = read_data("../datasets/airfoil/40/Xscplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
-
-	Graph graph(std::make_pair(X_train, Y_train), 2);
+	// Exp 1 - Normal 0.07
+	// Exp 2 - 2 Layers 0.07
+	// Exp 3 = Exp 1 0.067
+	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
@@ -1147,7 +1149,10 @@ int main() {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i), restart);
-		if (restart) continue;
+		if (restart) {
+			std::system("clear");
+			continue;
+		}
 		else i++;
 		if (i == finish) break;
 	}
