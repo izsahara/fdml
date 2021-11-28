@@ -1104,36 +1104,40 @@ void airfoil(std::string exp, bool& restart) {
 	graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
-	bool nanflag = false
+	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 
 	if (nanflag){
-		restart = true; return;
+		restart = true;
 	}
+	else {
+		std::string e_path = "../results/airfoil/40/NRMSE.dat";
+		double nrmse = metrics::rmse(Y_test, mean, true);	
+		std::cout << "NRMSE = " << nrmse << std::endl;
+		
+		std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
+		std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
+		write_data(m_path, mean);
+		write_data(v_path, var);
 
-	std::string e_path = "../results/airfoil/40/NRMSE.dat";
-	double nrmse = metrics::rmse(Y_test, mean, true);	
-	std::cout << "NRMSE = " << nrmse << std::endl;
-	
-	std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
-	std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
-	write_data(m_path, mean);
-	write_data(v_path, var);
-
-	if (exp != "1"){
-		TVector error_ = read_data(e_path);
-		double min = error_.minCoeff();
-		if (nrmse < min){
-			std::cout << "Plot" << std::endl;
-			MatrixPair Zplot = model.predict(X_plot, 100, 192);
-			std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
-			TMatrix Zp = Zplot.first;
-			write_data(p_path, Zp);
+		if (exp != "1"){
+			TVector error_ = read_data(e_path);
+			double min = error_.minCoeff();
+			if (nrmse < min){
+				std::cout << "Plot" << std::endl;
+				MatrixPair Zplot = model.predict(X_plot, 100, 192);
+				std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
+				TMatrix Zp = Zplot.first;
+				write_data(p_path, Zp);
+			}
 		}
+		write_to_file(e_path, std::to_string(nrmse));		
+
 	}
-	write_to_file(e_path, std::to_string(nrmse));
+
+
 	
 
 	
