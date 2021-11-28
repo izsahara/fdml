@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import h5py as hdf
 from pickle import dump, load
+import plotly.graph_objects as go
 sys.path.insert(0, "../../")
 from fdml.kernels import SquaredExponential, Matern52
 from fdml.deep_models2 import GPNode, GPLayer, SIDGP
@@ -106,6 +107,20 @@ def run_experiment(config: Config, n_thread : int):
         nrmse = rr / (np.max(Y_test) - np.min(Y_test))
         print(f"NRMSE = {np.mean(nrmse)}")
 
+        # Plot
+        print("Plot")
+        Xo = np.loadtxt("X_train.dat", delimiter="\t")
+        Yo = np.loadtxt("Y_train.dat", delimiter="\t")        
+
+        XX, YY = np.meshgrid(np.linspace(0.7, 0.75, 100), np.linspace(1.6, 3.0, 100))
+        X_plot = np.c_[XX.ravel(), YY.ravel()]
+        pmean, pvar = model.predict(X_plot, n_impute=100, n_thread=n_thread)
+        fig_surf = go.Figure()
+        fig_surf.add_trace(go.Surface(x=XX, y=YY, z=pmean.reshape(XX.shape), opacity=0.9, colorscale='magma'))
+        fig_surf.add_trace(go.Scatter3d(name='Training Samples', x=Xo[:, 0], y=Xo[:, 1], z=Yo.ravel(), mode='markers', marker=dict(size=3, symbol="square", color="darkblue")))
+        fig_surf.update_layout(autosize=True, legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01))
+        fig_surf.write_html(f"{pred_path}/{exp}-S.html", auto_open=False)
+        
 
 if __name__ == "__main__":
     run_experiment(Config1(name="CFG1"), n_thread=192)
