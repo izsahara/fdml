@@ -21,7 +21,7 @@ void write_data(std::string name, const Eigen::MatrixBase<Derived>& matrix)
 	file << matrix.format(CSVFormat);
 }
 
-static void write_to_file(string filepath, string line)
+static void write_to_file(std::string filepath, std::string line)
 {
     std::ofstream file;
     //can't enable exception now because of gcc bug that raises ios_base::failure with useless message
