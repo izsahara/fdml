@@ -1101,7 +1101,7 @@ void airfoil(std::string exp, bool& restart) {
 	}
 	graph.layer(2)->set_kernels(TKernel::TMatern52);
 	graph.layer(2)->fix_likelihood_variance();	
-	graph.connect_inputs(2);
+	// graph.connect_inputs(2);
 	SIDGP model(graph);
 	model.train(100, 10);
 	bool nanflag = false;
