@@ -1088,23 +1088,21 @@ void nrel(std::string output, std::string exp) {
 }
 
 void airfoil(std::string exp, bool& restart) {
-	TMatrix X_train = read_data("../datasets/airfoil/40/Xsc_train.dat");
+	TMatrix X_train = read_data("../datasets/airfoil/40/Xmsc_train.dat");
 	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
-	TMatrix X_test = read_data("../datasets/airfoil/40/Xsc_test.dat");
+	TMatrix X_test = read_data("../datasets/airfoil/40/Xmsc_test.dat");
 	TMatrix X_plot = read_data("../datasets/airfoil/40/Xscplot.dat");
 	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
-	
+
 	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
-	// graph.layer(2)->set_kernels(TKernel::TMatern52);
-	graph.layer(0)->fix_scale();
-	graph.layer(1)->fix_scale();
-	graph.layer(2)->fix_scale();
-	// graph.connect_inputs(2);
+	// graph.layer(0)->fix_scale();
+	// graph.layer(1)->fix_scale();
+	// graph.layer(2)->fix_scale();
 	SIDGP model(graph);
 	model.train(100, 10);
 	bool nanflag = false;
