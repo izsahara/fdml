@@ -1127,7 +1127,6 @@ void airfoil(std::string exp, bool& restart) {
 			double min = error_.minCoeff();
 			if (nrmse < min){
 				std::cout << "Plot" << std::endl;
-				metrics::minmax(X_plot);
 				MatrixPair Zplot = model.predict(X_plot, 100, 192);
 				std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
