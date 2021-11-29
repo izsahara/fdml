@@ -916,46 +916,8 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 2 && nrmse > 0.03) {nanflag = true;  break;}
+			if (i > 2 && nrmse > 0.02) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
-			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
-		}
-		delete pred_prog;
-
-		auto pred_end = std::chrono::system_clock::now();
-		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
-		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
-		std::cout << std::endl;
-		mean.array() /= double(n_impute);
-		variance.array() /= double(n_impute);
-		variance.array() -= square(mean.array());
-
-		return std::make_pair(mean, variance);
-	}	
-	MatrixPair predict(const TMatrix& X, TMatrix& Yref, metrics::StandardScaler& scaler, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		sample(50);
-		TMatrix mean = TMatrix::Zero(X.rows(), 1);
-		TMatrix variance = TMatrix::Zero(X.rows(), 1);
-		std::vector<MatrixPair> predictions;
-
-		auto pred_start = std::chrono::system_clock::now();
-		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
-		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
-		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
-		graph.n_thread = n_thread;
-		graph.check_connected(X);
-		for (int i = 0; i < n_impute; ++i) {
-			sample();
-			graph.layer(0)->predict(X);
-			graph.propagate(Task::LinkedPredict);
-			MatrixPair output = graph.layer(-1)->latent_output;
-			mean.noalias() += output.first;
-			variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			TVector tmp_mu = mean.array() / double(i+1);
-			// TMatrix reYref = scaler.rescale(Yref);
-			// TMatrix reMean = scaler.rescale(tmp_mu);
-			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			double r2 = metrics::r2_score(Yref, tmp_mu);
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
@@ -977,24 +939,6 @@ public:
 	unsigned int verbosity = 1;
 };
 
-void engine() {
-	// TMatrix X_train = read_data("../datasets/engine/X_train.txt");
-	// TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
-	// TMatrix X_test = read_data("../datasets/engine/X_test.txt");
-	// TMatrix Y_test = read_data("../datasets/engine/Y_test.txt");
-	// Graph graph(std::make_pair(X_train, Y_train), 1);
-	// for (Eigen::Index i = 0; i < X_train.cols(); ++i) {
-	// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
-	// 	graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	// }
-	// // graph.connect_inputs(1);
-	// // graph.connect_inputs(2);
-	// SIDGP model(graph);
-	// model.train(10, 1);
-	// MatrixPair Z = model.predict(X_test, Y_test, 100, 5);
-	// TMatrix mean = Z.first;
-	// TMatrix var = Z.second;	
-}
 void analytic2(std::string exp) {
 	// auto plot = [=](const TMatrix& X_plot, SIDGP& model) {
 	// 	std::cout << "================ PLOT ================" << std::endl;
@@ -1100,9 +1044,6 @@ void airfoil(std::string exp, bool& restart) {
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
-	// graph.layer(0)->fix_scale();
-	// graph.layer(1)->fix_scale();
-	// graph.layer(2)->fix_scale();
 	SIDGP model(graph);
 	model.train(100, 10);
 	bool nanflag = false;
@@ -1137,16 +1078,46 @@ void airfoil(std::string exp, bool& restart) {
 
 	}
 }
+void engine(std::string exp, bool& restart) {
+	TMatrix X_train = read_data("../datasets/engine/X_train.txt");
+	TMatrix Y_train = read_data("../datasets/engine/Y_train.txt");
+	TMatrix X_test = read_data("../datasets/engine/X_test.txt");
+	TMatrix Y_test = read_data("../datasets/engine/Y_test.txt");
+	Graph graph(std::make_pair(X_train, Y_train), 1);
+	for (Eigen::Index i = 0; i < X_train.cols(); ++i) {
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52);
+		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+	}
+	SIDGP model(graph);
+	model.train(100, 10);
+	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
+	TMatrix mean = Z.first;
+	TMatrix var = Z.second;	
+	double nrmse = metrics::rmse(Y_test, mean, true);	
 
+	if (nanflag){
+		restart = true;
+	}
+	else {
+		std::string e_path = "../results/engine/NRMSE.dat";		
+		std::cout << "NRMSE = " << nrmse << std::endl;
+		std::string m_path = "../results/engine/" + exp + "-M.dat";
+		std::string v_path = "../results/engine/" + exp + "-V.dat";
+		write_data(m_path, mean);
+		write_data(v_path, var);
+		write_to_file(e_path, std::to_string(nrmse));
+	}	
+}
 
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 41;
+	unsigned int finish = 21;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		airfoil(std::to_string(i), restart);
+		// airfoil(std::to_string(i), restart);
+		engine(std::to_string(i), restart);
 		if (restart) {
 			std::system("clear");
 			continue;
