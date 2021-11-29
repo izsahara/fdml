@@ -916,7 +916,7 @@ public:
 			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
 			TVector tmp_mu = mean.array() / double(i+1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 2 && nrmse > 0.02) {nanflag = true;  break;}
+			// if (i > 2 && nrmse > 0.02) {nanflag = true;  break;}
 			double r2 = metrics::r2_score(Yref, tmp_mu);			
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
