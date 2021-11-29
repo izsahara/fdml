@@ -1090,7 +1090,8 @@ void engine(std::string exp, bool& restart) {
 	}
 	SIDGP model(graph);
 	model.train(100, 10);
-	MatrixPair Z = model.predict(X_test, Y_test, 100, 192);
+	bool nanflag = false;
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;	
 	double nrmse = metrics::rmse(Y_test, mean, true);	
