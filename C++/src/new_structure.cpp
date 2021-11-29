@@ -1142,7 +1142,7 @@ void airfoil(std::string exp, bool& restart) {
 
 int main() {
 	bool restart = false;
-	unsigned int i = 4;
+	unsigned int i = 1;
 	unsigned int finish = 41;
 	while(true){
 		bool restart = false;
