@@ -1032,11 +1032,11 @@ void nrel(std::string output, std::string exp) {
 }
 
 void airfoil(std::string exp, bool& restart) {
-	TMatrix X_train = read_data("../datasets/airfoil/40/Xsc_train.dat");
-	TMatrix Y_train = read_data("../datasets/airfoil/40/Y_train.dat");
-	TMatrix X_test = read_data("../datasets/airfoil/40/X_test2.dat");
-	TMatrix X_plot = read_data("../datasets/airfoil/40/X_plot.dat");
-	TMatrix Y_test = read_data("../datasets/airfoil/40/Y_test.dat");
+	TMatrix X_train = read_data("../datasets/airfoil/20/Xsc_train.dat");
+	TMatrix X_test = read_data("../datasets/airfoil/20/Xsc_test.dat");
+	TMatrix X_plot = read_data("../datasets/airfoil/20/X_plot.dat");
+	TMatrix Y_train = read_data("../datasets/airfoil/20/Y_train.dat");
+	TMatrix Y_test = read_data("../datasets/airfoil/20/Y_test.dat");
 
 	Graph graph(std::make_pair(X_train, Y_train), 2);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
@@ -1056,11 +1056,11 @@ void airfoil(std::string exp, bool& restart) {
 		restart = true;
 	}
 	else {
-		std::string e_path = "../results/airfoil/40/NRMSE.dat";		
+		std::string e_path = "../results/airfoil/20/NRMSE.dat";		
 		std::cout << "NRMSE = " << nrmse << std::endl;
 		
-		std::string m_path = "../results/airfoil/40/" + exp + "-M.dat";
-		std::string v_path = "../results/airfoil/40/" + exp + "-V.dat";
+		std::string m_path = "../results/airfoil/20/" + exp + "-M.dat";
+		std::string v_path = "../results/airfoil/20/" + exp + "-V.dat";
 		write_data(m_path, mean);
 		write_data(v_path, var);
 		if (exp != "1"){
@@ -1069,7 +1069,7 @@ void airfoil(std::string exp, bool& restart) {
 			if (nrmse < min){
 				std::cout << "Plot" << std::endl;
 				MatrixPair Zplot = model.predict(X_plot, 100, 192);
-				std::string p_path = "../results/airfoil/40/" + exp + "-P.dat";
+				std::string p_path = "../results/airfoil/20/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
 				write_data(p_path, Zp);
 			}
@@ -1113,12 +1113,12 @@ void engine(std::string exp, bool& restart) {
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 21;
+	unsigned int finish = 41;
 	while(true){
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
-		// airfoil(std::to_string(i), restart);
-		engine(std::to_string(i), restart);
+		airfoil(std::to_string(i), restart);
+		// engine(std::to_string(i), restart);
 		if (restart) {
 			std::system("clear");
 			continue;
