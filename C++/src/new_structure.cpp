@@ -1068,7 +1068,7 @@ void airfoil(std::string exp, bool& restart) {
 			double min = error_.minCoeff();
 			if (nrmse < min){
 				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 192);
+				MatrixPair Zplot = model.predict(X_plot, 100, 50);
 				std::string p_path = "../results/airfoil/20/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
 				write_data(p_path, Zp);
