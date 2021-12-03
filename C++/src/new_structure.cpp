@@ -1058,7 +1058,7 @@ void airfoil(std::string exp, bool& restart) {
 	SIDGP model(graph);
 	model.train(750, 100);
 	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 200, 192);
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 200, 96);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1079,7 +1079,7 @@ void airfoil(std::string exp, bool& restart) {
 			double min = error_.minCoeff();
 			if (nrmse < min) {
 				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 192);
+				MatrixPair Zplot = model.predict(X_plot, 100, 96);
 				std::string p_path = "../results/airfoil/20/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
 				write_data(p_path, Zp);
