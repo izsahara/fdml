@@ -1,4 +1,4 @@
-// #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+ #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
@@ -128,7 +128,7 @@ public:
 		os << '\r' << message;
 		os.write(full_bar.data() + offset, width);
 		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] " << " [" << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] " << std::flush;
-		
+
 
 	}
 	void write(double fraction, double nrmse, double r2) {
@@ -145,20 +145,20 @@ public:
 		os.write(full_bar.data() + offset, width);
 		os << " [" << std::setw(3) << static_cast<int>(100 * fraction) << "%] "
 			<< " [NRMSE = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << nrmse * 100.0 << "%] "
-			<< " [R2 = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << r2 << "]"			
+			<< " [R2 = " << std::setw(3) << std::left << std::setprecision(5) << std::fixed << r2 << "]"
 			<< std::flush;
-	}	
+	}
 };
 
 //
 class Node : public GP {
 private:
-	Node&   evalK(bool with_scale = true) {
+	Node& evalK(bool with_scale = true) {
 		K = kernel->K(inputs, inputs, likelihood_variance.value());
 		if (with_scale) K.array() *= scale.value();
 		return *this;
 	}
-	Node&   evalK(const TMatrix& Xpad, bool with_scale = true) {
+	Node& evalK(const TMatrix& Xpad, bool with_scale = true) {
 		TMatrix tmp(inputs.rows(), inputs.cols() + Xpad.cols());
 		tmp << inputs, Xpad;
 		K.noalias() = kernel->K(tmp, tmp, likelihood_variance.value());
@@ -169,7 +169,7 @@ private:
 		TVector mean = TVector::Zero(K.rows());
 		Eigen::setNbThreads(1);
 		Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(K);
-		// TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
+		 //TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
 		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
@@ -191,8 +191,10 @@ private:
 			return lpg;
 		};
 		std::vector<TMatrix> grad_;
-		kernel->gradients(inputs, grad_);
+		kernel->gradients(inputs, grad_);		
 		TVector grad = TVector::Zero(grad_.size());
+		if (!(*likelihood_variance.is_fixed)) 
+			grad_.push_back(likelihood_variance.value() * TMatrix::Identity(inputs.rows(), inputs.rows()));
 		for (int i = 0; i < grad_.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
 			double trace = KKT.trace();
@@ -200,8 +202,7 @@ private:
 			double P1 = -0.5 * trace;
 			double P2 = 0.5 * YKKT;
 			grad[i] = -P1 - (P2 / scale.value());
-		}
-		// TODO: Add likelihood_variance/nugget gradient
+		}		
 		grad -= log_prior_gradient();
 		return grad;
 	}
@@ -225,8 +226,8 @@ private:
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
 		double YKinvY = (outputs.transpose() * alpha)(0);
 		double NLL = 0.0;
-		if (*scale.is_fixed) NLL = 0.5 * (logdet + (YKinvY/scale.value()));
-		else NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value())));		
+		if (*scale.is_fixed) NLL = 0.5 * (logdet + (YKinvY / scale.value()));
+		else NLL = 0.5 * (logdet + (inputs.rows() * log(scale.value())));
 		NLL -= log_prior();
 		return NLL;
 	}
@@ -252,12 +253,18 @@ private:
 	}
 	void    get_bounds(TVector& lower, TVector& upper) {
 		kernel->get_bounds(lower, upper);
-
 		if (!(*likelihood_variance.is_fixed)) {
+			std::pair<double, double> llvb = likelihood_variance.get_bounds();
+			double lb = llvb.first;
+			double ub = llvb.second;
+			if (likelihood_variance.get_transform() == "logexp") {
+				if (std::isinf(lb)) lb = -23.025850929940457;
+				if (std::isinf(ub)) ub = 0.0;
+			}
 			lower.conservativeResize(lower.rows() + 1);
 			upper.conservativeResize(upper.rows() + 1);
-			lower.tail(1)(0) = likelihood_variance.get_bounds().first;
-			upper.tail(1)(0) = likelihood_variance.get_bounds().second;
+			lower.tail(1)(0) = lb;
+			upper.tail(1)(0) = ub;
 		}
 	}
 	void    train() override {
@@ -341,7 +348,7 @@ private:
 	// Linked Predict (InputConnected)
 	void    predict(const MatrixPair& XX, const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 		TMatrix X_train = XX.first;
-		TMatrix X_test  = XX.second;   
+		TMatrix X_test = XX.second;
 		evalK(X_train, false);
 		chol = K.llt();
 		alpha = chol.solve(outputs);
@@ -393,7 +400,7 @@ private:
 
 	}
 public:
-	Node(double likelihood_variance = 1E-8) : GP(likelihood_variance) {}
+	Node(double likelihood_variance = 1E-6) : GP(likelihood_variance) {}
 	void set_kernel(const KernelPtr& rkernel) {
 		kernel = std::move(rkernel);
 	}
@@ -422,7 +429,7 @@ private:
 		K = kernel->K(inputs, inputs, likelihood_variance.value());
 		chol = K.llt();
 		alpha = chol.solve(outputs);
-		 //scale is not considered a variable in optimization, it is directly linked to chol
+		//scale is not considered a variable in optimization, it is directly linked to chol
 		if (*scale.is_fixed) return;
 		else scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 	}
@@ -473,14 +480,14 @@ public:
 	void set_output(const TMatrix& output) {
 
 		if (!locked) {
-			if (cstate == State::Hidden) 
+			if (cstate == State::Hidden)
 			{
 				ostate = State::Observed;
 				std::swap(cstate, ostate);
 			}
 		}
 
-		if (cstate == State::Observed) 
+		if (cstate == State::Observed)
 			observed_output.noalias() = output;
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->outputs = output.col(nn - m_nodes.begin());
@@ -517,7 +524,7 @@ public:
 				continue;
 			}
 		}
-	}	
+	}
 	void set_kernels(const TKernel& kernel, TVector& length_scale) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			switch (kernel) {
@@ -551,6 +558,11 @@ public:
 			}
 		}
 	}
+	void set_likelihood_variance(const double& value) {
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			nn->likelihood_variance = value;
+		}
+	}
 	void fix_likelihood_variance() {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->likelihood_variance.fix();
@@ -560,7 +572,7 @@ public:
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->scale.fix();
 		}
-	}	
+	}
 	//
 	void add_node(const Node& node) {
 		if (locked) throw std::runtime_error("Layer Locked");
@@ -591,7 +603,7 @@ private:
 		latent_output = std::make_pair(
 			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)),
 			TMatrix::Zero(X.rows(), static_cast<Eigen::Index>(n_nodes)));
-		
+
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->predict(X, latent_output.first.col(cc), latent_output.second.col(cc));
@@ -604,14 +616,14 @@ private:
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
 			Eigen::Index cc = static_cast<Eigen::Index>(node - m_nodes.begin());
 			node->n_thread = n_thread;
-			if (cstate == State::InputConnected)  
-				node->predict(std::make_pair(observed_input, Xtmp), 
-							  linked, latent_output.first.col(cc), 
-							  latent_output.second.col(cc));
-			else 
-				node->predict(linked, 
-							  latent_output.first.col(cc), 
-							  latent_output.second.col(cc));
+			if (cstate == State::InputConnected)
+				node->predict(std::make_pair(observed_input, Xtmp),
+					linked, latent_output.first.col(cc),
+					latent_output.second.col(cc));
+			else
+				node->predict(linked,
+					latent_output.first.col(cc),
+					latent_output.second.col(cc));
 		}
 	}
 	void connect(const TMatrix& Ginput) {
@@ -863,7 +875,7 @@ public:
 		}
 	}
 	MatrixPair predict(const TMatrix& X, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		// sample(50);
+		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
 		std::vector<MatrixPair> predictions;
@@ -895,7 +907,7 @@ public:
 		return std::make_pair(mean, variance);
 	}
 	MatrixPair predict(const TMatrix& X, TMatrix& Yref, bool& nanflag, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		// sample(50);
+		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
 		std::vector<MatrixPair> predictions;
@@ -913,11 +925,11 @@ public:
 			MatrixPair output = graph.layer(-1)->latent_output;
 			mean.noalias() += output.first;
 			variance.noalias() += (square(output.first.array()).matrix() + output.second);
-			if ((mean.array().isNaN()).any()) {nanflag = true;  break;}
-			TVector tmp_mu = mean.array() / double(i+1);
+			if ((mean.array().isNaN()).any()) { nanflag = true;  break; }
+			TVector tmp_mu = mean.array() / double(i + 1);
 			double nrmse = metrics::rmse(Yref, tmp_mu, true);
-			if (i > 2 && nrmse > 0.5) {nanflag = true;  break;}
-			double r2 = metrics::r2_score(Yref, tmp_mu);			
+			if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
+			double r2 = metrics::r2_score(Yref, tmp_mu);
 			pred_prog->write((double(i) / double(n_impute)), nrmse, r2);
 		}
 		delete pred_prog;
@@ -980,7 +992,6 @@ void analytic2(std::string exp) {
 	// double nrmse = rmse(Y_test, Zmcs) / (Y_test.maxCoeff() - Y_test.minCoeff());
 	// std::cout << "NRMSE = " << nrmse << std::endl;
 }
-
 void nrel(std::string output, std::string exp) {
 	// metrics::StandardScaler scaler1, scaler2, scaler3, scaler4;
 	// TMatrix X_train = read_data("../datasets/nrel/75/X_train.dat");
@@ -1012,9 +1023,9 @@ void nrel(std::string output, std::string exp) {
 	// TMatrix mean = Z.first;
 	// TMatrix var = Z.second;
 	// std::string m_path = "../results/nrel/75/" + output + "/" + exp + "-M.dat";
-    // std::string v_path = "../results/nrel/75/" + output + "/" + exp + "-V.dat";
-    // write_data(m_path, mean);
-    // write_data(v_path, var);
+	// std::string v_path = "../results/nrel/75/" + output + "/" + exp + "-V.dat";
+	// write_data(m_path, mean);
+	// write_data(v_path, var);
 
 	// double nrmse = metrics::rmse(Y_test, mean, true);
 	// double r2 = metrics::r2_score(Y_test, mean);	
@@ -1027,10 +1038,9 @@ void nrel(std::string output, std::string exp) {
 	// std::cout << "(Recaled) R2 = " << metrics::r2_score(resc_true, resc_mean) << std::endl;	
 	// std::string rem_path = "../results/nrel/75/" + output + "/" + exp + "-MRE.dat";
 	// std::string ret_path = "../results/nrel/75/" + output + "/" + exp + "-TRE.dat";
-    // write_data(rem_path, resc_mean);
-    // write_data(ret_path, resc_true);	
+	// write_data(rem_path, resc_mean);
+	// write_data(ret_path, resc_true);	
 }
-
 void airfoil(std::string exp, bool& restart) {
 	TMatrix X_train = read_data("../datasets/airfoil/20/Xsc_train.dat");
 	TMatrix X_test = read_data("../datasets/airfoil/20/Xsc_test.dat");
@@ -1042,39 +1052,40 @@ void airfoil(std::string exp, bool& restart) {
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-6);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(750, 500);
+	model.train(750, 100);
 	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 200, 192);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);	
+	double nrmse = metrics::rmse(Y_test, mean, true);
 
-	if (nanflag){
+	if (nanflag) {
 		restart = true;
 	}
 	else {
-		std::string e_path = "../results/airfoil/20/NRMSE.dat";		
+		std::string e_path = "../results/airfoil/20/NRMSE.dat";
 		std::cout << "NRMSE = " << nrmse << std::endl;
-		
+
 		std::string m_path = "../results/airfoil/20/" + exp + "-M.dat";
 		std::string v_path = "../results/airfoil/20/" + exp + "-V.dat";
 		write_data(m_path, mean);
 		write_data(v_path, var);
-		if (exp != "1"){
+		if (exp != "1") {
 			TVector error_ = read_data(e_path);
 			double min = error_.minCoeff();
-			if (nrmse < min){
+			if (nrmse < min) {
 				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 50);
+				MatrixPair Zplot = model.predict(X_plot, 100, 192);
 				std::string p_path = "../results/airfoil/20/" + exp + "-P.dat";
 				TMatrix Zp = Zplot.first;
 				write_data(p_path, Zp);
 			}
 		}
-		write_to_file(e_path, std::to_string(nrmse));		
+		write_to_file(e_path, std::to_string(nrmse));
 
 	}
 }
@@ -1093,28 +1104,28 @@ void engine(std::string exp, bool& restart) {
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
-	TMatrix var = Z.second;	
-	double nrmse = metrics::rmse(Y_test, mean, true);	
+	TMatrix var = Z.second;
+	double nrmse = metrics::rmse(Y_test, mean, true);
 
-	if (nanflag){
+	if (nanflag) {
 		restart = true;
 	}
 	else {
-		std::string e_path = "../results/engine/NRMSE.dat";		
+		std::string e_path = "../results/engine/NRMSE.dat";
 		std::cout << "NRMSE = " << nrmse << std::endl;
 		std::string m_path = "../results/engine/" + exp + "-M.dat";
 		std::string v_path = "../results/engine/" + exp + "-V.dat";
 		write_data(m_path, mean);
 		write_data(v_path, var);
 		write_to_file(e_path, std::to_string(nrmse));
-	}	
+	}
 }
 
 int main() {
 	bool restart = false;
 	unsigned int i = 1;
-	unsigned int finish = 41;
-	while(true){
+	unsigned int finish = 10;
+	while (true) {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
 		airfoil(std::to_string(i), restart);
