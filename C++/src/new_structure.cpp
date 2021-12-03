@@ -863,7 +863,7 @@ public:
 		}
 	}
 	MatrixPair predict(const TMatrix& X, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		sample(50);
+		// sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
 		std::vector<MatrixPair> predictions;
@@ -895,7 +895,7 @@ public:
 		return std::make_pair(mean, variance);
 	}
 	MatrixPair predict(const TMatrix& X, TMatrix& Yref, bool& nanflag, unsigned int n_impute = 50, unsigned int n_thread = 1) {
-		sample(50);
+		// sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
 		TMatrix variance = TMatrix::Zero(X.rows(), 1);
 		std::vector<MatrixPair> predictions;
@@ -1045,7 +1045,7 @@ void airfoil(std::string exp, bool& restart) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(750, 100);
+	model.train(750, 500);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 100, 192);
 	TMatrix mean = Z.first;
