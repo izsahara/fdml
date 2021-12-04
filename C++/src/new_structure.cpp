@@ -1123,8 +1123,8 @@ void engine(std::string exp, bool& restart) {
 
 int main() {
 	bool restart = false;
-	unsigned int i = 10;
-	unsigned int finish = 21;
+	unsigned int i = 1;
+	unsigned int finish = 11;
 	while (true) {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
