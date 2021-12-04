@@ -1,4 +1,4 @@
- #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
+//  #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
@@ -1123,8 +1123,8 @@ void engine(std::string exp, bool& restart) {
 
 int main() {
 	bool restart = false;
-	unsigned int i = 1;
-	unsigned int finish = 10;
+	unsigned int i = 10;
+	unsigned int finish = 21;
 	while (true) {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
