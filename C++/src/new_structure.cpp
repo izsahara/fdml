@@ -1053,11 +1053,47 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 	}
 }
 
-// Experiment 1 : 2 Hidden
-// Experiment 2 : 1 Hidden
-// Experiment 2 : 1 Hidden / Increase n_impute 300 -> 500
+void nrel(std::string sp_path, std::string results_path, std::string objective, std::string exp, bool& restart) {
+	TMatrix X_train = read_data(sp_path + "X_train.dat");
+	TMatrix X_test = read_data(sp_path + "X_test.dat");
+	TMatrix Y_train = read_data(sp_path + objective + "Y_train.dat");
+	TMatrix Y_test = read_data(sp_path + objective + "Y_test.dat");
 
-int main() {
+	Graph graph(std::make_pair(X_train, Y_train), 1);
+	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
+		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+	}
+	SIDGP model(graph);
+	model.train(750, 300);
+	bool nanflag = false;
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
+	TMatrix mean = Z.first;
+	TMatrix var = Z.second;
+	double nrmse = metrics::rmse(Y_test, mean, true);
+
+	if (nanflag) {
+		restart = true;
+	}
+	else {
+		std::string e_path = results_path + "NRMSE.dat";
+		std::cout << "NRMSE = " << nrmse << std::endl;
+
+		std::string m_path = results_path + exp + "-M.dat";
+		std::string v_path = results_path + exp + "-V.dat";
+		write_data(m_path, mean);
+		write_data(v_path, var);
+		write_to_file(e_path, std::to_string(nrmse));
+	}
+}
+
+void run_airfoil(){
+	// AIRFOIL
+	// Experiment 1 : 2 Hidden
+	// Experiment 2 : 1 Hidden
+	// Experiment 3 : 1 Hidden / Increase n_impute 300 -> 500	
 	bool restart = false;
 	unsigned int n_train = 20;
 	std::string experiment = "3";
@@ -1079,6 +1115,44 @@ int main() {
 		}
 		else i++;
 		if (i == finish) break;
-	}
+	}	
+
+}
+
+void run_nrel(){
+	// AIRFOIL
+	// Experiment 1 : 1 Hidden
+	bool restart = false;
+	unsigned int n_train = 30;
+	std::string experiment = "1";
+	std::string objective = "Anch1Ten/";
+	unsigned int i = 1; unsigned int finish = 21;
+
+	if (!std::filesystem::exists"../results/nrel/" + objective)) 
+		std::filesystem::create_directory"../results/nrel/" + objective);
+	if (!std::filesystem::exists("../results/nrel/" + objective + std::to_string(n_train))) 
+		std::filesystem::create_directory("../results/nrel/" + objective + std::to_string(n_train));
+
+	while (true) {
+		bool restart = false;
+		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
+		std::string data_path = "../datasets/nrel/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+		std::string results_path = "../results/nrel/" + objective + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+		nrel(data_path, results_path, objective, experiment, restart);
+		if (restart) {
+			std::system("clear");
+			continue;
+		}
+		else i++;
+		if (i == finish) break;
+	}	
+}
+
+int main() {
+	run_nrel();
+
+
+
 	return 0;
 }
