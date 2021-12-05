@@ -1063,7 +1063,7 @@ void nrel(std::string sp_path, std::string results_path, std::string objective, 
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
+		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-1);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
@@ -1151,8 +1151,5 @@ void run_nrel(){
 
 int main() {
 	run_nrel();
-
-
-
 	return 0;
 }
