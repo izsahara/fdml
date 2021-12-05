@@ -1036,6 +1036,8 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 		std::string v_path = results_path + exp + "-V.dat";
 		write_data(m_path, mean);
 		write_data(v_path, var);
+		write_to_file(e_path, std::to_string(nrmse));
+
 		if (exp != "1") {
 			TVector error_ = read_data(e_path);
 			double min = error_.minCoeff();
@@ -1047,7 +1049,6 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 				write_data(p_path, Zp);
 			}
 		}
-		write_to_file(e_path, std::to_string(nrmse));
 
 	}
 }
@@ -1060,7 +1061,7 @@ int main() {
 	bool restart = false;
 	unsigned int n_train = 20;
 	std::string experiment = "3";
-	unsigned int i = 21; unsigned int finish = 41;
+	unsigned int i = 22; unsigned int finish = 41;
 
 	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
