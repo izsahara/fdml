@@ -1057,7 +1057,7 @@ void airfoil(std::string exp, bool& restart) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-6);
-		// graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
 	model.train(750, 100);
