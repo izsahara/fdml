@@ -1060,7 +1060,7 @@ int main() {
 	bool restart = false;
 	unsigned int n_train = 20;
 	std::string experiment = "3";
-	unsigned int i = 21; unsigned int finish = 26;
+	unsigned int i = 21; unsigned int finish = 41;
 
 	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
