@@ -1010,7 +1010,7 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
 	TMatrix Y_test = read_data(sp_path + "Y_test.dat");
 
-	Graph graph(std::make_pair(X_train, Y_train), 2);
+	Graph graph(std::make_pair(X_train, Y_train), 1);
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
@@ -1052,14 +1052,13 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 	}
 }
 
-
-
-
+// Experiment 1 : 2 Hidden
+// Experiment 2 : 1 Hidden
 
 int main() {
 	bool restart = false;
 	unsigned int n_train = 20;
-	std::string experiment = "1";
+	std::string experiment = "2";
 	unsigned int i = 1;
 	unsigned int finish = 21;
 
