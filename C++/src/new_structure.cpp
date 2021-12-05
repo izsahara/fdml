@@ -564,7 +564,7 @@ public:
 	}
 	void set_likelihood_variance(const double& value) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
-			nn->likelihood_variance = value;
+			nn->set_likelihood_variance(value);
 		}
 	}
 	void fix_likelihood_variance() {
