@@ -1062,6 +1062,10 @@ int main() {
 	std::string experiment = "1";
 	unsigned int i = 1;
 	unsigned int finish = 21;
+
+	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
+	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
+
 	while (true) {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
