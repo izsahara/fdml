@@ -1128,8 +1128,8 @@ void run_nrel(){
 	std::string objective = "Anch1Ten/";
 	unsigned int i = 1; unsigned int finish = 21;
 
-	if (!std::filesystem::exists"../results/nrel/" + objective)) 
-		std::filesystem::create_directory"../results/nrel/" + objective);
+	if (!std::filesystem::exists("../results/nrel/" + objective)) 
+		std::filesystem::create_directory("../results/nrel/" + objective);
 	if (!std::filesystem::exists("../results/nrel/" + objective + std::to_string(n_train))) 
 		std::filesystem::create_directory("../results/nrel/" + objective + std::to_string(n_train));
 
