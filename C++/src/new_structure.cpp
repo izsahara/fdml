@@ -407,6 +407,10 @@ public:
 	void set_solver(const SolverPtr& rsolver) {
 		solver = std::move(rsolver);
 	}
+	void set_likelihood_variance(const double& lv){
+		if (lv <= 0.0) likelihood_variance.transform_value(lv);
+		else likelihood_variance = lv;
+	}
 private:
 	friend class Layer;
 	friend class SIDGP;
@@ -1053,7 +1057,7 @@ void airfoil(std::string exp, bool& restart) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+		// graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
 	model.train(750, 100);
