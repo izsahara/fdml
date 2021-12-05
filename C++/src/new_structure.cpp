@@ -1020,7 +1020,7 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 	SIDGP model(graph);
 	model.train(750, 300);
 	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 300, 96);
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1054,13 +1054,13 @@ void airfoil(std::string sp_path, std::string results_path, std::string exp, boo
 
 // Experiment 1 : 2 Hidden
 // Experiment 2 : 1 Hidden
+// Experiment 2 : 1 Hidden / Increase n_impute 300 -> 500
 
 int main() {
 	bool restart = false;
 	unsigned int n_train = 20;
-	std::string experiment = "2";
-	unsigned int i = 1;
-	unsigned int finish = 21;
+	std::string experiment = "3";
+	unsigned int i = 1; unsigned int finish = 21;
 
 	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
