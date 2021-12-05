@@ -1062,7 +1062,7 @@ void airfoil(std::string exp, bool& restart) {
 	SIDGP model(graph);
 	model.train(750, 300);
 	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 200, 96);
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 300, 96);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1127,8 +1127,8 @@ void engine(std::string exp, bool& restart) {
 
 int main() {
 	bool restart = false;
-	unsigned int i = 1;
-	unsigned int finish = 11;
+	unsigned int i = 11;
+	unsigned int finish = 21;
 	while (true) {
 		bool restart = false;
 		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
