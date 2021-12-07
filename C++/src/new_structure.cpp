@@ -1063,11 +1063,11 @@ void analytic2(std::string sp_path, std::string results_path, std::string exp, b
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-8);
+		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-6);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(750, 300);
+	model.train(100, 100);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
 	TMatrix mean = Z.first;
