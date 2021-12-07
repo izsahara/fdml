@@ -1117,7 +1117,7 @@ void engine(std::string sp_path, std::string results_path, std::string exp, bool
 	SIDGP model(graph);
 	model.train(100, 100);
 	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
+	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 75, 96);
 	TMatrix mean = Z.first;
 	TMatrix var = Z.second;
 	double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1234,7 +1234,7 @@ void run_engine(){
 	bool restart = false;
 	unsigned int n_train = 100;
 	std::string experiment = "1";
-	unsigned int i = 1; unsigned int finish = 26;
+	unsigned int i = 2; unsigned int finish = 26;
 
 	std::string main_results_path = "../results/engine/" + std::to_string(n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
