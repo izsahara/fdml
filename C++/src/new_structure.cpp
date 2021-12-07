@@ -1287,6 +1287,6 @@ void run_nrel(){
 }
 
 int main() {
-	run_analytic2();
+	run_engine();
 	return 0;
 }
