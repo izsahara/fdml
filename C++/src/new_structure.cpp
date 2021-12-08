@@ -169,7 +169,7 @@ private:
 		TVector mean = TVector::Zero(K.rows());
 		Eigen::setNbThreads(1);
 		Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(K);
-		 //TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
+		//TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
 		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
@@ -191,9 +191,9 @@ private:
 			return lpg;
 		};
 		std::vector<TMatrix> grad_;
-		kernel->gradients(inputs, grad_);		
+		kernel->gradients(inputs, grad_);
 		TVector grad = TVector::Zero(grad_.size());
-		if (!(*likelihood_variance.is_fixed)) 
+		if (!(*likelihood_variance.is_fixed))
 			grad_.push_back(likelihood_variance.value() * TMatrix::Identity(inputs.rows(), inputs.rows()));
 		for (int i = 0; i < grad_.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
@@ -202,7 +202,7 @@ private:
 			double P1 = -0.5 * trace;
 			double P2 = 0.5 * YKKT;
 			grad[i] = -P1 - (P2 / scale.value());
-		}		
+		}
 		grad -= log_prior_gradient();
 		return grad;
 	}
@@ -407,7 +407,7 @@ public:
 	void set_solver(const SolverPtr& rsolver) {
 		solver = std::move(rsolver);
 	}
-	void set_likelihood_variance(const double& lv){
+	void set_likelihood_variance(const double& lv) {
 		if (lv <= 0.0) likelihood_variance.transform_value(lv);
 		else likelihood_variance = lv;
 	}
@@ -955,339 +955,458 @@ public:
 	unsigned int verbosity = 1;
 };
 
-void airfoil(std::string exp, bool& restart) {
-	TMatrix X_train = read_data("../datasets/airfoil/20-2/Xsc_train.dat");
-	TMatrix X_test = read_data("../datasets/airfoil/20-2/Xsc_test.dat");
-	TMatrix X_plot = read_data("../datasets/airfoil/20-2/X_plot.dat");
-	TMatrix Y_train = read_data("../datasets/airfoil/20-2/Y_train.dat");
-	TMatrix Y_test = read_data("../datasets/airfoil/20-2/Y_test.dat");
+struct Case {
+	Case() = default;
+	Case(const std::string& problem) : problem(problem) {}
+	std::string problem;
+	unsigned int n_train;
+	unsigned int experiment;
+	unsigned int start;
+	unsigned int finish;
+	unsigned int train_iter;
+	unsigned int train_impute;
+	unsigned int pred_iter;
+	double likelihood_variance = 1E-10;
+};
 
-	Graph graph(std::make_pair(X_train, Y_train), 2);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	}
-	SIDGP model(graph);
-	model.train(750, 200);
-	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 300, 96);
-	TMatrix mean = Z.first;
-	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);
 
-	if (nanflag) {
-		restart = true;
-	}
-	else {
-		std::string e_path = "../results/airfoil/20-2/NRMSE.dat";
-		std::cout << "NRMSE = " << nrmse << std::endl;
+void case1() {
 
-		std::string m_path = "../results/airfoil/20-2/" + exp + "-M.dat";
-		std::string v_path = "../results/airfoil/20-2/" + exp + "-V.dat";
-		write_data(m_path, mean);
-		write_data(v_path, var);
-		if (exp != "1") {
-			TVector error_ = read_data(e_path);
-			double min = error_.minCoeff();
-			if (nrmse < min) {
-				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 96);
-				std::string p_path = "../results/airfoil/20-2/" + exp + "-P.dat";
-				TMatrix Zp = Zplot.first;
-				write_data(p_path, Zp);
+}
+
+void case2(Case& case_study) {
+	std::cout << "Running " << case_study.problem << std::endl;
+
+	auto run_problem = [&case_study](std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+		TMatrix X_plot = read_data(sp_path + "X_plot.dat");
+		TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
+		TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
+		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
+
+		Graph graph(std::make_pair(X_train, Y_train), 1);
+		for (unsigned int i = 0; i < graph.n_layers; ++i) {
+			TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
+			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+		}
+		SIDGP model(graph);
+		model.train(case_study.train_iter, case_study.train_impute);
+		bool nanflag = false;
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
+		TMatrix mean = Z.first;
+		TMatrix var = Z.second;
+		double nrmse = metrics::rmse(Y_test, mean, true);
+
+		if (nanflag) {
+			restart = true;
+		}
+		else {
+			std::string e_path = results_path + "NRMSE.dat";
+			std::cout << "NRMSE = " << nrmse << std::endl;
+
+			std::string m_path = results_path + exp + "-M.dat";
+			std::string v_path = results_path + exp + "-V.dat";
+			write_data(m_path, mean);
+			write_data(v_path, var);
+			write_to_file(e_path, std::to_string(nrmse));
+
+			if (exp != "1") {
+				TVector error_ = read_data(e_path);
+				double min = error_.minCoeff();
+				if (nrmse < min) {
+					std::cout << "Plot" << std::endl;
+					MatrixPair Zplot = model.predict(X_plot, 100, 96);
+					std::string p_path = results_path + exp + "-P.dat";
+					TMatrix Zp = Zplot.first;
+					write_data(p_path, Zp);
+				}
 			}
-		}
-		write_to_file(e_path, std::to_string(nrmse));
 
-	}
-}
-void airfoil(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
-	TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
-	TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
-	TMatrix X_plot = read_data(sp_path + "X_plot.dat");
-	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
-	TMatrix Y_test = read_data(sp_path + "Y_test.dat");
-
-	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	}
-	SIDGP model(graph);
-	model.train(750, 300);
-	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
-	TMatrix mean = Z.first;
-	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);
-
-	if (nanflag) {
-		restart = true;
-	}
-	else {
-		std::string e_path = results_path + "NRMSE.dat";
-		std::cout << "NRMSE = " << nrmse << std::endl;
-
-		std::string m_path = results_path + exp + "-M.dat";
-		std::string v_path = results_path + exp + "-V.dat";
-		write_data(m_path, mean);
-		write_data(v_path, var);
-		write_to_file(e_path, std::to_string(nrmse));
-
-		if (exp != "1") {
-			TVector error_ = read_data(e_path);
-			double min = error_.minCoeff();
-			if (nrmse < min) {
-				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 96);
-				std::string p_path = results_path + exp + "-P.dat";
-				TMatrix Zp = Zplot.first;
-				write_data(p_path, Zp);
-			}
 		}
 
-	}
-}
-void analytic2(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
-	TMatrix X_train = read_data(sp_path + "X_train.dat");
-	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
-	TMatrix X_plot = read_data(sp_path + "X_plot.dat");
-	TMatrix X_test = read_data("../datasets/analytic2/55/X_test.dat");
-	TMatrix Y_test = read_data("../datasets/analytic2/55/Y_test.dat");
 
-	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	}
-	SIDGP model(graph);
-	model.train(100, 100);
-	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
-	TMatrix mean = Z.first;
-	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);
+	};
 
-	if (nanflag) {
-		restart = true;
-	}
-	else {
-		std::string e_path = results_path + "NRMSE.dat";
-		std::cout << "NRMSE = " << nrmse << std::endl;
-
-		std::string m_path = results_path + exp + "-M.dat";
-		std::string v_path = results_path + exp + "-V.dat";
-		write_data(m_path, mean);
-		write_data(v_path, var);
-		write_to_file(e_path, std::to_string(nrmse));
-
-		if (exp != "1") {
-			TVector error_ = read_data(e_path);
-			double min = error_.minCoeff();
-			if (nrmse < min) {
-				std::cout << "Plot" << std::endl;
-				MatrixPair Zplot = model.predict(X_plot, 100, 96);
-				std::string p_path = results_path + exp + "-P.dat";
-				TMatrix Zp = Zplot.first;
-				write_data(p_path, Zp);
-			}
-		}
-
-	}
-}
-void engine(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
-	TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
-	TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
-	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
-	TMatrix Y_test = read_data(sp_path + "Y_test.dat");
-
-	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-10);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	}
-	SIDGP model(graph);
-	model.train(100, 100);
-	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 75, 96);
-	TMatrix mean = Z.first;
-	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);
-
-	if (nanflag) {
-		restart = true;
-	}
-	else {
-		std::string e_path = results_path + "NRMSE.dat";
-		std::cout << "NRMSE = " << nrmse << std::endl;
-
-		std::string m_path = results_path + exp + "-M.dat";
-		std::string v_path = results_path + exp + "-V.dat";
-		write_data(m_path, mean);
-		write_data(v_path, var);
-		write_to_file(e_path, std::to_string(nrmse));
-	}
-}
-void nrel(std::string sp_path, std::string results_path, std::string objective, std::string exp, bool& restart) {
-	TMatrix X_train = read_data(sp_path + "X_train.dat");
-	TMatrix X_test = read_data(sp_path + "X_test.dat");
-	TMatrix Y_train = read_data(sp_path + objective + "Y_train.dat");
-	TMatrix Y_test = read_data(sp_path + objective + "Y_test.dat");
-
-	Graph graph(std::make_pair(X_train, Y_train), 1);
-	for (unsigned int i = 0; i < graph.n_layers; ++i) {
-		TVector ls = TVector::Constant(X_train.cols(), 1.0);
-		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-10);
-		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-	}
-	SIDGP model(graph);
-	model.train(750, 300);
-	bool nanflag = false;
-	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
-	TMatrix mean = Z.first;
-	TMatrix var = Z.second;
-	double nrmse = metrics::rmse(Y_test, mean, true);
-
-	if (nanflag) {
-		restart = true;
-	}
-	else {
-		std::string e_path = results_path + "NRMSE.dat";
-		std::cout << "NRMSE = " << nrmse << std::endl;
-
-		std::string m_path = results_path + exp + "-M.dat";
-		std::string v_path = results_path + exp + "-V.dat";
-		write_data(m_path, mean);
-		write_data(v_path, var);
-		write_to_file(e_path, std::to_string(nrmse));
-	}
-}
-
-void run_airfoil(){
-	// AIRFOIL
-	// Experiment 1 : 2 Hidden
-	// Experiment 2 : 1 Hidden
-	// Experiment 3 : 1 Hidden / Increase n_impute 300 -> 500	
-	bool restart = false;
-	unsigned int n_train = 20;
-	std::string experiment = "3";
-	unsigned int i = 21; unsigned int finish = 41;
-
-	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
+	std::string main_results_path = "../results/" + case_study.problem + "/" + std::to_string(case_study.n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
-
+	unsigned int ii = case_study.start;
 	while (true) {
 		bool restart = false;
-		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
-		std::string data_path = "../datasets/airfoil/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		std::string results_path = "../results/airfoil/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+		std::cout << "================= " << "" << " EXP " << ii << " ================" << std::endl;
+		std::string data_path = "../datasets/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+		std::string results_path = "../results/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
 		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		airfoil(data_path, results_path, experiment, restart);
+		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
 		if (restart) {
 			std::system("clear");
 			continue;
 		}
-		else i++;
-		if (i == finish) break;
-	}	
-
-}
-void run_analytic2(){
-	// ANALYTIC 2D
-	// Experiment 1 : 1 Hidden
-	bool restart = false;
-	unsigned int n_train = 55;
-	std::string experiment = "1";
-	unsigned int i = 1; unsigned int finish = 26;
-
-	std::string main_results_path = "../results/analytic2/" + std::to_string(n_train);
-	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
-
-	while (true) {
-		bool restart = false;
-		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
-		std::string data_path = "../datasets/analytic2/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		std::string results_path = "../results/analytic2/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		analytic2(data_path, results_path, experiment, restart);
-		if (restart) {
-			std::system("clear");
-			continue;
-		}
-		else i++;
-		if (i == finish) break;
-	}	
-
-}
-void run_engine(){
-	// ENGINE
-	// Experiment 1 : 1E-6
-	// Experiment 2 : 1E-10
-	bool restart = false;
-	unsigned int n_train = 100;
-	std::string experiment = "2";
-	unsigned int i = 1; unsigned int finish = 26;
-
-	std::string main_results_path = "../results/engine/" + std::to_string(n_train);
-	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
-
-	while (true) {
-		bool restart = false;
-		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
-		std::string data_path = "../datasets/engine/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		std::string results_path = "../results/engine/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		engine(data_path, results_path, experiment, restart);
-		if (restart) {
-			std::system("clear");
-			continue;
-		}
-		else i++;
-		if (i == finish) break;
-	}	
-
+		else ii++;
+		if (ii == case_study.finish) break;
+	}
+	std::cout << "End " << case_study.problem << std::endl;
 }
 
-void run_nrel(){
-	// AIRFOIL
-	// Experiment 1 : 1 Hidden
-	bool restart = false;
-	unsigned int n_train = 30;
-	std::string experiment = "1";
-	std::string objective = "Anch1Ten/";
-	unsigned int i = 1; unsigned int finish = 21;
 
-	if (!std::filesystem::exists("../results/nrel/" + objective)) 
-		std::filesystem::create_directory("../results/nrel/" + objective);
-	if (!std::filesystem::exists("../results/nrel/" + objective + std::to_string(n_train))) 
-		std::filesystem::create_directory("../results/nrel/" + objective + std::to_string(n_train));
-
-	while (true) {
-		bool restart = false;
-		std::cout << "================= " << " EXP " << i << " ================" << std::endl;		
-		std::string data_path = "../datasets/nrel/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		std::string results_path = "../results/nrel/" + objective + std::to_string(n_train) + "/" + std::to_string(i) + "/";
-		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		nrel(data_path, results_path, objective, experiment, restart);
-		if (restart) {
-			std::system("clear");
-			continue;
-		}
-		else i++;
-		if (i == finish) break;
-	}	
-}
 
 int main() {
-	run_engine();
+	Case AN_C2_1("analytic2");
+	AN_C2_1.n_train = 55;
+	AN_C2_1.experiment = 1;
+	AN_C2_1.start = 26;
+	AN_C2_1.finish = 41;
+	AN_C2_1.train_iter = 100;
+	AN_C2_1.train_impute = 100;
+	AN_C2_1.pred_iter = 500;
+	AN_C2_1.likelihood_variance = 1E-3;
+	case2(AN_C2_1);
+
+	Case AN_C2_2("analytic2");
+	AN_C2_2.n_train = 20;
+	AN_C2_2.experiment = 1;
+	AN_C2_2.start = 1;
+	AN_C2_2.finish = 41;
+	AN_C2_2.train_iter = 100;
+	AN_C2_2.train_impute = 300;
+	AN_C2_2.pred_iter = 500;
+	AN_C2_2.likelihood_variance = 1E-6;
+	case2(AN_C2_2);
+
+
 	return 0;
 }
+
+
+
+//void airfoil(std::string exp, bool& restart) {
+//	TMatrix X_train = read_data("../datasets/airfoil/20-2/Xsc_train.dat");
+//	TMatrix X_test = read_data("../datasets/airfoil/20-2/Xsc_test.dat");
+//	TMatrix X_plot = read_data("../datasets/airfoil/20-2/X_plot.dat");
+//	TMatrix Y_train = read_data("../datasets/airfoil/20-2/Y_train.dat");
+//	TMatrix Y_test = read_data("../datasets/airfoil/20-2/Y_test.dat");
+//
+//	Graph graph(std::make_pair(X_train, Y_train), 2);
+//	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+//		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+//		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+//		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
+//		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+//	}
+//	SIDGP model(graph);
+//	model.train(750, 200);
+//	bool nanflag = false;
+//	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 300, 96);
+//	TMatrix mean = Z.first;
+//	TMatrix var = Z.second;
+//	double nrmse = metrics::rmse(Y_test, mean, true);
+//
+//	if (nanflag) {
+//		restart = true;
+//	}
+//	else {
+//		std::string e_path = "../results/airfoil/20-2/NRMSE.dat";
+//		std::cout << "NRMSE = " << nrmse << std::endl;
+//
+//		std::string m_path = "../results/airfoil/20-2/" + exp + "-M.dat";
+//		std::string v_path = "../results/airfoil/20-2/" + exp + "-V.dat";
+//		write_data(m_path, mean);
+//		write_data(v_path, var);
+//		if (exp != "1") {
+//			TVector error_ = read_data(e_path);
+//			double min = error_.minCoeff();
+//			if (nrmse < min) {
+//				std::cout << "Plot" << std::endl;
+//				MatrixPair Zplot = model.predict(X_plot, 100, 96);
+//				std::string p_path = "../results/airfoil/20-2/" + exp + "-P.dat";
+//				TMatrix Zp = Zplot.first;
+//				write_data(p_path, Zp);
+//			}
+//		}
+//		write_to_file(e_path, std::to_string(nrmse));
+//
+//	}
+//}
+//void airfoil(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+//	TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
+//	TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
+//	TMatrix X_plot = read_data(sp_path + "X_plot.dat");
+//	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+//	TMatrix Y_test = read_data(sp_path + "Y_test.dat");
+//
+//	Graph graph(std::make_pair(X_train, Y_train), 1);
+//	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+//		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+//		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+//		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
+//		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+//	}
+//	SIDGP model(graph);
+//	model.train(750, 300);
+//	bool nanflag = false;
+//	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
+//	TMatrix mean = Z.first;
+//	TMatrix var = Z.second;
+//	double nrmse = metrics::rmse(Y_test, mean, true);
+//
+//	if (nanflag) {
+//		restart = true;
+//	}
+//	else {
+//		std::string e_path = results_path + "NRMSE.dat";
+//		std::cout << "NRMSE = " << nrmse << std::endl;
+//
+//		std::string m_path = results_path + exp + "-M.dat";
+//		std::string v_path = results_path + exp + "-V.dat";
+//		write_data(m_path, mean);
+//		write_data(v_path, var);
+//		write_to_file(e_path, std::to_string(nrmse));
+//
+//		if (exp != "1") {
+//			TVector error_ = read_data(e_path);
+//			double min = error_.minCoeff();
+//			if (nrmse < min) {
+//				std::cout << "Plot" << std::endl;
+//				MatrixPair Zplot = model.predict(X_plot, 100, 96);
+//				std::string p_path = results_path + exp + "-P.dat";
+//				TMatrix Zp = Zplot.first;
+//				write_data(p_path, Zp);
+//			}
+//		}
+//
+//	}
+//}
+//void analytic2(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+//	TMatrix X_train = read_data(sp_path + "X_train.dat");
+//	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+//	TMatrix X_plot = read_data(sp_path + "X_plot.dat");
+//	TMatrix X_test = read_data("../datasets/analytic2/55/X_test.dat");
+//	TMatrix Y_test = read_data("../datasets/analytic2/55/Y_test.dat");
+//
+//	Graph graph(std::make_pair(X_train, Y_train), 1);
+//	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+//		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+//		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+//		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-3);
+//		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+//	}
+//	SIDGP model(graph);
+//	model.train(100, 100);
+//	bool nanflag = false;
+//	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
+//	TMatrix mean = Z.first;
+//	TMatrix var = Z.second;
+//	double nrmse = metrics::rmse(Y_test, mean, true);
+//
+//	if (nanflag) {
+//		restart = true;
+//	}
+//	else {
+//		std::string e_path = results_path + "NRMSE.dat";
+//		std::cout << "NRMSE = " << nrmse << std::endl;
+//
+//		std::string m_path = results_path + exp + "-M.dat";
+//		std::string v_path = results_path + exp + "-V.dat";
+//		write_data(m_path, mean);
+//		write_data(v_path, var);
+//		write_to_file(e_path, std::to_string(nrmse));
+//
+//		if (exp != "1") {
+//			TVector error_ = read_data(e_path);
+//			double min = error_.minCoeff();
+//			if (nrmse < min) {
+//				std::cout << "Plot" << std::endl;
+//				MatrixPair Zplot = model.predict(X_plot, 100, 96);
+//				std::string p_path = results_path + exp + "-P.dat";
+//				TMatrix Zp = Zplot.first;
+//				write_data(p_path, Zp);
+//			}
+//		}
+//
+//	}
+//}
+//void engine(std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+//	TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
+//	TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
+//	TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+//	TMatrix Y_test = read_data(sp_path + "Y_test.dat");
+//
+//	Graph graph(std::make_pair(X_train, Y_train), 1);
+//	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+//		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+//		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+//		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-10);
+//		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+//	}
+//	SIDGP model(graph);
+//	model.train(100, 100);
+//	bool nanflag = false;
+//	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 75, 96);
+//	TMatrix mean = Z.first;
+//	TMatrix var = Z.second;
+//	double nrmse = metrics::rmse(Y_test, mean, true);
+//
+//	if (nanflag) {
+//		restart = true;
+//	}
+//	else {
+//		std::string e_path = results_path + "NRMSE.dat";
+//		std::cout << "NRMSE = " << nrmse << std::endl;
+//
+//		std::string m_path = results_path + exp + "-M.dat";
+//		std::string v_path = results_path + exp + "-V.dat";
+//		write_data(m_path, mean);
+//		write_data(v_path, var);
+//		write_to_file(e_path, std::to_string(nrmse));
+//	}
+//}
+//void nrel(std::string sp_path, std::string results_path, std::string objective, std::string exp, bool& restart) {
+//	TMatrix X_train = read_data(sp_path + "X_train.dat");
+//	TMatrix X_test = read_data(sp_path + "X_test.dat");
+//	TMatrix Y_train = read_data(sp_path + objective + "Y_train.dat");
+//	TMatrix Y_test = read_data(sp_path + objective + "Y_test.dat");
+//
+//	Graph graph(std::make_pair(X_train, Y_train), 1);
+//	for (unsigned int i = 0; i < graph.n_layers; ++i) {
+//		TVector ls = TVector::Constant(X_train.cols(), 1.0);
+//		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+//		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-10);
+//		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+//	}
+//	SIDGP model(graph);
+//	model.train(750, 300);
+//	bool nanflag = false;
+//	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 500, 96);
+//	TMatrix mean = Z.first;
+//	TMatrix var = Z.second;
+//	double nrmse = metrics::rmse(Y_test, mean, true);
+//
+//	if (nanflag) {
+//		restart = true;
+//	}
+//	else {
+//		std::string e_path = results_path + "NRMSE.dat";
+//		std::cout << "NRMSE = " << nrmse << std::endl;
+//
+//		std::string m_path = results_path + exp + "-M.dat";
+//		std::string v_path = results_path + exp + "-V.dat";
+//		write_data(m_path, mean);
+//		write_data(v_path, var);
+//		write_to_file(e_path, std::to_string(nrmse));
+//	}
+//}
+//void run_airfoil() {
+//	// AIRFOIL
+//	// Experiment 1 : 2 Hidden
+//	// Experiment 2 : 1 Hidden
+//	// Experiment 3 : 1 Hidden / Increase n_impute 300 -> 500	
+//	bool restart = false;
+//	unsigned int n_train = 20;
+//	std::string experiment = "3";
+//	unsigned int i = 21; unsigned int finish = 41;
+//
+//	std::string main_results_path = "../results/airfoil/" + std::to_string(n_train);
+//	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
+//
+//	while (true) {
+//		bool restart = false;
+//		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
+//		std::string data_path = "../datasets/airfoil/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		std::string results_path = "../results/airfoil/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+//		airfoil(data_path, results_path, experiment, restart);
+//		if (restart) {
+//			std::system("clear");
+//			continue;
+//		}
+//		else i++;
+//		if (i == finish) break;
+//	}
+//
+//}
+//void run_analytic2() {
+//	// ANALYTIC 2D
+//	// Experiment 1 : 1 Hidden
+//	bool restart = false;
+//	unsigned int n_train = 55;
+//	std::string experiment = "1";
+//	unsigned int i = 1; unsigned int finish = 26;
+//
+//	std::string main_results_path = "../results/analytic2/" + std::to_string(n_train);
+//	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
+//
+//	while (true) {
+//		bool restart = false;
+//		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
+//		std::string data_path = "../datasets/analytic2/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		std::string results_path = "../results/analytic2/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+//		analytic2(data_path, results_path, experiment, restart);
+//		if (restart) {
+//			std::system("clear");
+//			continue;
+//		}
+//		else i++;
+//		if (i == finish) break;
+//	}
+//
+//}
+//void run_engine() {
+//	// ENGINE
+//	// Experiment 1 : 1E-6
+//	// Experiment 2 : 1E-10
+//	bool restart = false;
+//	unsigned int n_train = 100;
+//	std::string experiment = "2";
+//	unsigned int i = 1; unsigned int finish = 26;
+//
+//	std::string main_results_path = "../results/engine/" + std::to_string(n_train);
+//	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
+//
+//	while (true) {
+//		bool restart = false;
+//		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
+//		std::string data_path = "../datasets/engine/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		std::string results_path = "../results/engine/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+//		engine(data_path, results_path, experiment, restart);
+//		if (restart) {
+//			std::system("clear");
+//			continue;
+//		}
+//		else i++;
+//		if (i == finish) break;
+//	}
+//
+//}
+//void run_nrel() {
+//	// AIRFOIL
+//	// Experiment 1 : 1 Hidden
+//	bool restart = false;
+//	unsigned int n_train = 30;
+//	std::string experiment = "1";
+//	std::string objective = "Anch1Ten/";
+//	unsigned int i = 1; unsigned int finish = 21;
+//
+//	if (!std::filesystem::exists("../results/nrel/" + objective))
+//		std::filesystem::create_directory("../results/nrel/" + objective);
+//	if (!std::filesystem::exists("../results/nrel/" + objective + std::to_string(n_train)))
+//		std::filesystem::create_directory("../results/nrel/" + objective + std::to_string(n_train));
+//
+//	while (true) {
+//		bool restart = false;
+//		std::cout << "================= " << " EXP " << i << " ================" << std::endl;
+//		std::string data_path = "../datasets/nrel/" + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		std::string results_path = "../results/nrel/" + objective + std::to_string(n_train) + "/" + std::to_string(i) + "/";
+//		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+//		nrel(data_path, results_path, objective, experiment, restart);
+//		if (restart) {
+//			std::system("clear");
+//			continue;
+//		}
+//		else i++;
+//		if (i == finish) break;
+//	}
+//}
+
