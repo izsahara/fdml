@@ -1071,7 +1071,7 @@ int main() {
 	AN_C2_2.train_iter = 100;
 	AN_C2_2.train_impute = 300;
 	AN_C2_2.pred_iter = 500;
-	AN_C2_2.likelihood_variance = 1E-6;
+	AN_C2_2.likelihood_variance = 1E-3;
 	case2(AN_C2_2);
 
 
