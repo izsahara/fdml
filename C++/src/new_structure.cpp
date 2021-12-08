@@ -970,7 +970,7 @@ void airfoil(std::string exp, bool& restart) {
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
-	model.train(750, 300);
+	model.train(750, 200);
 	bool nanflag = false;
 	MatrixPair Z = model.predict(X_test, Y_test, nanflag, 300, 96);
 	TMatrix mean = Z.first;
@@ -1111,7 +1111,7 @@ void engine(std::string sp_path, std::string results_path, std::string exp, bool
 	for (unsigned int i = 0; i < graph.n_layers; ++i) {
 		TVector ls = TVector::Constant(X_train.cols(), 1.0);
 		graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-6);
+		graph.layer(static_cast<int>(i))->set_likelihood_variance(1E-10);
 		graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 	}
 	SIDGP model(graph);
@@ -1233,7 +1233,7 @@ void run_engine(){
 	// Experiment 1 : 1 Hidden
 	bool restart = false;
 	unsigned int n_train = 100;
-	std::string experiment = "1";
+	std::string experiment = "2";
 	unsigned int i = 2; unsigned int finish = 26;
 
 	std::string main_results_path = "../results/engine/" + std::to_string(n_train);
