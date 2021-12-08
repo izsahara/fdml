@@ -1230,11 +1230,12 @@ void run_analytic2(){
 }
 void run_engine(){
 	// ENGINE
-	// Experiment 1 : 1 Hidden
+	// Experiment 1 : 1E-6
+	// Experiment 2 : 1E-10
 	bool restart = false;
 	unsigned int n_train = 100;
 	std::string experiment = "2";
-	unsigned int i = 2; unsigned int finish = 26;
+	unsigned int i = 1; unsigned int finish = 26;
 
 	std::string main_results_path = "../results/engine/" + std::to_string(n_train);
 	if (!std::filesystem::exists(main_results_path)) std::filesystem::create_directory(main_results_path);
