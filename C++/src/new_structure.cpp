@@ -1050,9 +1050,24 @@ void case2(Case& case_study) {
 	std::cout << "End " << case_study.problem << std::endl;
 }
 
+void analytic21(){
+	// Experiment 1: 1E-3
+	{ 
+		Case AN_C1_1("analytic2");
+		AN_C1_1.n_train = 55;
+		AN_C1_1.experiment = 1;
+		AN_C1_1.start = 26;
+		AN_C1_1.finish = 41;
+		AN_C1_1.train_iter = 100;
+		AN_C1_1.train_impute = 100;
+		AN_C1_1.pred_iter = 500;
+		AN_C1_1.likelihood_variance = 1E-3;
+		case1(AN_C1_1);
+	}
+}
 
 
-int main() {
+void analytic22(){
 	// Experiment 1: 1E-3
 	{ 
 		// Case AN_C2_1("analytic2");
@@ -1093,7 +1108,12 @@ int main() {
 		AN_C2_2.pred_iter = 500;
 		AN_C2_2.likelihood_variance = 1E-3;
 		case2(AN_C2_2);
-	}
+	}	
+
+}
+
+int main() {
+
 
 
 
