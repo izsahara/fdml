@@ -1052,29 +1052,32 @@ void case2(Case& case_study) {
 
 
 int main() {
-	// Case AN_C2_1("analytic2");
-	// AN_C2_1.n_train = 55;
-	// AN_C2_1.experiment = 1;
-	// AN_C2_1.start = 26;
-	// AN_C2_1.finish = 41;
-	// AN_C2_1.train_iter = 100;
-	// AN_C2_1.train_impute = 100;
-	// AN_C2_1.pred_iter = 500;
-	// AN_C2_1.likelihood_variance = 1E-3;
-	// case2(AN_C2_1);
-
 	// Experiment 1: 1E-3
-	// Experiment 2: 1E-10
+	{ 
+		// Case AN_C2_1("analytic2");
+		// AN_C2_1.n_train = 55;
+		// AN_C2_1.experiment = 1;
+		// AN_C2_1.start = 26;
+		// AN_C2_1.finish = 41;
+		// AN_C2_1.train_iter = 100;
+		// AN_C2_1.train_impute = 100;
+		// AN_C2_1.pred_iter = 500;
+		// AN_C2_1.likelihood_variance = 1E-3;
+		// case2(AN_C2_1);
+	}
+
+	// Experiment 2: 1E-10 BAD
+	// Change to 1E-3 add train_iter 100 -> 750
 	{
 		Case AN_C2_2("analytic2");
 		AN_C2_2.n_train = 20;
 		AN_C2_2.experiment = 2;
 		AN_C2_2.start = 1;
 		AN_C2_2.finish = 41;
-		AN_C2_2.train_iter = 100;
+		AN_C2_2.train_iter = 750;
 		AN_C2_2.train_impute = 300;
 		AN_C2_2.pred_iter = 500;
-		AN_C2_2.likelihood_variance = 1E-10;
+		AN_C2_2.likelihood_variance = 1E-3;
 		case2(AN_C2_2);
 	}
 	// Experiment 3: 1E-3, 
