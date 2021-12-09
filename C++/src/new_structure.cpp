@@ -1005,12 +1005,13 @@ void case2(Case& case_study) {
 		else {
 			std::string e_path = results_path + "NRMSE.dat";
 			std::cout << "NRMSE = " << nrmse << std::endl;
+			std::string save_nrmse = exp + "-" + std::to_string(nrmse);
 
 			std::string m_path = results_path + exp + "-M.dat";
 			std::string v_path = results_path + exp + "-V.dat";
 			write_data(m_path, mean);
 			write_data(v_path, var);
-			write_to_file(e_path, std::to_string(nrmse));
+			write_to_file(e_path, save_nrmse);
 
 			if (exp != "1") {
 				TVector error_ = read_data(e_path);
