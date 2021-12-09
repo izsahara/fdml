@@ -1054,8 +1054,8 @@ void analytic2() {
 		Case AN_C1_1("analytic2");
 		AN_C1_1.n_train = 25;
 		AN_C1_1.experiment = 1;
-		AN_C1_1.start = 1;
-		AN_C1_1.finish = 31;
+		AN_C1_1.start = 9;
+		AN_C1_1.finish = 21;
 		AN_C1_1.pred_iter = 250;
 		AN_C1_1.likelihood_variance = 1E-6;
 
@@ -1070,7 +1070,7 @@ void analytic2() {
 		AN_C1_2.n_train = 50;
 		AN_C1_2.experiment = 1;
 		AN_C1_2.start = 1;
-		AN_C1_2.finish = 31;
+		AN_C1_2.finish = 21;
 		AN_C1_2.pred_iter = 250;
 		AN_C1_2.likelihood_variance = 1E-6;
 
