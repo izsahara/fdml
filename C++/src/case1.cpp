@@ -1047,14 +1047,14 @@ void case1(Case& case_study, int& train_iter, int& train_impute) {
 void analytic2() {
 
 	std::vector<int> train_iter = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
-	std::vector<int> train_impute = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
+	std::vector<int> train_impute = {200, 300, 400, 500, 600, 700, 800, 900, 1000};
 
 	// Experiment 1
 	{
 		Case AN_C1_1("analytic2");
 		AN_C1_1.n_train = 25;
 		AN_C1_1.experiment = 1;
-		AN_C1_1.start = 9;
+		AN_C1_1.start = 1;
 		AN_C1_1.finish = 21;
 		AN_C1_1.pred_iter = 250;
 		AN_C1_1.likelihood_variance = 1E-6;
