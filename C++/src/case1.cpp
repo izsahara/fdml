@@ -1056,7 +1056,7 @@ void analytic2() {
 		AN_C1_1.experiment = 1;
 		AN_C1_1.start = 1;
 		AN_C1_1.finish = 31;
-		AN_C1_1.pred_iter = 500;
+		AN_C1_1.pred_iter = 250;
 		AN_C1_1.likelihood_variance = 1E-6;
 
 		for (int ii : train_iter) {
@@ -1071,7 +1071,7 @@ void analytic2() {
 		AN_C1_2.experiment = 1;
 		AN_C1_2.start = 1;
 		AN_C1_2.finish = 31;
-		AN_C1_2.pred_iter = 500;
+		AN_C1_2.pred_iter = 250;
 		AN_C1_2.likelihood_variance = 1E-6;
 
 		for (int ii : train_iter) {
