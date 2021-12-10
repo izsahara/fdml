@@ -1046,8 +1046,9 @@ void case1(Case& case_study, int& train_iter, int& train_impute) {
 
 void analytic2() {
 
-	std::vector<int> train_iter = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
-	std::vector<int> train_impute = {300, 400, 500, 600, 700, 800, 900, 1000};
+	std::vector<int> train_iter = {200, 300, 400, 500};
+	// std::vector<int> train_impute = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
+	std::vector<int> train_impute = {100, 200};
 
 	// Experiment 1: 1E-6
 	// Experiment 2: 1E-3
