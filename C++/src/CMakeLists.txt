@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.16)
 add_executable(case1 case1.cpp)
 target_link_libraries(case1 ${PROJECT_NAME})
 
+add_executable(prediction prediction.cpp)
+target_link_libraries(prediction ${PROJECT_NAME})
+
 # add_executable(analytic2 analytic2.cpp)
 # target_link_libraries(analytic2 ${PROJECT_NAME})
 
