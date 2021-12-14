@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 # add_executable(new_structure new_structure.cpp)
 # target_link_libraries(new_structure ${PROJECT_NAME})
 
-add_executable(case1 case1.cpp)
-target_link_libraries(case1 ${PROJECT_NAME})
+#add_executable(case1 case1.cpp)
+#target_link_libraries(case1 ${PROJECT_NAME})
 
 add_executable(prediction prediction.cpp)
 target_link_libraries(prediction ${PROJECT_NAME})
