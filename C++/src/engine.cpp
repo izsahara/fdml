@@ -1148,8 +1148,8 @@ void case2(Case& case_study) {
 	while (true) {
 		bool restart = false;
 		std::cout << "================= " << "" << " SAMP PLAN " << ii << " ================" << std::endl;
-		std::string data_path = "../datasets/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
-		std::string results_path = "../results/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+		std::string data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+		std::string results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
 		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
 		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
 		if (restart) {
