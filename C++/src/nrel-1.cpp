@@ -1114,7 +1114,7 @@ void case2(Case& case_study) {
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
-		graph.layer(1)->remove_nodes(2);
+		graph.layer(1)->remove_nodes(1);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
