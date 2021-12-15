@@ -8,8 +8,11 @@ cmake_minimum_required(VERSION 3.16)
 # add_executable(prediction prediction.cpp)
 # target_link_libraries(prediction ${PROJECT_NAME})
 
-add_executable(airfoil airfoil.cpp)
-target_link_libraries(airfoil ${PROJECT_NAME})
+# add_executable(airfoil airfoil.cpp)
+# target_link_libraries(airfoil ${PROJECT_NAME})
 
-add_executable(engine engine.cpp)
-target_link_libraries(engine ${PROJECT_NAME})
+# add_executable(engine engine.cpp)
+# target_link_libraries(engine ${PROJECT_NAME})
+
+add_executable(nrel-1 nrel-1.cpp)
+target_link_libraries(nrel-1 ${PROJECT_NAME})
