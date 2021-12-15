@@ -1142,21 +1142,10 @@ void case2(Case& case_study) {
 	// ../results/case_2/airfoil
 	if (!std::filesystem::exists("../results/case_2/" + case_study.problem))
 		std::filesystem::create_directory("../results/case_2/" + case_study.problem);
-
-	if (!case_study.output.empty()) {
-		// ../results/case_2/nrel/Anch1Ten
-		if (!std::filesystem::exists("../results/case_2/" + case_study.output))
-			std::filesystem::create_directory("../results/case_2/" + case_study.output);
-		// ../results/case_2/nrel/Anch1Ten/40
-		if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + case_study.output + "/" + std::to_string(case_study.n_train)))
-			std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + case_study.output + "/" + std::to_string(case_study.n_train));
-	}
-	else {
-		// ../results/case_2/airfoil/20
-		if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
-			std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train));
-	}
-
+	// ../results/case_2/airfoil/40
+	if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
+		std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train));
+	
 
 	unsigned int ii = case_study.start;
 	while (true) {
@@ -1165,6 +1154,12 @@ void case2(Case& case_study) {
 		std::string results_path;
 		std::string data_path;
 		if (!case_study.output.empty()) {
+			if (!std::filesystem::exists("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
+			if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
 			data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
 			results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
 		}
@@ -1414,8 +1409,7 @@ void nrel_case2() {
 
 int main() {
 	//case1_predict();
-	// airfoil_case2();
+	airfoil_case2();
 	//engine_case2();
-	nrel_case2();
 	return 0;
 }
