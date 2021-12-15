@@ -1114,7 +1114,7 @@ void case2(Case& case_study) {
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
-		graph.layer(2)->remove_nodes(1);
+		// graph.layer(2)->remove_nodes(1);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
@@ -1397,8 +1397,8 @@ void nrel_case2() {
 		Case AN_C2_1("nrel", "Anch1Ten");
 		AN_C2_1.n_train = 40;
 		AN_C2_1.experiment = 1;
-		AN_C2_1.start = 11;
-		AN_C2_1.finish = 12;
+		AN_C2_1.start = 1;
+		AN_C2_1.finish = 2;
 		AN_C2_1.train_iter = 500;
 		AN_C2_1.train_impute = 900;
 		AN_C2_1.pred_iter = 200;
