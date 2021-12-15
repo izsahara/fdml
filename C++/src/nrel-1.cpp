@@ -1393,13 +1393,13 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
-		Case AN_C2_1("nrel", "Anch1Ten");
+		Case AN_C2_1("nrel", "RootMyc1");
 		AN_C2_1.n_train = 40;
 		AN_C2_1.experiment = 1;
 		AN_C2_1.start = 1;
 		AN_C2_1.finish = 3;
-		AN_C2_1.train_iter = 1000;
-		AN_C2_1.train_impute = 10;
+		AN_C2_1.train_iter = 500;
+		AN_C2_1.train_impute = 900;
 		AN_C2_1.pred_iter = 200;
 		AN_C2_1.likelihood_variance = 1E-10;
 		case2(AN_C2_1);
