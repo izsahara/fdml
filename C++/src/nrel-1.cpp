@@ -1409,7 +1409,8 @@ void nrel_case2() {
 
 int main() {
 	//case1_predict();
-	airfoil_case2();
+	// airfoil_case2();
 	//engine_case2();
+	nrel_case2();
 	return 0;
 }
