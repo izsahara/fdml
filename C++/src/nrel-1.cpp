@@ -1106,7 +1106,7 @@ void case2(Case& case_study) {
 
 		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
 		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
-
+		std::cout << X_train.cols() << std::endl;
 		Graph graph(std::make_pair(X_train, Y_train), 1);
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
 			TVector ls = TVector::Constant(X_train.cols(), 1.0);
@@ -1114,7 +1114,7 @@ void case2(Case& case_study) {
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
-		graph.layer(1)->remove_nodes(1);
+		graph.layer(2)->remove_nodes(1);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
