@@ -1416,14 +1416,14 @@ void case3(Case& case_study) {
 		}
 	};
 
-	if (!std::filesystem::exists("../results/case_2/"))
-		std::filesystem::create_directory("../results/case_2/");
-	// ../results/case_2/airfoil
-	if (!std::filesystem::exists("../results/case_2/" + case_study.problem))
-		std::filesystem::create_directory("../results/case_2/" + case_study.problem);
-	// ../results/case_2/airfoil/40
-	if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
-		std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train));
+	if (!std::filesystem::exists("../results/case_3/"))
+		std::filesystem::create_directory("../results/case_3/");
+	// ../results/case_3/airfoil
+	if (!std::filesystem::exists("../results/case_3/" + case_study.problem))
+		std::filesystem::create_directory("../results/case_3/" + case_study.problem);
+	// ../results/case_3/airfoil/40
+	if (!std::filesystem::exists("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
+		std::filesystem::create_directory("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train));
 
 
 	unsigned int ii = case_study.start;
@@ -1433,14 +1433,14 @@ void case3(Case& case_study) {
 		std::string results_path;
 		std::string data_path;
 		if (!case_study.output.empty()) {
-			if (!std::filesystem::exists("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
-				std::filesystem::create_directory("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+			if (!std::filesystem::exists("../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
 
-			if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
-				std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+			if (!std::filesystem::exists("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
 
-			data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
-			results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+			data_path = "../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+			results_path = "../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
 		}
 		else {
 			data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
