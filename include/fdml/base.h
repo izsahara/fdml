@@ -42,6 +42,7 @@ typedef Eigen::RowVectorXd TRVector;
 typedef Eigen::Vector<bool, Eigen::Dynamic> BoolVector;
 typedef Eigen::LLT<TMatrix> TLLT;
 typedef Eigen::LDLT<TMatrix> TLDLT;
+typedef Eigen::FullPivLU<TMatrix> TFPLU;
 
 typedef std::pair<TMatrix, TMatrix> MatrixPair;
 typedef std::pair<TVector, TVector> VectorPair;
