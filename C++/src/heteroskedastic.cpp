@@ -1381,6 +1381,7 @@ void case3(Case& case_study) {
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
+		graph.layer(0)->fix_scale();
 		graph.layer(2)->set_likelihood(LLF::Heteroskedastic);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
