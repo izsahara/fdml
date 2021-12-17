@@ -1,4 +1,3 @@
-//  #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <filesystem>
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
@@ -52,6 +51,7 @@ enum TSolver { TLBFGSB, TPSO, TCG, TRprop };
 
 enum State { Input, InputConnected, Hidden, Observed, Unchanged };
 enum Task { Init, Train, LinkedPredict };
+enum LLF { Gaussian, Heteroskedastic };
 using KernelPtr = std::shared_ptr<Kernel>;
 using SolverPtr = std::shared_ptr<Solver>;
 
@@ -151,6 +151,26 @@ public:
 };
 
 //
+struct Likelihood {
+
+	Likelihood() = default;
+	Likelihood(const LLF& likelihood) : likelihood(likelihood) {}
+
+	void log_likelihood() {
+
+	}
+
+	TMatrix	 X;
+	TMatrix	 Y;
+	TVector  alpha;
+	TLLT	 chol;
+	TMatrix	 K;
+
+	LLF likelihood = LLF::Gaussian;
+
+};
+
+//
 class Node : public GP {
 private:
 	Node& evalK(bool with_scale = true) {
@@ -170,6 +190,13 @@ private:
 		Eigen::setNbThreads(1);
 		Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(K);
 		//TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseMax(0).cwiseSqrt().asDiagonal();
+		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
+		std::normal_distribution<> dist;
+		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
+	}
+	TMatrix sample_mvn(const TVector& mean, const TMatrix& cov) {
+		Eigen::setNbThreads(1);
+		Eigen::SelfAdjointEigenSolver<TMatrix> eigenSolver(cov);
 		TMatrix transform = eigenSolver.eigenvectors() * eigenSolver.eigenvalues().cwiseSqrt().asDiagonal();
 		std::normal_distribution<> dist;
 		return mean + transform * TVector{ mean.size() }.unaryExpr([&](auto x) {return dist(rng); });
@@ -195,7 +222,7 @@ private:
 		TVector grad = TVector::Zero(grad_.size());
 		if (!(*likelihood_variance.is_fixed))
 			grad_.push_back(likelihood_variance.value() * TMatrix::Identity(inputs.rows(), inputs.rows()));
-		for (int i = 0; i < grad_.size(); ++i) {
+		for (int i = 0; i < grad.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
 			double trace = KKT.trace();
 			double YKKT = (outputs.transpose() * KKT * alpha).coeff(0);
@@ -216,11 +243,25 @@ private:
 		return params;
 	}
 	double  log_likelihood() {
-		chol = K.llt();
-		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
-		double quad = (outputs.array() * (chol.solve(outputs)).array()).sum();
-		double lml = -0.5 * (logdet + quad);
-		return lml;
+		switch (likelihood) {
+		case Heteroskedastic:
+		{
+			if (inputs.cols() != 2) throw std::runtime_error("Heteroskedastic GP requires 2D inputs");
+			TMatrix mu = inputs.col(0);
+			TMatrix var = exp(inputs.col(1).array());
+			double ll = (-0.5 * (log(2 * PI * var.array()) + pow((outputs - mu).array(), 2) / var.array())).sum();
+			return ll;
+		}
+		default:
+		{
+			chol = K.llt();
+			double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
+			double quad = (outputs.array() * (chol.solve(outputs)).array()).sum();
+			double ll = -0.5 * (logdet + quad);
+			return ll;
+		}
+		}
+
 	}
 	double  log_marginal_likelihood() override {
 		double logdet = 2 * chol.matrixL().toDenseMatrix().diagonal().array().log().sum();
@@ -268,6 +309,7 @@ private:
 		}
 	}
 	void    train() override {
+		if (likelihood != LLF::Gaussian) return;
 		TVector lower_bound, upper_bound;
 		get_bounds(lower_bound, upper_bound);
 		TVector theta = get_params();
@@ -304,27 +346,23 @@ private:
 	void    predict(const MatrixPair& linked, Eigen::Ref<TVector> latent_mu, Eigen::Ref<TVector> latent_var) {
 
 		update_cholesky();
-		const Eigen::Index nrows = linked.first.rows();
-		kernel->expectations(linked.first, linked.second);
-		if (n_thread == 1) {
-			for (Eigen::Index i = 0; i < nrows; ++i) {
-				TMatrix I = TMatrix::Ones(inputs.rows(), 1);
-				TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
-				kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
-				double trace = (K.llt().solve(J)).trace();
-				double Ialpha = (I.cwiseProduct(alpha)).array().sum();
-				latent_mu[i] = (Ialpha);
-				latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
-			}
+		switch (likelihood) {
+		case Heteroskedastic:
+		{
+			/*
+			* y_mean = m[:,0]
+			* y_var = np.exp(m[:,1]+v[:,1]/2)+v[:,0]
+			* return y_mean.flatten(),y_var.flatten()
+			*/
+			latent_mu = linked.first.col(0);
+			latent_var = exp((linked.first.col(1) + (linked.second.col(1) / 2)).array()) + linked.second.col(0).array();
 		}
-		else {
-			Eigen::initParallel(); // /openmp (MSVC) or -fopenmp (GCC) flag
-			thread_pool pool;
-			int split = int(nrows / n_thread);
-			const int remainder = int(nrows) % n_thread;
-			auto task = [=, &latent_mu, &latent_var](int begin, int end)
-			{
-				for (Eigen::Index i = begin; i < end; ++i) {
+		default:
+		{
+			const Eigen::Index nrows = linked.first.rows();
+			kernel->expectations(linked.first, linked.second);
+			if (n_thread == 1) {
+				for (Eigen::Index i = 0; i < nrows; ++i) {
 					TMatrix I = TMatrix::Ones(inputs.rows(), 1);
 					TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
 					kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
@@ -333,16 +371,37 @@ private:
 					latent_mu[i] = (Ialpha);
 					latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
 				}
-			};
-			for (int s = 0; s < n_thread; ++s) {
-				pool.push_task(task, int(s * split), int(s * split) + split);
 			}
-			pool.wait_for_tasks();
-			if (remainder > 0) {
-				task(nrows - remainder, nrows);
+			else {
+				Eigen::initParallel(); // /openmp (MSVC) or -fopenmp (GCC) flag
+				thread_pool pool;
+				int split = int(nrows / n_thread);
+				const int remainder = int(nrows) % n_thread;
+				auto task = [=, &latent_mu, &latent_var](int begin, int end)
+				{
+					for (Eigen::Index i = begin; i < end; ++i) {
+						TMatrix I = TMatrix::Ones(inputs.rows(), 1);
+						TMatrix J = TMatrix::Ones(inputs.rows(), inputs.rows());
+						kernel->IJ(I, J, linked.first.row(i), linked.second.row(i), inputs, i);
+						double trace = (K.llt().solve(J)).trace();
+						double Ialpha = (I.cwiseProduct(alpha)).array().sum();
+						latent_mu[i] = (Ialpha);
+						latent_var[i] = (abs((((alpha.transpose() * J).cwiseProduct(alpha.transpose()).array().sum() - (pow(Ialpha, 2))) + scale.value() * ((1.0 + likelihood_variance.value()) - trace))));
+					}
+				};
+				for (int s = 0; s < n_thread; ++s) {
+					pool.push_task(task, int(s * split), int(s * split) + split);
+				}
+				pool.wait_for_tasks();
+				if (remainder > 0) {
+					task(nrows - remainder, nrows);
+				}
+				pool.reset();
 			}
-			pool.reset();
+
 		}
+		}
+
 
 	}
 	// Linked Predict (InputConnected)
@@ -399,6 +458,16 @@ private:
 		}
 
 	}
+	// Non-Gaussian Likelihoods
+	TMatrix	posterior(const TMatrix& K_prev) {
+		// Zero Mean posterior
+		TMatrix gamma = exp(inputs.col(1).array()).matrix().asDiagonal();
+		TVector tmp1 = (gamma + K_prev).fullPivLu().solve(outputs);
+		TVector mean = (K_prev.array().colwise() * tmp1.array()).rowwise().sum().matrix();
+		TMatrix cov = K_prev * (gamma + K_prev).fullPivLu().solve(gamma);
+		return sample_mvn(mean, cov);
+	}
+
 public:
 	Node(double likelihood_variance = 1E-6) : GP(likelihood_variance) {}
 	void set_kernel(const KernelPtr& rkernel) {
@@ -438,6 +507,7 @@ private:
 		else scale = (outputs.transpose() * alpha)(0) / outputs.rows();
 	}
 public:
+	LLF  likelihood = LLF::Gaussian;
 	bool store_parameters = true;
 	std::vector<TVector> history;
 	Parameter<double> scale = { "scale", 1.0, "none" };
@@ -562,6 +632,13 @@ public:
 			}
 		}
 	}
+	void set_likelihood(const LLF& likelihood) {
+		this->likelihood = likelihood;
+		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
+			nn->likelihood = likelihood;
+		}
+	}
+
 	void set_likelihood_variance(const double& value) {
 		for (std::vector<Node>::iterator nn = m_nodes.begin(); nn != m_nodes.end(); ++nn) {
 			nn->set_likelihood_variance(value);
@@ -668,6 +745,7 @@ private:
 	}
 	void estimate_parameters(const Eigen::Index& n_burn) {
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
+			if (node->likelihood != LLF::Gaussian) continue;
 			TMatrix history = node->get_parameter_history();
 			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
 			if (*(node->scale.is_fixed)) node->scale.unfix();
@@ -682,6 +760,7 @@ public:
 	unsigned int n_nodes;
 	bool ARD = false;
 private:
+	LLF likelihood = LLF::Gaussian;
 	std::vector<Node> m_nodes;
 	State ostate = State::Unchanged; // Old Layer State;
 	bool locked = false;
@@ -776,6 +855,15 @@ private:
 				}
 				else {
 					/* Dimension Expansion */
+					// idx = np.random.choice(input.shape[1], n_nodes - input.shape[1])
+					// col = input[:, idx]
+					// output = np.hstack([input, col])
+					TMatrix cinputs = std::prev(cp)->get_output();
+					TMatrix cols = cinputs.col(0).replicate(1, cp->n_nodes - std::prev(cp)->n_nodes);;
+					TMatrix tmp(cinputs.rows(), cp->n_nodes);
+					tmp << cinputs, cols;
+					cp->set_input(std::prev(cp)->get_output());
+					cp->set_output(tmp);
 				}
 				continue;
 			case (Train):
@@ -812,9 +900,17 @@ private:
 				if (cl->cstate == State::Observed) continue; // TODO: missingness
 				auto linked_layer = std::next(cl);
 				for (std::vector<Node>::iterator cn = cl->m_nodes.begin(); cn != cl->m_nodes.end(); ++cn) {
+					const Eigen::Index col = static_cast<Eigen::Index>((cn - cl->m_nodes.begin()));
 					TMatrix nu(cn->inputs.rows(), 1);
 					if (cl->cstate == State::InputConnected) nu = cn->evalK(cl->observed_input).sample_mvn();
 					else nu = cn->evalK().sample_mvn();
+
+					if (col == 0 && linked_layer->likelihood == LLF::Heteroskedastic) {
+						TMatrix ff = linked_layer->m_nodes[0].posterior(cn->K); // cn->K
+						linked_layer->set_input(ff, 0);
+						cn->outputs = ff;
+						continue;
+					}
 					log_y = linked_layer->evalK().log_likelihood() + log(rand_u(0.0, 1.0));
 					//
 					if (!std::isfinite(log_y)) { throw std::runtime_error("log_y is not finite"); }
@@ -822,8 +918,6 @@ private:
 					theta = rand_u(0.0, 2.0 * PI);
 					theta_min = theta - 2.0 * PI;
 					theta_max = theta;
-
-					const Eigen::Index col = static_cast<Eigen::Index>((cn - cl->m_nodes.begin()));
 					while (true) {
 						TMatrix fp = update_f(cn->outputs, nu, theta);
 						linked_layer->set_input(fp, col);
@@ -948,7 +1042,6 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
-
 	MatrixPair predict(const TMatrix& X, TMatrix& Yref, std::string mcs_path, bool& nanflag, unsigned int n_predict = 50, unsigned int n_thread = 1) {
 		sample(50);
 		TMatrix mean = TMatrix::Zero(X.rows(), 1);
@@ -972,10 +1065,12 @@ public:
 
 			TVector nrmse_mu = mean.array() / double(i + 1);
 			double nrmse = metrics::rmse(Yref, nrmse_mu, true);
-			if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
+			// if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
 			double r2 = metrics::r2_score(Yref, nrmse_mu);
 			pred_prog->write((double(i) / double(n_predict)), nrmse, r2);
-
+			std::string e_path = mcs_path + "NRMSE.dat";
+			std::string error_str = std::to_string(i) + " " + std::to_string(nrmse);
+			write_to_file(e_path, error_str);
 			if (i == 0 || i == 99 || i == 199 || i == 299 || i == 399 || i == 499) {
 				std::string mu_path = mcs_path + "-" + std::to_string(i) + "-M-MCS.dat";
 				std::string var_path = mcs_path + "-" + std::to_string(i) + "-V-MCS.dat";
@@ -1009,7 +1104,9 @@ public:
 struct Case {
 	Case() = default;
 	Case(const std::string& problem) : problem(problem) {}
+	Case(const std::string& problem, const std::string& output) : problem(problem), output(output) {}
 	std::string problem;
+	std::string output = "";
 	unsigned int n_train;
 	unsigned int experiment;
 	unsigned int start;
@@ -1017,11 +1114,12 @@ struct Case {
 	unsigned int train_iter;
 	unsigned int train_impute;
 	unsigned int pred_iter;
+	bool plot = false;
 	double likelihood_variance = 1E-10;
 };
 
-
-void case1(Case& case_study, int& train_iter, int& train_impute) {
+void case1_training(Case& case_study, int& train_iter, int& train_impute) {
+	// Training Phase
 	std::string data_path = "../datasets/case_1/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/";
 	auto run_problem = [=](std::string results_path, std::string exp, bool& restart) {
 		TMatrix X_train = read_data(data_path + "Xsc_train.dat");
@@ -1094,75 +1192,7 @@ void case1(Case& case_study, int& train_iter, int& train_impute) {
 
 	}
 }
-
-void case2(Case& case_study) {
-	std::cout << "Running " << case_study.problem << " : " << case_study.n_train << std::endl;
-
-	auto run_problem = [&case_study](std::string sp_path, std::string results_path, std::string exp, bool& restart) {
-		TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
-		TMatrix Y_train = read_data(sp_path + "Y_train.dat");
-
-		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
-		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
-
-		Graph graph(std::make_pair(X_train, Y_train), 1);
-		for (unsigned int i = 0; i < graph.n_layers; ++i) {
-			TVector ls = TVector::Constant(X_train.cols(), 1.0);
-			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
-			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-		}
-		SIDGP model(graph);
-		model.train(case_study.train_iter, case_study.train_impute);
-		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 48);
-		TMatrix mean = Z.first;
-		TMatrix var = Z.second;
-		double nrmse = metrics::rmse(Y_test, mean, true);
-
-		if (nanflag) {
-			restart = true;
-		}
-		else {
-			std::string e_path = results_path + "NRMSE.dat";
-			std::cout << "NRMSE = " << nrmse << std::endl;
-
-			std::string m_path = results_path + exp + "-M.dat";
-			std::string v_path = results_path + exp + "-V.dat";
-			write_data(m_path, mean);
-			write_data(v_path, var);
-			write_to_file(e_path, std::to_string(nrmse));
-		}
-	};
-
-	if (!std::filesystem::exists("../results/case_2/"))
-		std::filesystem::create_directory("../results/case_2/");
-	// ../results/case_2/airfoil
-	if (!std::filesystem::exists("../results/case_2/" + case_study.problem))
-		std::filesystem::create_directory("../results/case_2/" + case_study.problem);
-	// ../results/case_2/airfoil/20
-	if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
-		std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train));
-
-	unsigned int ii = case_study.start;
-	while (true) {
-		bool restart = false;
-		std::cout << "================= " << "" << " SAMP PLAN " << ii << " ================" << std::endl;
-		std::string data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
-		std::string results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
-		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
-		if (restart) {
-			std::system("clear");
-			continue;
-		}
-		else ii++;
-		if (ii == case_study.finish) break;
-	}
-	std::cout << "End " << case_study.problem << " : " << case_study.n_train << std::endl;
-}
-
-void prediction(Case& case_study, int& train_iter, int& train_impute) {
+void case1_prediction(Case& case_study, int& train_iter, int& train_impute) {
 	std::string data_path = "../datasets/case_1/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/";
 	auto run_problem = [=](std::string results_path, std::string exp, bool& restart) {
 		TMatrix X_train = read_data(data_path + "Xsc_train.dat");
@@ -1252,8 +1282,199 @@ void prediction(Case& case_study, int& train_iter, int& train_impute) {
 
 	}
 }
+void case2(Case& case_study) {
+	std::cout << "Running " << case_study.problem << " : " << case_study.n_train << std::endl;
 
-void case1_predict() {
+	auto run_problem = [&case_study](std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+		TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
+		TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+
+		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
+		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
+
+		Graph graph(std::make_pair(X_train, Y_train), 1);
+		for (unsigned int i = 0; i < graph.n_layers; ++i) {
+			TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
+			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+			graph.layer(static_cast<int>(i))->fix_scale();
+
+		}
+		SIDGP model(graph);
+		model.train(case_study.train_iter, case_study.train_impute);
+		bool nanflag = false;
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
+		TMatrix mean = Z.first;
+		TMatrix var = Z.second;
+		double nrmse = metrics::rmse(Y_test, mean, true);
+
+		if (nanflag) {
+			restart = true;
+		}
+		else {
+			std::string e_path = results_path + "NRMSE.dat";
+			std::cout << "NRMSE = " << nrmse << std::endl;
+
+			std::string m_path = results_path + exp + "-M.dat";
+			std::string v_path = results_path + exp + "-V.dat";
+			write_data(m_path, mean);
+			write_data(v_path, var);
+			write_to_file(e_path, std::to_string(nrmse));
+
+			if (case_study.plot) {
+				TMatrix X_plot = read_data(sp_path + "X_plot.dat");
+				MatrixPair Zplot = model.predict(X_plot, case_study.pred_iter, 96);
+				TMatrix mplot = Zplot.first;
+				TMatrix vplot = Zplot.second;
+				std::string mplt_path = results_path + exp + "-PLT-M.dat";
+				std::string vplt_path = results_path + exp + "-PLT-V.dat";
+				write_data(mplt_path, mplot);
+				write_data(vplt_path, vplot);
+			}			
+		}
+	};
+
+	if (!std::filesystem::exists("../results/case_2/"))
+		std::filesystem::create_directory("../results/case_2/");
+	// ../results/case_2/airfoil
+	if (!std::filesystem::exists("../results/case_2/" + case_study.problem))
+		std::filesystem::create_directory("../results/case_2/" + case_study.problem);
+	// ../results/case_2/airfoil/40
+	if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
+		std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train));
+
+
+	unsigned int ii = case_study.start;
+	while (true) {
+		bool restart = false;
+		std::cout << "================= " << "" << " SAMP PLAN " << ii << " ================" << std::endl;
+		std::string results_path;
+		std::string data_path;
+		if (!case_study.output.empty()) {
+			if (!std::filesystem::exists("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
+			if (!std::filesystem::exists("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
+			data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+			results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+		}
+		else {
+			data_path = "../datasets/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+			results_path = "../results/case_2/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+		}
+		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
+		if (restart) {
+			std::system("clear");
+			continue;
+		}
+		else ii++;
+		if (ii == case_study.finish) break;
+	}
+	std::cout << "End " << case_study.problem << " : " << case_study.n_train << std::endl;
+}
+void case3(Case& case_study) {
+	// Case 2 + Heteroskedastic
+	std::cout << "Running " << case_study.problem << " : " << case_study.n_train << std::endl;
+
+	auto run_problem = [&case_study](std::string sp_path, std::string results_path, std::string exp, bool& restart) {
+		TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
+		TMatrix Y_train = read_data(sp_path + "Y_train.dat");
+
+		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
+		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
+
+		Graph graph(std::make_pair(X_train, Y_train), 1);
+		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
+		else graph.layer(-2)->add_node(1);
+		for (unsigned int i = 0; i < graph.n_layers; ++i) {
+			TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
+			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
+		}
+		graph.layer(0)->fix_scale();
+		graph.layer(2)->set_likelihood(LLF::Heteroskedastic);
+		SIDGP model(graph);
+		model.train(case_study.train_iter, case_study.train_impute);
+		bool nanflag = false;
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
+		TMatrix mean = Z.first;
+		TMatrix var = Z.second;
+		double nrmse = metrics::rmse(Y_test, mean, true);
+		if (nanflag) {
+			restart = true;
+		}
+		else {
+			std::string e_path = results_path + "NRMSE.dat";
+			std::cout << "NRMSE = " << nrmse << std::endl;
+
+			std::string m_path = results_path + exp + "-M.dat";
+			std::string v_path = results_path + exp + "-V.dat";
+			write_data(m_path, mean);
+			write_data(v_path, var);
+			write_to_file(e_path, std::to_string(nrmse));
+
+			if (case_study.plot) {
+				TMatrix X_plot = read_data(sp_path + "X_plot.dat");
+				MatrixPair Zplot = model.predict(X_plot, case_study.pred_iter, 96);
+				TMatrix mplot = Zplot.first;
+				TMatrix vplot = Zplot.second;
+				std::string mplt_path = results_path + exp + "-PLT-M.dat";
+				std::string vplt_path = results_path + exp + "-PLT-V.dat";
+				write_data(mplt_path, mplot);
+				write_data(vplt_path, vplot);
+			}
+
+		}
+	};
+
+	if (!std::filesystem::exists("../results/case_3/"))
+		std::filesystem::create_directory("../results/case_3/");
+	// ../results/case_3/airfoil
+	if (!std::filesystem::exists("../results/case_3/" + case_study.problem))
+		std::filesystem::create_directory("../results/case_3/" + case_study.problem);
+	// ../results/case_3/airfoil/40
+	if (!std::filesystem::exists("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
+		std::filesystem::create_directory("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train));
+
+
+	unsigned int ii = case_study.start;
+	while (true) {
+		bool restart = false;
+		std::cout << "================= " << "" << " SAMP PLAN " << ii << " ================" << std::endl;
+		std::string results_path;
+		std::string data_path;
+		if (!case_study.output.empty()) {
+			if (!std::filesystem::exists("../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
+			if (!std::filesystem::exists("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
+				std::filesystem::create_directory("../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
+
+			data_path = "../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+			results_path = "../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
+		}
+		else {
+			data_path = "../datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+			results_path = "../results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
+		}
+		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
+		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
+		if (restart) {
+			std::system("clear");
+			continue;
+		}
+		else ii++;
+		if (ii == case_study.finish) break;
+	}
+	std::cout << "End " << case_study.problem << " : " << case_study.n_train << std::endl;
+}
+
+void case1() {
 
 	std::vector<int> train_iter = { 500 };
 	// std::vector<int> train_impute = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
@@ -1262,10 +1483,11 @@ void case1_predict() {
 	// Experiment 1: 1E-6
 	// Experiment 2: 1E-3
 	// Experiment 3: PREDICT
+	// Experiment 4: PREDICT + SAVE N_PREDICT VS N_IMPUTE
 	{
 		Case AN_C1_1("analytic2");
 		AN_C1_1.n_train = 25;
-		AN_C1_1.experiment = 3;
+		AN_C1_1.experiment = 4;
 		AN_C1_1.start = 1;
 		AN_C1_1.finish = 2;
 		AN_C1_1.pred_iter = 500;
@@ -1273,7 +1495,7 @@ void case1_predict() {
 
 		for (int ii : train_iter) {
 			for (int jj : train_impute) {
-				prediction(AN_C1_1, ii, jj);
+				case1_prediction(AN_C1_1, ii, jj);
 			}
 		}
 	}
@@ -1296,40 +1518,41 @@ void case1_predict() {
 
 void airfoil_case2() {
 	{
-		Case AN_C2_1("airfoil");
-		AN_C2_1.n_train = 20;
-		AN_C2_1.experiment = 1;
-		AN_C2_1.start = 1;
-		AN_C2_1.finish = 26;
-		AN_C2_1.train_iter = 500;
-		AN_C2_1.train_impute = 900;
-		AN_C2_1.pred_iter = 200;
-		AN_C2_1.likelihood_variance = 1E-3;
-		case2(AN_C2_1);
+		// Case AN_C2_1("airfoil");
+		// AN_C2_1.n_train = 20;
+		// AN_C2_1.experiment = 1;
+		// AN_C2_1.start = 1;
+		// AN_C2_1.finish = 26;
+		// AN_C2_1.train_iter = 500;
+		// AN_C2_1.train_impute = 900;
+		// AN_C2_1.pred_iter = 200;
+		// AN_C2_1.likelihood_variance = 1E-3;
+		// case2(AN_C2_1);
 	}
 	{
 		Case AN_C2_1("airfoil");
 		AN_C2_1.n_train = 40;
-		AN_C2_1.experiment = 1;
-		AN_C2_1.start = 1;
-		AN_C2_1.finish = 26;
+		AN_C2_1.experiment = 2;
+		AN_C2_1.start = 23;
+		AN_C2_1.finish = 24;
 		AN_C2_1.train_iter = 500;
 		AN_C2_1.train_impute = 900;
 		AN_C2_1.pred_iter = 200;
 		AN_C2_1.likelihood_variance = 1E-3;
+		AN_C2_1.plot = true;
 		case2(AN_C2_1);
 	}
 	{
-		Case AN_C2_1("airfoil");
-		AN_C2_1.n_train = 60;
-		AN_C2_1.experiment = 1;
-		AN_C2_1.start = 1;
-		AN_C2_1.finish = 26;
-		AN_C2_1.train_iter = 500;
-		AN_C2_1.train_impute = 900;
-		AN_C2_1.pred_iter = 200;
-		AN_C2_1.likelihood_variance = 1E-3;
-		case2(AN_C2_1);
+		// Case AN_C2_1("airfoil");
+		// AN_C2_1.n_train = 60;
+		// AN_C2_1.experiment = 1;
+		// AN_C2_1.start = 1;
+		// AN_C2_1.finish = 26;
+		// AN_C2_1.train_iter = 500;
+		// AN_C2_1.train_impute = 900;
+		// AN_C2_1.pred_iter = 200;
+		// AN_C2_1.likelihood_variance = 1E-3;
+		// case2(AN_C2_1);
 	}
 
 }
@@ -1374,9 +1597,43 @@ void engine_case2() {
 
 }
 
+void nrel_case2() {
+	{
+		Case study("nrel", "RootMyc1");
+		study.n_train = 20;
+		study.experiment = 1;
+		study.start = 1;
+		study.finish = 26;
+		study.train_iter = 500;
+		study.train_impute = 900;
+		study.pred_iter = 200;
+		study.likelihood_variance = 1E-3;
+		case2(study);
+	}
+}
+
+void motorcycle_case3() {
+	{
+		Case study("motorcycle");
+		study.n_train = 27;
+		study.experiment = 1;
+		study.start = 1;
+		study.finish = 2;
+		study.train_iter = 100;
+		study.train_impute = 5000;
+		study.pred_iter = 500;
+		study.likelihood_variance = 1E-8;
+		study.plot = true;
+		case3(study);
+		//debug_case3(study);
+	}
+}
+
 int main() {
-	//case1_predict();
+	//case1();
 	airfoil_case2();
 	//engine_case2();
+	// nrel_case2();
+	//motorcycle_case3();
 	return 0;
 }
