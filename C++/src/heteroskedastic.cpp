@@ -1,4 +1,3 @@
-  #pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 #include <filesystem>
 #include <fdml/utilities.h>
 #include <fdml/kernels.h>
@@ -746,6 +745,7 @@ private:
 	}
 	void estimate_parameters(const Eigen::Index& n_burn) {
 		for (std::vector<Node>::iterator node = m_nodes.begin(); node != m_nodes.end(); ++node) {
+			if (node->likelihood != LLF::Gaussian) continue;
 			TMatrix history = node->get_parameter_history();
 			TVector theta = (history.bottomRows(history.rows() - n_burn)).colwise().mean();
 			if (*(node->scale.is_fixed)) node->scale.unfix();
@@ -1699,13 +1699,13 @@ void motorcycle_case3() {
 		study.experiment = 1;
 		study.start = 1;
 		study.finish = 2;
-		study.train_iter = 500;
-		study.train_impute = 900;
+		study.train_iter = 1;
+		study.train_impute = 1;
 		study.pred_iter = 200;
 		study.likelihood_variance = 1E-10;
 		study.plot = true;
 		case3(study);
-		// debug_case3(study);
+		//debug_case3(study);
 	}
 }
 
