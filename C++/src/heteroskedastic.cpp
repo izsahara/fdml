@@ -1603,7 +1603,7 @@ void motorcycle_case3() {
 		study.start = 1;
 		study.finish = 2;
 		study.train_iter = 100;
-		study.train_impute = 2000;
+		study.train_impute = 5000;
 		study.pred_iter = 200;
 		study.likelihood_variance = 1E-3;
 		study.plot = true;
