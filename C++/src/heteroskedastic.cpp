@@ -1065,7 +1065,7 @@ public:
 
 			TVector nrmse_mu = mean.array() / double(i + 1);
 			double nrmse = metrics::rmse(Yref, nrmse_mu, true);
-			if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
+			// if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
 			double r2 = metrics::r2_score(Yref, nrmse_mu);
 			pred_prog->write((double(i) / double(n_predict)), nrmse, r2);
 
