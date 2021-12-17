@@ -1372,7 +1372,7 @@ void case3(Case& case_study) {
 		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
 		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
 
-		Graph graph(std::make_pair(X_train, Y_train), 2);
+		Graph graph(std::make_pair(X_train, Y_train), 1);
 		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
 		else graph.layer(-2)->add_node(1);		
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
@@ -1381,7 +1381,7 @@ void case3(Case& case_study) {
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
-		// graph.layer(0)->fix_scale();
+		graph.layer(0)->fix_scale();
 		graph.layer(2)->set_likelihood(LLF::Heteroskedastic);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
@@ -1603,7 +1603,7 @@ void motorcycle_case3() {
 		study.start = 1;
 		study.finish = 2;
 		study.train_iter = 500;
-		study.train_impute = 900;
+		study.train_impute = 10;
 		study.pred_iter = 200;
 		study.likelihood_variance = 1E-8;
 		study.plot = true;
