@@ -1381,7 +1381,7 @@ void case3(Case& case_study) {
 		}
 		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
 		else graph.layer(-2)->add_node(1);
-		graph.layer(-1)->set_likelihood(LLF::Heteroskedastic);
+		graph.layer(2)->set_likelihood(LLF::Heteroskedastic);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
