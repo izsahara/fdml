@@ -222,7 +222,9 @@ private:
 		TVector grad = TVector::Zero(grad_.size());
 		if (!(*likelihood_variance.is_fixed))
 			grad_.push_back(likelihood_variance.value() * TMatrix::Identity(inputs.rows(), inputs.rows()));
-		for (int i = 0; i < grad_.size(); ++i) {
+		std::cout << grad.size() << std::endl;
+		std::cout << grad_.size() << std::endl;
+		for (int i = 0; i < grad.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
 			double trace = KKT.trace();
 			double YKKT = (outputs.transpose() * KKT * alpha).coeff(0);
@@ -868,6 +870,7 @@ private:
 				continue;
 			case (Train):
 				if (cp == m_layers.begin() + 1) std::prev(cp)->train();
+				std::cout << "if (cp == m_layers.begin() + 1) std::prev(cp)->train();" << std::endl;
 				cp->train();
 				continue;
 			case(LinkedPredict):
@@ -957,6 +960,7 @@ public:
 			train_prog->write((double(i) / double(n_iter)));
 			// I-step
 			sample(ess_burn);
+			std::cout << "Passed sample(ess_burn)" << std::endl;
 			// M-step
 			graph.propagate(Task::Train);
 		}
@@ -1373,19 +1377,19 @@ void case3(Case& case_study) {
 		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
 
 		Graph graph(std::make_pair(X_train, Y_train), 1);
+		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
+		else graph.layer(-2)->add_node(1);		
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
 			TVector ls = TVector::Constant(X_train.cols(), 1.0);
 			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 		}
-		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
-		else graph.layer(-2)->add_node(1);
 		graph.layer(2)->set_likelihood(LLF::Heteroskedastic);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 5);
 		TMatrix mean = Z.first;
 		TMatrix var = Z.second;
 		double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1457,104 +1461,6 @@ void case3(Case& case_study) {
 	}
 	std::cout << "End " << case_study.problem << " : " << case_study.n_train << std::endl;
 }
-
-void debug_case3(Case& case_study) {
-	// Case 2 + Heteroskedastic
-	std::cout << "Running " << case_study.problem << " : " << case_study.n_train << std::endl;
-
-	auto run_problem = [&case_study](std::string sp_path, std::string results_path, std::string exp, bool& restart) {
-		TMatrix X_train = read_data(sp_path + "Xsc_train.dat");
-		TMatrix Y_train = read_data(sp_path + "Y_train.dat");
-
-		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
-		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
-
-		Graph graph(std::make_pair(X_train, Y_train), 1);
-		for (unsigned int i = 0; i < graph.n_layers; ++i) {
-			TVector ls = TVector::Constant(X_train.cols(), 1.0);
-			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
-			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
-			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
-		}
-		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
-		else graph.layer(-2)->add_node(1);
-		graph.layer(-1)->set_likelihood(LLF::Heteroskedastic);
-		SIDGP model(graph);
-		model.train(case_study.train_iter, case_study.train_impute);
-		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 5);
-		TMatrix mean = Z.first;
-		TMatrix var = Z.second;
-		double nrmse = metrics::rmse(Y_test, mean, true);
-		if (nanflag) {
-			restart = true;
-		}
-		else {
-			std::string e_path = results_path + "NRMSE.dat";
-			std::cout << "NRMSE = " << nrmse << std::endl;
-
-			std::string m_path = results_path + exp + "-M.dat";
-			std::string v_path = results_path + exp + "-V.dat";
-			write_data(m_path, mean);
-			write_data(v_path, var);
-			write_to_file(e_path, std::to_string(nrmse));
-
-			if (case_study.plot) {
-				TMatrix X_plot = read_data(sp_path + "X_plot.dat");
-				MatrixPair Zplot = model.predict(X_plot, case_study.pred_iter, 96);
-				TMatrix mplot = Zplot.first;
-				TMatrix vplot = Zplot.second;
-				std::string mplt_path = results_path + exp + "-PLT-M.dat";
-				std::string vplt_path = results_path + exp + "-PLT-V.dat";
-				write_data(mplt_path, mplot);
-				write_data(vplt_path, vplot);
-			}
-
-		}
-	};
-	if (!std::filesystem::exists("E:/23620029-Faiz/GIT/results/case_3/"))
-		std::filesystem::create_directory("E:/23620029-Faiz/GIT/results/case_3/");
-	// E:/23620029-Faiz/GIT/results/case_3/airfoil
-	if (!std::filesystem::exists("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem))
-		std::filesystem::create_directory("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem);
-	// E:/23620029-Faiz/GIT/results/case_3/airfoil/40
-	if (!std::filesystem::exists("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train)))
-		std::filesystem::create_directory("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train));
-
-
-	unsigned int ii = case_study.start;
-	while (true) {
-		bool restart = false;
-		std::cout << "================= " << "" << " SAMP PLAN " << ii << " ================" << std::endl;
-		std::string results_path;
-		std::string data_path;
-		if (!case_study.output.empty()) {
-			if (!std::filesystem::exists("E:/23620029-Faiz/GIT/datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
-				std::filesystem::create_directory("E:/23620029-Faiz/GIT/datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
-
-			if (!std::filesystem::exists("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii)))
-				std::filesystem::create_directory("E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii));
-
-			data_path = "E:/23620029-Faiz/GIT/datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
-			results_path = "E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/" + case_study.output + "/";
-		}
-		else {
-			data_path = "E:/23620029-Faiz/GIT/datasets/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
-			results_path = "E:/23620029-Faiz/GIT/results/case_3/" + case_study.problem + "/" + std::to_string(case_study.n_train) + "/" + std::to_string(ii) + "/";
-		}
-		if (!std::filesystem::exists(results_path)) std::filesystem::create_directory(results_path);
-		run_problem(data_path, results_path, std::to_string(case_study.experiment), restart);
-		if (restart) {
-			std::system("clear");
-			continue;
-		}
-		else ii++;
-		if (ii == case_study.finish) break;
-	}
-	std::cout << "End " << case_study.problem << " : " << case_study.n_train << std::endl;
-}
-
-
 
 void case1() {
 
@@ -1699,8 +1605,8 @@ void motorcycle_case3() {
 		study.experiment = 1;
 		study.start = 1;
 		study.finish = 2;
-		study.train_iter = 1;
-		study.train_impute = 1;
+		study.train_iter = 500;
+		study.train_impute = 900;
 		study.pred_iter = 200;
 		study.likelihood_variance = 1E-10;
 		study.plot = true;
