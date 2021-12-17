@@ -1604,7 +1604,7 @@ void motorcycle_case3() {
 		study.train_iter = 500;
 		study.train_impute = 900;
 		study.pred_iter = 200;
-		study.likelihood_variance = 1E-10;
+		study.likelihood_variance = 1E-3;
 		study.plot = true;
 		case3(study);
 		//debug_case3(study);
