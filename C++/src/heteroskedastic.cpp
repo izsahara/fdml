@@ -1372,7 +1372,7 @@ void case3(Case& case_study) {
 		TMatrix X_test = read_data(sp_path + "Xsc_test.dat");
 		TMatrix Y_test = read_data(sp_path + "Y_test.dat");
 
-		Graph graph(std::make_pair(X_train, Y_train), 1);
+		Graph graph(std::make_pair(X_train, Y_train), 2);
 		if (X_train.cols() > 2) graph.layer(-2)->remove_nodes(X_train.cols() - 2);
 		else graph.layer(-2)->add_node(1);		
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
