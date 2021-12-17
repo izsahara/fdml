@@ -222,8 +222,6 @@ private:
 		TVector grad = TVector::Zero(grad_.size());
 		if (!(*likelihood_variance.is_fixed))
 			grad_.push_back(likelihood_variance.value() * TMatrix::Identity(inputs.rows(), inputs.rows()));
-		std::cout << grad.size() << std::endl;
-		std::cout << grad_.size() << std::endl;
 		for (int i = 0; i < grad.size(); ++i) {
 			TMatrix KKT = chol.solve(grad_[i]);
 			double trace = KKT.trace();
@@ -870,7 +868,6 @@ private:
 				continue;
 			case (Train):
 				if (cp == m_layers.begin() + 1) std::prev(cp)->train();
-				std::cout << "if (cp == m_layers.begin() + 1) std::prev(cp)->train();" << std::endl;
 				cp->train();
 				continue;
 			case(LinkedPredict):
@@ -960,7 +957,6 @@ public:
 			train_prog->write((double(i) / double(n_iter)));
 			// I-step
 			sample(ess_burn);
-			std::cout << "Passed sample(ess_burn)" << std::endl;
 			// M-step
 			graph.propagate(Task::Train);
 		}
