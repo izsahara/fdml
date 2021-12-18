@@ -1302,7 +1302,7 @@ void case2(Case& case_study) {
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 48);
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
 		TMatrix mean = Z.first;
 		TMatrix var = Z.second;
 		double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1585,7 +1585,7 @@ void engine_case2() {
 void nrel_case2() {
 	{
 		Case study("nrel", "RootMyc1");
-		study.n_train = 20;
+		study.n_train = 60;
 		study.experiment = 1;
 		study.start = 1;
 		study.finish = 26;
