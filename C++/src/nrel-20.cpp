@@ -1302,7 +1302,7 @@ void case2(Case& case_study) {
 			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 			// }
 			TVector ls = TVector::Constant(X_train.cols(), 1.0);
-			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);			
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);			
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 			graph.layer(static_cast<int>(i))->fix_scale();
@@ -1593,9 +1593,9 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
-		// Experiment 2: Matern52
+		// Experiment 2: Matern52 (20)
 		Case study("nrel", "TwrBsMxt");
-		study.n_train = 20;
+		study.n_train = 40;
 		study.experiment = 2;
 		study.start = 1;
 		study.finish = 26;
