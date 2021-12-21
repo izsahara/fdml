@@ -1292,15 +1292,17 @@ void case2(Case& case_study) {
 
 		Graph graph(std::make_pair(X_train, Y_train), 1);
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
-			if (i == 1){
-				graph.layer(i)->remove_nodes(3);
-				TVector ls = TVector::Constant(X_train.cols() - 3, 1.0);
-				graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
-			}
-			else {
-				TVector ls = TVector::Constant(X_train.cols(), 1.0);
-				graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
-			}
+			// if (i == 1){
+			// 	graph.layer(i)->remove_nodes(3);
+			// 	TVector ls = TVector::Constant(X_train.cols() - 3, 1.0);
+			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+			// }
+			// else {
+			// 	TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+			// }
+			TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);			
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 			graph.layer(static_cast<int>(i))->fix_scale();
@@ -1591,7 +1593,7 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
-		// Experiment 2: Reduce dimension to 3
+		// Experiment 2: Matern52
 		Case study("nrel", "TwrBsMxt");
 		study.n_train = 20;
 		study.experiment = 2;
