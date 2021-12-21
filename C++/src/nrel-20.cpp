@@ -1299,6 +1299,7 @@ void case2(Case& case_study) {
 			graph.layer(static_cast<int>(i))->fix_scale();
 
 		}
+		graph.layer(1)->remove_nodes(2);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
@@ -1584,9 +1585,10 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
+		// Experiment 2: Reduce dimension to 3
 		Case study("nrel", "TwrBsMxt");
 		study.n_train = 20;
-		study.experiment = 1;
+		study.experiment = 2;
 		study.start = 1;
 		study.finish = 26;
 		study.train_iter = 500;
