@@ -1292,17 +1292,26 @@ void case2(Case& case_study) {
 
 		Graph graph(std::make_pair(X_train, Y_train), 1);
 		for (unsigned int i = 0; i < graph.n_layers; ++i) {
+			// if (i == 1){
+			// 	graph.layer(i)->remove_nodes(3);
+			// 	TVector ls = TVector::Constant(X_train.cols() - 3, 1.0);
+			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TMatern52, ls);
+			// }
+			// else {
+			// 	TVector ls = TVector::Constant(X_train.cols(), 1.0);
+			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+			// }
 			TVector ls = TVector::Constant(X_train.cols(), 1.0);
-			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);			
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 			graph.layer(static_cast<int>(i))->fix_scale();
 
-		}
+		}		
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 48);
+		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
 		TMatrix mean = Z.first;
 		TMatrix var = Z.second;
 		double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1584,10 +1593,11 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
-		Case study("nrel", "RootMyc1");
-		study.n_train = 40;
-		study.experiment = 1;
-		study.start = 3;
+		// Experiment 2: Matern52 (20)
+		Case study("nrel", "TwrBsMxt");
+		study.n_train = 60;
+		study.experiment = 2;
+		study.start = 1;
 		study.finish = 26;
 		study.train_iter = 500;
 		study.train_impute = 900;
