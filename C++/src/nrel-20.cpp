@@ -1584,8 +1584,8 @@ void engine_case2() {
 
 void nrel_case2() {
 	{
-		Case study("nrel", "RootMyc1");
-		study.n_train = 60;
+		Case study("nrel", "TwrBsMxt");
+		study.n_train = 20;
 		study.experiment = 1;
 		study.start = 1;
 		study.finish = 26;
