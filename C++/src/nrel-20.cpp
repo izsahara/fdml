@@ -1299,7 +1299,7 @@ void case2(Case& case_study) {
 			graph.layer(static_cast<int>(i))->fix_scale();
 
 		}
-		graph.layer(1)->remove_nodes(2);
+		graph.layer(1)->remove_nodes(3);
 		SIDGP model(graph);
 		model.train(case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
