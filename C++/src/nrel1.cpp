@@ -946,6 +946,7 @@ public:
 		sample(10);
 	}
 
+	//
 	void train(int n_iter = 50, int ess_burn = 10, Eigen::Index n_burn = 0) {
 		train_iter += n_iter;
 		auto train_start = std::chrono::system_clock::now();
@@ -1091,6 +1092,164 @@ public:
 
 		return std::make_pair(mean, variance);
 	}
+	//
+
+	// COMPUTATIONAL COST
+	void train(const std::string& time_path, int n_iter = 50, int ess_burn = 10, Eigen::Index n_burn = 0) {
+		train_iter += n_iter;
+		auto train_start = std::chrono::system_clock::now();
+		std::time_t train_start_t = std::chrono::system_clock::to_time_t(train_start);
+		std::cout << "START: " << std::put_time(std::localtime(&train_start_t), "%F %T") << std::endl;
+		ProgressBar* train_prog = new ProgressBar(std::clog, 70u, "[TRAIN]");
+		for (int i = 0; i < n_iter; ++i) {
+			//double progress = double(i) * 100.0 / double(n_iter);
+			train_prog->write((double(i) / double(n_iter)));
+			// I-step
+			sample(ess_burn);
+			// M-step
+			graph.propagate(Task::Train);
+		}
+		delete train_prog;
+		auto train_end = std::chrono::system_clock::now();
+		std::time_t train_end_t = std::chrono::system_clock::to_time_t(train_end);
+		std::cout << "END: " << std::put_time(std::localtime(&train_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+
+		std::string time_diff = "0\t" + std::to_string(std::difftime(train_end_t, train_start_t));
+		write_to_file(time_path, time_diff);
+		
+		// Estimate Parameters
+		if (n_burn == 0) n_burn = std::size_t(0.75 * train_iter);
+		else if (n_burn > train_iter) throw std::runtime_error("n_burn > train_iter");
+		for (std::vector<Layer>::iterator layer = graph.m_layers.begin(); layer != graph.m_layers.end(); ++layer) {
+			layer->estimate_parameters(n_burn);
+		}
+	}
+	MatrixPair predict(const std::string& time_path, const TMatrix& X, unsigned int n_predict = 50, unsigned int n_thread = 1) {
+		sample(50);
+		TMatrix mean = TMatrix::Zero(X.rows(), 1);
+		TMatrix variance = TMatrix::Zero(X.rows(), 1);
+		std::vector<MatrixPair> predictions;
+
+		auto pred_start = std::chrono::system_clock::now();
+		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "[PREDICT]");
+		graph.n_thread = n_thread;
+		for (int i = 0; i < n_predict; ++i) {
+			sample();
+			graph.layer(0)->predict(X);
+			graph.propagate(Task::LinkedPredict);
+			MatrixPair output = graph.layer(-1)->latent_output;
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			pred_prog->write((double(i) / double(n_predict)));
+		}
+		delete pred_prog;
+
+		auto pred_end = std::chrono::system_clock::now();
+		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+		mean.array() /= double(n_predict);
+		variance.array() /= double(n_predict);
+		variance.array() -= square(mean.array());
+
+		std::string time_diff = "1\t" + std::to_string(std::difftime(pred_end_t, pred_start_t));
+		write_to_file(time_path, time_diff);
+
+		return std::make_pair(mean, variance);
+	}
+	MatrixPair predict(const std::string& time_path, const TMatrix& X, TMatrix& Yref, bool& nanflag, unsigned int n_predict = 50, unsigned int n_thread = 1) {
+		sample(50);
+		TMatrix mean = TMatrix::Zero(X.rows(), 1);
+		TMatrix variance = TMatrix::Zero(X.rows(), 1);
+		std::vector<MatrixPair> predictions;
+
+		auto pred_start = std::chrono::system_clock::now();
+		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		graph.n_thread = n_thread;
+		graph.check_connected(X);
+		for (int i = 0; i < n_predict; ++i) {
+			sample();
+			graph.layer(0)->predict(X);
+			graph.propagate(Task::LinkedPredict);
+			MatrixPair output = graph.layer(-1)->latent_output;
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			if ((mean.array().isNaN()).any()) { nanflag = true;  break; }
+			TVector tmp_mu = mean.array() / double(i + 1);
+			double nrmse = metrics::rmse(Yref, tmp_mu, true);
+			if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
+			double r2 = metrics::r2_score(Yref, tmp_mu);
+			pred_prog->write((double(i) / double(n_predict)), nrmse, r2);
+		}
+		delete pred_prog;
+
+		auto pred_end = std::chrono::system_clock::now();
+		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+		mean.array() /= double(n_predict);
+		variance.array() /= double(n_predict);
+		variance.array() -= square(mean.array());
+		std::string time_diff = "1\t" + std::to_string(std::difftime(pred_end_t, pred_start_t));
+		write_to_file(time_path, time_diff);
+		return std::make_pair(mean, variance);
+	}
+	MatrixPair predict(const std::string& time_path, const TMatrix& X, TMatrix& Yref, std::string mcs_path, bool& nanflag, unsigned int n_predict = 50, unsigned int n_thread = 1) {
+		sample(50);
+		TMatrix mean = TMatrix::Zero(X.rows(), 1);
+		TMatrix variance = TMatrix::Zero(X.rows(), 1);
+		std::vector<MatrixPair> predictions;
+
+		auto pred_start = std::chrono::system_clock::now();
+		std::time_t pred_start_t = std::chrono::system_clock::to_time_t(pred_start);
+		std::cout << "START: " << std::put_time(std::localtime(&pred_start_t), "%F %T") << std::endl;
+		ProgressBar* pred_prog = new ProgressBar(std::clog, 70u, "");
+		graph.n_thread = n_thread;
+		graph.check_connected(X);
+		for (int i = 0; i < n_predict; ++i) {
+			sample();
+			graph.layer(0)->predict(X);
+			graph.propagate(Task::LinkedPredict);
+			MatrixPair output = graph.layer(-1)->latent_output;
+			mean.noalias() += output.first;
+			variance.noalias() += (square(output.first.array()).matrix() + output.second);
+			if ((mean.array().isNaN()).any()) { nanflag = true;  break; }
+
+			TVector nrmse_mu = mean.array() / double(i + 1);
+			double nrmse = metrics::rmse(Yref, nrmse_mu, true);
+			// if (i > 2 && nrmse > 0.5) { nanflag = true;  break; }
+			double r2 = metrics::r2_score(Yref, nrmse_mu);
+			pred_prog->write((double(i) / double(n_predict)), nrmse, r2);
+
+			if (i == 0 || i == 99 || i == 199 || i == 299 || i == 399 || i == 499) {
+				std::string mu_path = mcs_path + "-" + std::to_string(i) + "-M-MCS.dat";
+				std::string var_path = mcs_path + "-" + std::to_string(i) + "-V-MCS.dat";
+				TMatrix tmp_mu = mean.array() / double(i + 1);
+				TMatrix tmp_var = variance.array() / double(i + 1);
+				tmp_var.array() -= square(tmp_mu.array());
+				write_data(mu_path, tmp_mu);
+				write_data(var_path, tmp_var);
+			}
+		}
+		delete pred_prog;
+
+		auto pred_end = std::chrono::system_clock::now();
+		std::time_t pred_end_t = std::chrono::system_clock::to_time_t(pred_end);
+		std::cout << "END: " << std::put_time(std::localtime(&pred_end_t), "%F %T") << std::endl;
+		std::cout << std::endl;
+		mean.array() /= double(n_predict);
+		variance.array() /= double(n_predict);
+		variance.array() -= square(mean.array());
+		std::string time_diff = "1\t" + std::to_string(std::difftime(pred_end_t, pred_start_t));
+		write_to_file(time_path, time_diff);
+		return std::make_pair(mean, variance);
+	}
+	//
 
 
 public:
@@ -1302,16 +1461,17 @@ void case2(Case& case_study) {
 			// 	graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 			// }
 			TVector ls = TVector::Constant(X_train.cols(), 1.0);
-			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);			
+			graph.layer(static_cast<int>(i))->set_kernels(TKernel::TSquaredExponential, ls);
 			graph.layer(static_cast<int>(i))->set_likelihood_variance(case_study.likelihood_variance);
 			graph.layer(static_cast<int>(i))->fix_likelihood_variance();
 			graph.layer(static_cast<int>(i))->fix_scale();
 
-		}		
+		}
 		SIDGP model(graph);
-		model.train(case_study.train_iter, case_study.train_impute);
+		std::string t_path = results_path + "TIME.dat";
+		model.train(t_path, case_study.train_iter, case_study.train_impute);
 		bool nanflag = false;
-		MatrixPair Z = model.predict(X_test, Y_test, nanflag, case_study.pred_iter, 96);
+		MatrixPair Z = model.predict(t_path, X_test, Y_test, nanflag, case_study.pred_iter, 96);
 		TMatrix mean = Z.first;
 		TMatrix var = Z.second;
 		double nrmse = metrics::rmse(Y_test, mean, true);
@@ -1607,6 +1767,21 @@ void nrel_case2(const unsigned int& n_train) {
 	}
 }
 
+void reentry_case2(const unsigned int& n_train) {
+	{
+		Case study("reentry");
+		study.n_train = n_train;
+		study.experiment = 1;
+		study.start = 1;
+		study.finish = 26;
+		study.train_iter = 500;
+		study.train_impute = 900;
+		study.pred_iter = 300;
+		study.likelihood_variance = 1E-10;
+		case2(study);
+	}
+}
+
 void motorcycle_case3() {
 	{
 		Case study("motorcycle");
@@ -1628,6 +1803,13 @@ int main() {
 	//case1();
 	//airfoil_case2();
 	//engine_case2();
+
+	//reentry_case2(20);
+	//reentry_case2(40);
+	//reentry_case2(60);
+	//reentry_case2(80);
+	//reentry_case2(100);
+
 	nrel_case2(80);
 	nrel_case2(100);
 	//motorcycle_case3();
