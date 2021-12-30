@@ -11,8 +11,8 @@ cmake_minimum_required(VERSION 3.16)
 # add_executable(engine engine.cpp)
 # target_link_libraries(engine ${PROJECT_NAME})
 
-add_executable(nrel1 nrel1.cpp)
-target_link_libraries(nrel1 ${PROJECT_NAME})
+# add_executable(nrel1 nrel1.cpp)
+# target_link_libraries(nrel1 ${PROJECT_NAME})
 add_executable(reentry1 reentry1.cpp)
 target_link_libraries(reentry1 ${PROJECT_NAME})
 
