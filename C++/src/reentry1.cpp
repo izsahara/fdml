@@ -1777,7 +1777,7 @@ void reentry_case2(const unsigned int& n_train) {
 		study.train_iter = 500;
 		study.train_impute = 900;
 		study.pred_iter = 300;
-		study.likelihood_variance = 1E-10;
+		study.likelihood_variance = 1E-3;
 		case2(study);
 	}
 }
